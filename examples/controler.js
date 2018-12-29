@@ -1,15 +1,277 @@
-var Controler4 = {};
-Controler4.keepUp = function(renderer,hitTest){
+var Controler4 = function(renderer){
 	this.camera4 = renderer.camera4;
 	this.camera3 = renderer.camera3;
 	this.renderer = renderer;
+	this.thicknessStep = 0.1;
+	this.flowStep = 0.1;
+	this.brightnessStep = 0.1;
+	this.brightness = 1;
+	this.retinaStep = 0.05;
+	this.fov = this.camera4.fov;
+	this.fovStep = 5;
+	//camera3 rotation euler angle:
+	this.rx3 = Math.PI/6;
+	this.ry3 = Math.PI/8;
+	this.keyConfig = {
+		wireFrame: "C".charCodeAt(0),
+		darker: 188,  //,
+		brighter: 190,//.
+		flowm: 219,//[
+		flowp: 221,//]
+		thumbm: 186,//;
+		thumbp: 222,//'
+		layerm: 189,
+		layerp: 187,
+		retinaleft: 37,
+		retinaright: 39,
+		retinaup: 38,
+		retinadown: 40,
+		fovm:57,
+		fovp:48
+	}
+	this.needUpdate = true;
+	this.keyPressed = {};
+	var _this = this;
+	document.addEventListener('keydown', function( ev ) {
+		ev.preventDefault();
+		_this.keyPressed[ev.keyCode] = true;
+		if(_this.keyPressed[_this.keyConfig.wireFrame]){
+			_this.renderer.wireFrameMode = !_this.renderer.wireFrameMode;
+			_this.needUpdate = true;
+		}
+		if(_this.onkeydown) _this.onkeydown();
+	});
+	document.addEventListener('keyup', function( ev ) {
+		_this.keyPressed[ev.keyCode] = false;
+		if(_this.onkeyup) _this.onkeyup();
+	});
+	var glL = _this.renderer.glL;
+	var glR = _this.renderer.glR;
+	glL.canvas.addEventListener('contextmenu', function(ev) {
+		ev.preventDefault();
+	}, false);
+	glR.canvas.addEventListener('contextmenu', function(ev) {
+		ev.preventDefault();
+	}, false);
+	glL.canvas.addEventListener('mousedown', function( ev ) {
+		if(ev.button != 0){
+			_this._dealTransparentColor(glL,ev);
+		}
+	});
+	glR.canvas.addEventListener('mousedown', function( ev ) {
+		if(ev.button != 0){
+			_this._dealTransparentColor(glR,ev);
+		}
+	});
+}
+Controler4.prototype._dealTransparentColor = function(gl,ev){
+	if(this.keyPressed[18]){ //Alt + 1
+		if(this.keyPressed[18])
+		var pixels = new Uint8Array(4);
+		this.renderer.render();
+		this.needUpdate = true;
+		gl.readPixels(ev.offsetX, this.renderer.height-ev.offsetY, 1,1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+		var key = this.keyPressed[49]?0:this.keyPressed[50]?1:this.keyPressed[51]?2:this.keyPressed[52]?3:-1;
+		if(key<0){
+			this.renderer.opaqueColors = [
+				{
+					color: 0x000000,
+					tolerance: 0
+				},
+				{
+					color: 0x000000,
+					tolerance: 0
+				},
+				{
+					color: 0x000000,
+					tolerance: 0
+				},
+				{
+					color: 0x000000,
+					tolerance: 0
+				}
+			];
+		}else{
+			this.renderer.opaqueColors[key] = {
+				color: (pixels[0]<<16) + (pixels[1]<<8) + pixels[2],
+				tolerance: 5
+			}
+		}
+	}
+}
+Controler4.prototype._dealKeyRenderer = function(){
+	//render layer number settings:
+	if(this.keyPressed[this.keyConfig.layerm]){//moin
+		if(this.renderer.thickness<1)
+			this.renderer.thickness *= 1+this.thicknessStep;
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.layerp]){//plus
+		if(this.renderer.thickness>0.01)
+			this.renderer.thickness /= 1+this.thicknessStep;
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.flowm]){//moin
+		if(this.renderer.flow>0.01)
+			this.renderer.flow /= 1+this.flowStep;
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.flowp]){//plus
+		if(this.renderer.flow<100)
+			this.renderer.flow *= 1+this.flowStep;
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.thumbp]){//moin
+		if(this.renderer.thumbSize>2)
+			this.renderer.thumbSize /= 1+this.flowStep;
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.thumbm]){//plus
+		if(this.renderer.thumbSize<20)
+			this.renderer.thumbSize *= 1+this.flowStep;
+		this.needUpdate = true;
+	}
+	//retina camera3 control:
+	if(this.keyPressed[this.keyConfig.retinaleft]){
+		if(this.rx3>-Math.PI/6) this.rx3 -= this.retinaStep;
+		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.retinaright]){
+		if(this.rx3<Math.PI/6) this.rx3 += this.retinaStep;
+		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.retinaup]){
+		if(this.ry3>-Math.PI/3) this.ry3 -= this.retinaStep;
+		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.retinadown]){
+		if(this.ry3<Math.PI/3) this.ry3 += this.retinaStep;
+		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.darker]){
+		this.brightness -= this.brightnessStep;
+		if(this.brightness < 0) this.brightness = 0;
+		this.renderer.bgColor3 = 0x010101 * Math.round(this.brightness*255);
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.brighter]){
+		this.brightness += this.brightnessStep;
+		if(this.brightness >1) this.brightness = 1;
+		this.renderer.bgColor3 = 0x010101 * Math.round(this.brightness*255);
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.fovm]){
+		if(this.fov>10) this.fov -= this.fovStep;
+		this.camera4.setProjectMat4(this.fov);
+		this.needUpdate = true;
+	}
+	if(this.keyPressed[this.keyConfig.fovp]){
+		if(this.fov<170) this.fov += this.fovStep;
+		this.camera4.setProjectMat4(this.fov);
+		this.needUpdate = true;
+	}
+}
+
+
+Controler4.Trackball = function(renderer){
+	Controler4.call(this,renderer);
+	var _this = this;
 	this.rotateMouseStep = 100;
-	this.moveStep = 0.1;
+	this.rotateKeyStep = 0.05;
+	this.zoomStep = 0.02;
+	this.button = false;
+	this.center = new Vec4(0,0,0,0);
+	this.damp = 0.1;
+	//this.isDamping = false;
+	this.resRot = new Bivec(0,0,0,0,0,0);
+	this.resZoom = 0;
+	this.camera4.lookAt(this.center);
+	document.addEventListener('mousemove', function( ev ) {
+		var x = ev.movementX/_this.rotateMouseStep;
+		var y = ev.movementY/_this.rotateMouseStep;
+		if(this.button === 0){
+			_this._rotateA_B(-x,y,_this.x.cross(_this.z),_this.y.cross(_this.z));
+		}else if(this.button === 2){
+			_this._rotateA_B(-x,y,_this.x.cross(_this.t),_this.y.cross(_this.t));
+		}else if(this.button === 1){
+			_this._rotateA_B(x,-y,_this.x.cross(_this.y),_this.z.cross(_this.t));
+		}
+	});
+	document.addEventListener('mousedown', function( ev ) {
+		this.button = ev.button;
+	});
+	document.addEventListener('mouseup', function( ev ) {
+		this.button = false;
+	});
+	document.addEventListener('mousewheel', function( ev ) {
+		var step = -ev.wheelDelta/120*_this.zoomStep;
+		_this._zoom(step);
+		if(step!=0)
+			_this.resZoom = step;
+	});
+	
+}
+Controler4.Trackball.prototype = Object.create(Controler4.prototype);
+Controler4.Trackball.prototype._needDamping = function(){
+	return this.resRot.len(false)>0.00001 || Math.abs(this.resZoom)>0.00001;
+}
+Controler4.Trackball.prototype._zoom = function(step){
+	this.camera4.position.mul(1+step);
+}
+Controler4.Trackball.prototype._rotateA_B = function(x,y,A,B){
+	var R = A.mul(x).add(B.mul(y));
+	this._rotate(R);
+}
+Controler4.Trackball.prototype._rotate = function(Bivec){
+	this.resRot = Bivec;
+	var R = Bivec.expQ()
+	this.camera4.rotate(R);
+	this.camera4.position = R[0].mul(this.camera4.position,false).mul(R[1]);
+	this.needUpdate = true;
+}
+Controler4.Trackball.prototype.update = function(callback){
+	/*var m = this.camera3.rotation.toMatLR().t().array;
+	new Mat4(
+		m[0],m[1],m[2],0,
+		m[3],m[4],m[5],0,
+		m[6],m[7],m[8],0,
+		0   ,0   ,0   ,1
+	)*/
+	var mat = this.camera4.coordMat();
+	
+	this.x = mat.mul(new Vec4(1,0,0,0));
+	this.y = mat.mul(new Vec4(0,1,0,0));
+	this.z = mat.mul(new Vec4(0,0,1,0));
+	this.t = mat.mul(new Vec4(0,0,0,1));
+	this._dealKeyRenderer();
+	if(this._needDamping()){
+		this.resRot.div(1+this.damp);
+		this.resZoom /= 1+this.damp;
+		this._rotate(this.resRot);
+		this._zoom(this.resZoom);
+	}
+	if(this.needUpdate) {
+		callback();//call renderer
+	}
+	this.needUpdate = false;
+}
+Controler4.KeepUp = function(renderer,hitTest){
+	Controler4.call(this,renderer);
+	
+	this.hitTest = hitTest || (()=>false);
+	this.rotateMouseStep = 100;
+	this.moveStep = 0.02;
 	this.rotateKeyStep = 0.05;
 	this.wheelDeltaStep = 5;
-	this.thicknessStep = 0.1;
-	this.retinaStep = 0.05;
-	this.keyConfig = {
+	
+	this.keyConfig = Object.assign(this.keyConfig, {
+		
+		/* 8 move directions */
+		
 		left: "A".charCodeAt(0),
 		right: "D".charCodeAt(0),
 		up: 32,    //space
@@ -18,6 +280,9 @@ Controler4.keepUp = function(renderer,hitTest){
 		back: "S".charCodeAt(0),
 		sidefront: "Q".charCodeAt(0),
 		sideback: "E".charCodeAt(0),
+		
+		/* 8 rotate directions (up direction preserved)*/
+		
 		rotate3dp: "Z".charCodeAt(0),
 		rotate3dm: "X".charCodeAt(0),
 		rotateleft: "J".charCodeAt(0),
@@ -25,32 +290,16 @@ Controler4.keepUp = function(renderer,hitTest){
 		rotateup: "I".charCodeAt(0),
 		rotatedown: "K".charCodeAt(0),
 		rotatefront: "U".charCodeAt(0),
-		rotateback: "O".charCodeAt(0),
-		layerm: 189,
-		layerp: 187,
-		retinaleft: 37,
-		retinaright: 39,
-		retinaup: 38,
-		retinadown: 40
-	};
+		rotateback: "O".charCodeAt(0)
+	});
 	//camera4 rotation quanternions:
 	this.planeRotation = [new Vec4(1,0,0,0),new Vec4(1,0,0,0)];
 	this.verticalRotation = [new Vec4(1,0,0,0),new Vec4(1,0,0,0)];
 	//and vertical angle:
 	this.verticalDelta = 0;
-	//camera3 rotation euler angle:
-	this.rx3 = Math.PI/6;
-	this.ry3 = Math.PI/8;
-	this.hitTest = hitTest || (()=>false);
-	this.needUpdate = true;
+	
 	var _this = this;
-	this.keyPressed = {};
-	document.addEventListener('keydown', function( ev ) {
-		_this.keyPressed[ev.keyCode] = true;
-	});
-	document.addEventListener('keyup', function( ev ) {
-		_this.keyPressed[ev.keyCode] = false;
-	});
+	
 	document.addEventListener('mousemove', function( ev ) {
 		if(!!document.pointerLockElement){
 			var x = ev.movementX;
@@ -69,10 +318,13 @@ Controler4.keepUp = function(renderer,hitTest){
 		}
 	});
 	document.addEventListener('click', function( ev ) {
-		document.body.requestPointerLock();
+		if(ev.button == 0){
+			document.body.requestPointerLock();
+		}
 	});
 }
-Controler4.keepUp.prototype._rotateHorizontal = function(x,y){
+Controler4.KeepUp.prototype = Object.create(Controler4.prototype);
+Controler4.KeepUp.prototype._rotateHorizontal = function(x,y){
 	var xt = this.x.cross(this.t).mul(x);
 	var zt = this.z.cross(this.t).mul(y);
 	var M = xt.add(zt).expQ();
@@ -84,9 +336,9 @@ Controler4.keepUp.prototype._rotateHorizontal = function(x,y){
 	var yt = this.y.cross(this.t).mul(this.verticalDelta);
 	this.verticalRotation = yt.expQ();
 }
-Controler4.keepUp.prototype.update = function(callback){
+Controler4.KeepUp.prototype.update = function(callback){
 	var camera = this.camera4;
-	//camera4 标架:
+	//camera4 tetrad:
 	var mat = this.planeRotation[0].toMatL().mul(this.planeRotation[1].toMatR());
 	this.x = mat.mul(new Vec4(1,0,0,0));
 	this.y = mat.mul(new Vec4(0,1,0,0));
@@ -122,8 +374,8 @@ Controler4.keepUp.prototype.update = function(callback){
 		this.tryMove(this.y.mul(step,false));
 		this.needUpdate = true;
 	}else{
-		if(this.walkmode || this.keyPressed[this.keyConfig.down]){//L shift
-			this.tryMove(this.y.mul(-step,false));
+		if(this.gravity || this.keyPressed[this.keyConfig.down]){//L shift
+			this.tryMove(this.y.mul(-step,false),false);
 			this.needUpdate = true;
 		}
 	}
@@ -171,38 +423,7 @@ Controler4.keepUp.prototype.update = function(callback){
 		this.planeRotation[1] = this.planeRotation[1].mul(M[1]).norm();
 		this.needUpdate = true;
 	}
-	//render layer number settings:
-	if(this.keyPressed[this.keyConfig.layerm]){//moin
-		if(this.renderer.thickness<1)
-			this.renderer.thickness *= 1+this.thicknessStep;
-		this.needUpdate = true;
-	}
-	if(this.keyPressed[this.keyConfig.layerp]){//plus
-		if(this.renderer.thickness>0.01)
-			this.renderer.thickness /= 1+this.thicknessStep;
-		this.needUpdate = true;
-	}
-	//retina camera3 control:
-	if(this.keyPressed[this.keyConfig.retinaleft]){
-		if(this.rx3>-Math.PI/6) this.rx3 -= this.retinaStep;
-		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
-		this.needUpdate = true;
-	}
-	if(this.keyPressed[this.keyConfig.retinaright]){
-		if(this.rx3<Math.PI/6) this.rx3 += this.retinaStep;
-		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
-		this.needUpdate = true;
-	}
-	if(this.keyPressed[this.keyConfig.retinaup]){
-		if(this.ry3<Math.PI/3) this.ry3 += this.retinaStep;
-		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
-		this.needUpdate = true;
-	}
-	if(this.keyPressed[this.keyConfig.retinadown]){
-		if(this.ry3>-Math.PI/3) this.ry3 -= this.retinaStep;
-		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
-		this.needUpdate = true;
-	}
+	this._dealKeyRenderer();
 	if(this.needUpdate) {
 		camera.rotation[0] = this.verticalRotation[0].mul(this.planeRotation[0],false);
 		camera.rotation[1] = this.planeRotation[1].mul(this.verticalRotation[1],false);
@@ -210,11 +431,27 @@ Controler4.keepUp.prototype.update = function(callback){
 	}
 	this.needUpdate = false;
 }
-Controler4.keepUp.prototype.tryMove = function(movement){
+Controler4.KeepUp.prototype.tryMove = function(movement,climb){
 	var eye = this.camera4.position.add(movement,false);
 	var foot = eye.clone();
-	foot.y -= 1.5; //height of the figure
-	if((!this.hitTest(eye))&&(!this.hitTest(foot))){
+	var height = 0.5;
+	var width = 0.1;
+	var _this = this;
+	function test(eye){
+		return (!_this.hitTest(eye))&&(!_this.hitTest(eye.sub(new Vec4(0,height,0,0),false)))&&
+			(!_this.hitTest(eye.add(new Vec4(width,0,0,0),false)))&&
+			(!_this.hitTest(eye.add(new Vec4(-width,0,0,0),false)))&&
+			(!_this.hitTest(eye.add(new Vec4(0,0,width,0),false)))&&
+			(!_this.hitTest(eye.add(new Vec4(0,0,-width,0),false)))&&
+			(!_this.hitTest(eye.add(new Vec4(0,0,0,width),false)))&&
+			(!_this.hitTest(eye.add(new Vec4(0,0,0,-width),false)));
+	}
+	if(test(eye)){
 		this.camera4.position.set(eye);
+	}else if(climb !== false){
+		eye.y += this.moveStep*1.1;
+		if(test(eye)){
+			this.camera4.position.set(eye);
+		}
 	}
 }

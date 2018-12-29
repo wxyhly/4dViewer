@@ -130,6 +130,10 @@ var Webgl = function(gl){
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer.buffer);
 		gl.drawElements(gl.TRIANGLES,elementBuffer.length,gl.UNSIGNED_SHORT,0);
 	};
+	gl.drawPoints = function(elementBuffer){
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer.buffer);
+		gl.drawElements(gl.POINTS,elementBuffer.length,gl.UNSIGNED_SHORT,0);
+	};
 	gl.drawLines = function(arrayBuffer){
 		gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer.buffer);
 		gl.drawArrays(gl.LINES, 0, arrayBuffer.length/arrayBuffer.type);

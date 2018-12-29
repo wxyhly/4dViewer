@@ -175,7 +175,8 @@ Obj3.prototype.coordMat = function(){//affine mat
 	);
 }
 Obj4.prototype.coordMat = function(){//affine mat not surpported
-	console.warning("Affine matrix for 4D Obj is not surpported");
+	//console.warn("Affine matrix for 4D Obj is not surpported, pure rotation matrix is computed instead.");
+	return this.rotation[0].toMatL().mul(this.rotation[1].toMatR());
 }
 Obj2.prototype.move = Obj3.prototype.move = Obj4.prototype.move = function(p){
 	this.position.add(p);
@@ -201,17 +202,52 @@ Obj4.prototype.rotate = function(bivec,s){
 	var R;
 	if(bivec[1]){//quanternion [L,R]
 		R = [bivec[0],bivec[1]];
-	}
-	if(typeof s=="number"){
+	}else if(typeof s=="number"){
 		R = bivec.expQ(s);
 	}else{
 		R = bivec.expQ();
 	}
-	this.rotation[0] = R[0].mul(this.rotation[0]);
+	this.rotation[0] = R[0].mul(this.rotation[0],false);
 	this.rotation[1].mul(R[1]);
 	return this;
 }
-
+Obj3.prototype.lookAt = function(pos,up){
+	var rayon = pos.sub(this.position,false).norm();
+	if(!up){
+		var R = new Vec3(0,0,1).cross(rayon);
+		var s = R.len();
+		var c = rayon.z; //Vec3(0,0,1) dot M
+		if(Math.abs(s)>0.000001){
+			R.mul(Math.atan2(s,c)/s);
+		}
+		this.rotation = R.expQ().mul(this.rotation);
+	}else{
+		up.norm();
+		var rayon_horizontal = rayon.sub(rayon.mul(rayon.dot(up),false),false);
+		this.lookAt(pos.add(rayon_horizontal,false), false);
+		this.lookAt(pos.add(rayon,false), false);
+	}
+}
+Obj4.prototype.lookAt = function(pos,up){
+	var rayon = pos.sub(this.position,false).norm();
+	if(!up){
+		var R = new Vec4(0,0,0,1).cross(rayon);
+		var s = R.len();
+		var c = rayon.t; //Vec4(0,0,0,1) dot M
+		if(Math.abs(s)>0.000001){
+			R.mul(Math.atan2(s,c)/s);
+		}
+		R = R.expQ();
+		this.rotation[0] = R[0].mul(this.rotation[0]);
+		this.rotation[1].mul(R[1]);
+	}else{
+		up.norm();
+		var rayon_horizontal = rayon.sub(rayon.mul(rayon.dot(up),false),false);
+		this.lookAt(pos.add(rayon_horizontal,false), false);
+		this.lookAt(pos.add(rayon,false), false);
+	}
+	return this;
+}
 
 
 var Geom2 = function(m,pos,rot,color){
@@ -510,7 +546,7 @@ Mesh3.prototype.extrude = Mesh4.prototype.extrude = function(v,flag){
 Mesh3.prototype.turning = Mesh4.prototype.turning = function(B,n,flag){
 	if(flag===false){
 		var M = B.exp(Math.PI/n);
-		var N = [mId((this instanceof Mesh3)?3:4)];
+		var N = [(this instanceof Mesh3)?new Mat3():new Mat4()];
 		for(var i=1;i<=n;i++){
 			N[i] = N[i-1].mul(M,false);
 		}
@@ -520,7 +556,7 @@ Mesh3.prototype.turning = Mesh4.prototype.turning = function(B,n,flag){
 		return this.loft(f,n+1);
 	}
 	var M = B.exp(Math.PI*2/n);
-	var N = [mId((this instanceof Mesh3)?3:4)];
+	var N = [(this instanceof Mesh3)?new Mat3():new Mat4()];
 	for(var i=1;i<n;i++){
 		N[i] = N[i-1].mul(M,false);
 	}
@@ -835,7 +871,6 @@ Mesh3.prototype.crossSection = function(t,n){
 	return M;
 }
 Mesh4.prototype.crossSection = function(t,n){
-	var dd = new Date().getTime();
 	var M = new Mesh4();
 	var V = [],
 		E = [],
@@ -899,9 +934,11 @@ Mesh4.prototype.crossSection = function(t,n){
 	}
 	return M;
 }
-Mesh4.prototype.setInfo = function(info){
-	for(var i=0; i<this.C.length; i++){
-		this.C[i].info = info;//record infos comme color, normal
+Mesh4.prototype.setInfo = function(info){//record infos comme color, normal
+	for(var i of this.C){
+		if(!i.info) i.info = {};
+		for(var j in info)
+			i.info[j] = info[j]; //deep copy
 	}
 	return this;
 }
@@ -1110,8 +1147,11 @@ Mesh3.torus = function(r,R,u,v){
 Mesh4.tesseract = function(r){
 	return Mesh3.cube(r).embed(true).extrude(new Vec4(0,0,0,r)).move(new Vec4(0,0,0,-r/2));
 }
+Mesh4.cuboid = function(a,b,c,d){
+	return Mesh3.cuboid(a,b,c).embed(true).extrude(new Vec4(0,0,0,d)).move(new Vec4(0,0,0,-d/2));
+}
 Mesh4.glome = function(r,u,v,w){
-	return Mesh3.sphere(r,u,v).embed().turning(bivec(0,0,1,0,0,0),w,false).weld();
+	return Mesh3.sphere(r,u,v).embed().turning(new Bivec(0,0,1,0,0,0),w,false).weld();
 }
 Mesh4.spherinder = function(r,u,v,h){
 	return Mesh3.sphere(r,u,v).embed(true).extrude(new Vec4(0,0,0,h)).move(new Vec4(0,0,0,-h/2));
@@ -1261,14 +1301,30 @@ Chunk4.prototype.set = function(id, x,y,z,t){
 	this.data[x][y][z][t] = id;
 	return id;
 }
-
+Chunk4.prototype.hitTest = function(pos){
+	var value = this.get(Math.round(pos.x),Math.round(pos.y),Math.round(pos.z),Math.round(pos.t));
+	if(value > 0) return true; //block detected
+	if(value == 0) return false; //air detected
+	var dx = pos.x - Math.round(pos.x);
+	var dy = pos.y - Math.round(pos.y);
+	var dz = pos.z - Math.round(pos.z);
+	var dt = pos.t - Math.round(pos.t);
+	if(value == -1) return dy < -dx;
+	if(value == -2) return dy < dx;
+	if(value == -3) return dy < -dz;
+	if(value == -4) return dy < dz;
+	if(value == -5) return dy < -dt;
+	if(value == -6) return dy < dt;
+	
+	
+}
 Chunk4.prototype.generateMesh = function(){
 	var Cellx = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
 	var Celly = Mesh3.cube(1).embed(true, new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
 	var Cellz = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(1,0,0,0),new Vec4(0,0,0,1));
 	var Cellt = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(0,0,1,0),new Vec4(1,0,0,0));
-	var slope = Mesh2.points([new Vec2(0,0),new Vec2(0,1),new Vec2(1,0)]).embed(4,true).directProduct(Mesh2.rectangle(1,1).embed(4,true,new Vec4(0,0,1,0),new Vec4(0,0,0,1)));
-	//var slope = Mesh2.points([new Vec2(0,0),new Vec2(0,1),new Vec2(1,0)]).embed(3,true).extrude(new Vec3(0,0,1)).embed(true).extrude(new Vec4(0,0,0,1));
+	var slope = Mesh2.points([new Vec2(0,0),new Vec2(0,1),new Vec2(1,0)]).embed(3,true).extrude(new Vec3(0,0,1)).embed(true).extrude(new Vec4(0,0,0,1)).move(new Vec4(-0.5,-0.5,-0.5,-0.5));
+	var glome = Mesh4.glome(0.5,6,6,6);
 	var hyxelMesh = new Mesh4();
 	var enableOffset = this.enableOffset;
 	this.enableOffset = false;
@@ -1300,9 +1356,34 @@ Chunk4.prototype.generateMesh = function(){
 						
 						switch(datavalue){
 							case -1:
-								hyxelMesh.join(slope.clone().move(new Vec4(x,y,z,t-0.5)).setInfo({color: 0xFFFFFF}));
-								//unter konstruktion
+								//from x+ to x-
+								hyxelMesh.join(slope.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
 							break;
+							case -2:
+								//from x- to x+
+								hyxelMesh.join(slope.clone().rotate(new Bivec(0,1,0,0,0,0),Math.PI).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+							break;
+							case -3:
+								//from z+ to z-
+								hyxelMesh.join(slope.clone().rotate(new Bivec(0,1,0,0,0,0),-Math.PI/2).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+							break;
+							case -4:
+								//from z+ to z-
+								hyxelMesh.join(slope.clone().rotate(new Bivec(0,1,0,0,0,0),Math.PI/2).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+							break;
+							case -5:
+								//from z+ to z-
+								hyxelMesh.join(slope.clone().rotate(new Bivec(0,0,1,0,0,0),-Math.PI/2).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+							break;
+							case -6:
+								//from z+ to z-
+								hyxelMesh.join(slope.clone().rotate(new Bivec(0,0,1,0,0,0),Math.PI/2).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+							break;
+							case -7:
+								//glome
+								hyxelMesh.join(glome.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+							break;
+							
 						}
 					}
 				}
