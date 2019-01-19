@@ -1,4 +1,4 @@
- <html>
+<html>
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -14,22 +14,26 @@ var loop$ = function (call){
 }
 function start(){
 	var scene = new Scene();
-	var r = 2;
-	scene.add(new Geom4(Mesh4.tesseract(2*r),null,null,0xFFFFFF));
-	var cyl = Mesh4.spherinder(1,16,16,0.001);
-	scene.add(new Geom4(cyl,new Vec4(0,0,0,r),false,0xFF0000));
-	scene.add(new Geom4(cyl,new Vec4(0,0,0,-r),false,0xFFAA00));
-	scene.add(new Geom4(cyl,new Vec4(0,0,r,0),false,0xFFFF00).lookAt(new Vec4(0,0,1,0)));
-	scene.add(new Geom4(cyl,new Vec4(0,0,-r,0),false,0x00FFFF).lookAt(new Vec4(0,0,1,0)));
-	scene.add(new Geom4(cyl,new Vec4(0,r,0,0),false,0x0000FF).lookAt(new Vec4(0,1,0,0)));
-	scene.add(new Geom4(cyl,new Vec4(0,-r,0,0),false,0x00FF00).lookAt(new Vec4(0,1,0,0)));
-	scene.add(new Geom4(cyl,new Vec4(r,0,0,0),false,0xFF00FF).lookAt(new Vec4(1,0,0,0)));
-	scene.add(new Geom4(cyl,new Vec4(-r,0,0,0),false,0xAAFF00).lookAt(new Vec4(1,0,0,0)));
-	
-	var camera = new Camera4(120,0.01,30);
+	var noise = new Perlin3(124);
+	var octave = (x,y,z,scale)=>{x*=scale;y*=scale;z*=scale;return noise.value(x,y,z) + noise.value(x*2,y*2,z*2)/2+noise.value(x*4,y*4,z*4)/4};
+	var wavefn = (x,y,z)=>{
+		var q = octave(x,y,z,0.5)*2;
+		
+		return new Vec4(
+			x*10,
+			octave(x,y,z,5)*q*q,
+			y*10,
+			z*10
+		)
+	};
+	var terrain = new Geom4(Mesh4.grid(16,16,16,wavefn));
+	terrain.color = 0xFFFF00;
+	scene.add(terrain);
+	var camera = new Camera4(90,0.01,80);
 	camera.position = new Vec4(0,0,0,-1.9);
 	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
-	var controler = new Controler4.Trackball(renderer);
+	var controler = new Controler4.KeepUp(renderer);
+	controler.moveStep *=5;
 	function loop(){
 		controler.update(renderer.render.bind(renderer));
 		loop$(loop);

@@ -286,6 +286,7 @@ Renderer4.prototype.render = function(){
 		gl.dx4 = 0;
 		gl.dz4 = 0;
 	}
+	this.first = true;
 	if(this.thickness>=1){
 		this.renderCrossSection(new Vec4(0,0,1,mt*i),true,false);
 	}else{
@@ -347,12 +348,14 @@ Renderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 			gl.NBuffer.set(G.n,true);
 			gl.CBuffer.set(G.c,true);
 		}
-		gl.crossProgram.uniform["float dx"].set(gl.dx);
-		gl.crossProgram.uniform["float dx4"].set(gl.dx4);
-		gl.crossProgram.uniform["float dz4"].set(gl.dz4);
-		gl.crossProgram.uniform["mat4 mCamera"].set(gl.Mat.array);
-		gl.crossProgram.uniform["vec3 mCamera4"].set([m.ctg,m.mtt,m.mtw]);
-		gl.crossProgram.uniform["mat4 mN"].set(mN.array);
+		if(_this.first||mode3d){
+			gl.crossProgram.uniform["float dx"].set(gl.dx);
+			gl.crossProgram.uniform["float dx4"].set(gl.dx4);
+			gl.crossProgram.uniform["float dz4"].set(gl.dz4);
+			gl.crossProgram.uniform["mat4 mCamera"].set(gl.Mat.array);
+			gl.crossProgram.uniform["vec3 mCamera4"].set([m.ctg,m.mtt,m.mtw]);
+			gl.crossProgram.uniform["mat4 mN"].set(mN.array);
+		}
 		gl.crossProgram.uniform["int vertice"].set(1);
 		gl.drawFaces(gl.FBuffer);
 		if(_this.wireFrameMode){
@@ -360,14 +363,16 @@ Renderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 			gl.drawPoints(gl.FBuffer);
 		}
 		gl.fboProgram.use();
-		gl.fboProgram.uniform["float dx"].set(gl.dx);
-		gl.fboProgram.uniform["mat4 mCamera"].set(gl.Mat.array);
-		gl.fboProgram.uniform["vec3 mCamera4"].set([m.ctg,m.mtt,m.mtw]);
-		gl.fboProgram.uniform["float flow"].set(_this.thickness * _this.flow);
-		gl.fboProgram.uniform["vec4 oC0"].set(_this._opaqueColor[0]);
-		gl.fboProgram.uniform["vec4 oC1"].set(_this._opaqueColor[1]);
-		gl.fboProgram.uniform["vec4 oC2"].set(_this._opaqueColor[2]);
-		gl.fboProgram.uniform["vec4 oC3"].set(_this._opaqueColor[3]);
+		if(_this.first||mode3d){
+			gl.fboProgram.uniform["float dx"].set(gl.dx);
+			gl.fboProgram.uniform["mat4 mCamera"].set(gl.Mat.array);
+			gl.fboProgram.uniform["vec3 mCamera4"].set([m.ctg,m.mtt,m.mtw]);
+			gl.fboProgram.uniform["float flow"].set(_this.thickness * _this.flow);
+			gl.fboProgram.uniform["vec4 oC0"].set(_this._opaqueColor[0]);
+			gl.fboProgram.uniform["vec4 oC1"].set(_this._opaqueColor[1]);
+			gl.fboProgram.uniform["vec4 oC2"].set(_this._opaqueColor[2]);
+			gl.fboProgram.uniform["vec4 oC3"].set(_this._opaqueColor[3]);
+		}
 		gl.fboProgram.attribute["vec4 V"].bind(gl.VfboBuffer);
 		gl.VfboBuffer.set(viewport4.v,true);
 		gl.FBuffer.set(viewport4.f,true);
@@ -402,16 +407,37 @@ Renderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 		
 		gl.fbolink2.release();
 	}
+	this.first = false;
 }
 
-Renderer4.prototype.transGeom = function(e){
-	var _this = this;
-	var M = e.mesh.clone().rotate(e.rotation).move(e.position.sub(this.camera4.position,false)).rotate([this.camera4.rotation[0].conj(false),this.camera4.rotation[1].conj(false)]);
-	for(var c of M.C){
-		
-		c.info = c.info || {color: e.color};
+Renderer4.prototype.transGeom = function(g){	
+	var m = g.mesh;
+	var V = this.MeshBuffer.V,
+		E = this.MeshBuffer.E,
+		F = this.MeshBuffer.F,
+		C = this.MeshBuffer.C,
+		colors = this.MeshBuffer.colors,
+		v = V.length,
+		e = E.length,
+		f = F.length;
+	//Formula: x' = R2L(R1LxR1R+d)R2R = R2R1xR1R2 + R2dR2
+	var R1L = g.rotation[0], R1R = g.rotation[1];
+	var R2L = this.camera4.rotation[0].conj(false), R2R = this.camera4.rotation[1].conj(false);
+	var R_L = R2L.mul(R1L,false), R_R = R1R.mul(R2R,false);
+	var deplacement = R2L.mul(g.position.sub(this.camera4.position,false)).mul(R2R);
+	for(var a of m.V){
+		V.push(R_L.mul(a,false).mul(R_R).add(deplacement));
 	}
-	this.MeshBuffer.join(M);
+	for(var a of m.E){
+		E.push([a[0]+v,a[1]+v]);
+	}
+	Mesh4._util.copyPushArr(m.F,F,e);
+	for(var c of m.C){
+		var a0 = [];
+		c.forEach(function(a1){a0.push(a1 + f);});
+		a0.info = c.info || {color: g.color};
+		C.push(a0);
+	}
 }
 Renderer4.prototype.dealMeshBuffer = function(){
 	var _this = this;
@@ -433,30 +459,23 @@ Renderer4.prototype.dealMeshBuffer = function(){
 			//e:[i,j] have attribute center, todo : performace problem
 	}
 	for(var f of this.MeshBuffer.F){
-		var sum = 0;
+		var sum = f.length;
 		var O = new Vec4(0,0,0,0);
-		var centers = [];//vec3[]
-		for(var i=0; i<f.length; i++){
+		for(var i=0; i<sum; i++){
 			var e = this.MeshBuffer.E[f[i]];
 			O.add(e.centerMul2);
-			centers.push(e.centerMul2);
 		}
-		f.center = O.div(centers.length*2);//before edge center is mul by 2
-		if(!centers.length) continue;//this face is not visible
-		centers.push(new Vec4(0,0,0,0));
-		//f.n = $$._Mesh._calNorm4FromPoints(centers);
+		f.center = O.div(sum<<1);//before edge center is mul by 2
 	}
 	for(var c of this.MeshBuffer.C){
 		var sum = 0;
 		var O = new Vec4(0,0,0,0);
 		var centers = [];
-		c.E = [];//store edge index to avoid clip
 		for(var i=0; i<c.length; i++){
 			var f = this.MeshBuffer.F[c[i]];
 			O.add(f.center);
 			centers.push(f.center);
 		}
-		if(!centers.length) continue;//this face is not visible
 		var cn = Mesh4._util.calNorm4FromPoints(centers);
 		if(!cn){
 			continue;
@@ -469,6 +488,7 @@ Renderer4.prototype.dealMeshBuffer = function(){
 }
 
 Renderer4.prototype._generateCrossSection = function(n){
+	var d = performance.now();
 	var MB = this.MeshBuffer;
 	var V = MB._V,
 		E = MB._E,
@@ -484,8 +504,6 @@ Renderer4.prototype._generateCrossSection = function(n){
 	var MVlen = 0;
 	this.changed = changed;
 	if(changed){
-		E = MB._E = [];
-		F = MB._F = [];
 		M = MB._M = new Mesh4();
 	}
 	
@@ -509,28 +527,30 @@ Renderer4.prototype._generateCrossSection = function(n){
 	}
 	if(changed){
 		var MElen = 0;
-		
+		var Flen = 0;
 		for(var f of MB.F){
 			var count = 0;
 			var A, B;
 			for(var a of f){
-				if(E[a]!=-1){
-					if(count==0)A = E[a];
-					if(count==1)B = E[a];
-					count++;
+				var Ea = E[a];
+				if(Ea!=-1){
+					if(count==0)A = Ea;
+					if(count==1)B = Ea;
+					if(++count>2)break;
 				}
 			}
 			if(count!=2){
-				F.push(-1);
+				F[Flen++] = -1;
 				continue;
 			}
-			F.push(MElen++);
+			F[Flen++] = MElen++;
 			M.E.push([A,B]);
 		}
 		for(var c of MB.C){
 			var arr = [];
 			for(var a of c){
-				if(F[a]>=0) arr.push(F[a]);
+				var Fa = F[a];
+				if(Fa>=0) arr.push(Fa);
 			}
 			if(c.info){
 				arr.info = c.info;//record infos comme color, normal
@@ -549,37 +569,43 @@ Renderer4.prototype._generateCrossSection = function(n){
 		n = MB.n = [];
 		c = MB.c = [];
 		for(var mf of M.F){
-			mf.v = [];
+			var mfv = [];
 			for(var i=1; i<mf.length; i++){
 				var a = M.E[mf[i]][0],
 					b = M.E[mf[i]][1];
-				mf.v.push(a,b);
+				mfv.push(a,b);
 			}
-			mf.v = Mesh4._util.uniqueArr(mf.v);// all vertices of face F[j]
+			mfv = Mesh4._util.uniqueArr(mfv);// all vertices of face F[j]
 			var N;
 			if(mf.info) N = mf.info.normal;//Normalement on a calculé N in crossSection from cell
 			N = N || new Vec4(1,0,0,0);
-			if(!mf.info){mf.info = {color: 0xEEEEEE}}
-			var va = Math.round(v.length/4);
-			for(var i=0; i<mf.v.length; i++){
-				var vp = M.V[mf.v[i]];//for each vertex vp of mf
+			var colorR = (mf.info.color >> 16)/256;
+			var colorG = (mf.info.color >> 8 & 0xFF)/256;
+			var colorB = (mf.info.color & 0xFF)/256;
+			var va = v.length >> 2;
+			var mfvl = mfv.length;
+			for(var i=0; i<mfvl; i++){
+				var vp = M.V[mfv[i]];//for each vertex vp of mf
+				var mfi = mf[i];
 				v.push(vp.x,vp.y,vp.z,vp.t);
 				n.push(N.x,N.y,N.z,N.t);
-				c.push((mf.info.color >> 16)/256,(mf.info.color>> 8 & 0xFF)/256,(mf.info.color & 0xFF)/256);
-				if(mf[i]>=0){
-					var a = mf.v.indexOf(M.E[mf[i]][0]),
-						b = mf.v.indexOf(M.E[mf[i]][1]);
+				c.push(colorR,colorG,colorB);
+				if(mfi>=0){
+					var a = mfv.indexOf(M.E[mfi][0]),
+						b = mfv.indexOf(M.E[mfi][1]);
 					if(a && b) f.push(a+va,b+va,0+va);
 				}
 			}
+			mf.v = mfv;
 		}
 	}else{
 		for(var mf of M.F){
-			for(var i=0; i<mf.v.length; i++){
-				var vp = M.V[mf.v[i]];//for each vertex vp of F[j]
+			for(var i of mf.v){
+				var vp = M.V[i];//for each vertex vp of F[j]
 				v.push(vp.x,vp.y,vp.z,vp.t);
 			}
 		}
 	}
+	//console.log(performance.now()-d);
 	return {v:v,c:c,f:f,n:n};
 }

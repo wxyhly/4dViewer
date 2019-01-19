@@ -99,7 +99,7 @@ Controler4.prototype._dealTransparentColor = function(gl,ev){
 		}
 	}
 }
-Controler4.prototype._dealKeyRenderer = function(){
+Controler4.prototype._dealRendererSettings = function(){
 	//render layer number settings:
 	if(this.keyPressed[this.keyConfig.layerm]){//moin
 		if(this.renderer.thickness<1)
@@ -175,7 +175,14 @@ Controler4.prototype._dealKeyRenderer = function(){
 		this.needUpdate = true;
 	}
 }
-
+Controler4.prototype.update = function(callback){
+	this.beforeUpdate();
+	this._dealRendererSettings();
+	if(this.needUpdate) {
+		callback();//call renderer
+	}
+	this.needUpdate = false;
+}
 
 Controler4.Trackball = function(renderer){
 	Controler4.call(this,renderer);
@@ -233,32 +240,21 @@ Controler4.Trackball.prototype._rotate = function(Bivec){
 	this.camera4.position = R[0].mul(this.camera4.position,false).mul(R[1]);
 	this.needUpdate = true;
 }
-Controler4.Trackball.prototype.update = function(callback){
-	/*var m = this.camera3.rotation.toMatLR().t().array;
-	new Mat4(
-		m[0],m[1],m[2],0,
-		m[3],m[4],m[5],0,
-		m[6],m[7],m[8],0,
-		0   ,0   ,0   ,1
-	)*/
+Controler4.Trackball.prototype.beforeUpdate = function(){
 	var mat = this.camera4.coordMat();
 	
 	this.x = mat.mul(new Vec4(1,0,0,0));
 	this.y = mat.mul(new Vec4(0,1,0,0));
 	this.z = mat.mul(new Vec4(0,0,1,0));
 	this.t = mat.mul(new Vec4(0,0,0,1));
-	this._dealKeyRenderer();
 	if(this._needDamping()){
 		this.resRot.div(1+this.damp);
 		this.resZoom /= 1+this.damp;
 		this._rotate(this.resRot);
 		this._zoom(this.resZoom);
 	}
-	if(this.needUpdate) {
-		callback();//call renderer
-	}
-	this.needUpdate = false;
 }
+
 Controler4.KeepUp = function(renderer,hitTest){
 	Controler4.call(this,renderer);
 	
@@ -336,7 +332,7 @@ Controler4.KeepUp.prototype._rotateHorizontal = function(x,y){
 	var yt = this.y.cross(this.t).mul(this.verticalDelta);
 	this.verticalRotation = yt.expQ();
 }
-Controler4.KeepUp.prototype.update = function(callback){
+Controler4.KeepUp.prototype.beforeUpdate = function(){
 	var camera = this.camera4;
 	//camera4 tetrad:
 	var mat = this.planeRotation[0].toMatL().mul(this.planeRotation[1].toMatR());
@@ -348,36 +344,26 @@ Controler4.KeepUp.prototype.update = function(callback){
 	var step = this.moveStep;
 	if(this.keyPressed[this.keyConfig.left]){
 		this.tryMove(this.x.mul(-step,false));
-		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.right]){
 		this.tryMove(this.x.mul(step,false));
-		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.forward]){
 		this.tryMove(this.t.mul(step,false));
-		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.back]){
-	this.tryMove(this.t.mul(-step,false));
-		this.needUpdate = true;
+		this.tryMove(this.t.mul(-step,false));
 	}
 	if(this.keyPressed[this.keyConfig.sidefront]){
 		this.tryMove(this.z.mul(-step,false));
-		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.sideback]){
 		this.tryMove(this.z.mul(step,false));
-		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.up]){//space
 		this.tryMove(this.y.mul(step,false));
-		this.needUpdate = true;
-	}else{
-		if(this.gravity || this.keyPressed[this.keyConfig.down]){//L shift
-			this.tryMove(this.y.mul(-step,false),false);
-			this.needUpdate = true;
-		}
+	}else if(this.gravity || this.keyPressed[this.keyConfig.down]){//L shift
+		this.tryMove(this.y.mul(-step,false),false);
 	}
 	//rotate (the same as mouse):
 	if(this.keyPressed[this.keyConfig.rotateleft]){
@@ -423,13 +409,10 @@ Controler4.KeepUp.prototype.update = function(callback){
 		this.planeRotation[1] = this.planeRotation[1].mul(M[1]).norm();
 		this.needUpdate = true;
 	}
-	this._dealKeyRenderer();
-	if(this.needUpdate) {
+	if(this.needUpdate){
 		camera.rotation[0] = this.verticalRotation[0].mul(this.planeRotation[0],false);
 		camera.rotation[1] = this.planeRotation[1].mul(this.verticalRotation[1],false);
-		callback();//call renderer
 	}
-	this.needUpdate = false;
 }
 Controler4.KeepUp.prototype.tryMove = function(movement,climb){
 	var eye = this.camera4.position.add(movement,false);
@@ -448,10 +431,12 @@ Controler4.KeepUp.prototype.tryMove = function(movement,climb){
 	}
 	if(test(eye)){
 		this.camera4.position.set(eye);
+		this.needUpdate = true;
 	}else if(climb !== false){
 		eye.y += this.moveStep*1.1;
 		if(test(eye)){
 			this.camera4.position.set(eye);
+			this.needUpdate = true;
 		}
 	}
 }

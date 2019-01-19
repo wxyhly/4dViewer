@@ -823,6 +823,13 @@ Mat2.prototype.add = Mat3.prototype.add = Mat4.prototype.add = function(m,flag){
 	}
 	return this;
 }
+Mat2.prototype.clone = Mat3.prototype.clone = Mat4.prototype.clone = function(){
+	var x = new this.constructor();
+	for(var i =0; i< this.array.length; i++){
+		x.array[i] = this.array[i];
+	}
+	return x;
+}
 Mat2.prototype.sub = Mat3.prototype.sub = Mat4.prototype.sub = function(m,flag){
 	if(!m){
 		for(var i =0; i< this.array.length; i++){
@@ -955,7 +962,7 @@ Mat2.prototype.inv = function (flag){
 Mat3.prototype.t = function (flag) {
 	var te = this.array;
 	if(flag==false){
-		var M = new Mat4();
+		var M = new Mat3();
 		var me = M.array;
 		me[1] = te[3]; me[3] = te[1];
 		me[2] = te[6]; me[6] = te[2];

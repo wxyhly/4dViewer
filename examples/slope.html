@@ -3,18 +3,12 @@
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
+
 <script src="controler.js"></script>
 <script>
-'use strict'
-
-var $ = function (obj){
-	return document.getElementById(obj);
-}
-var ctxt$ = function (obj){
-	return $(obj).getContext("2d");
-}
+'use strict';
 var gl$ = function (obj){
-	return $(obj).getContext("experimental-webgl");
+	return document.getElementById(obj).getContext("experimental-webgl");
 }
 var loop$ = function (call){
 	window.requestAnimationFrame(call);
@@ -24,33 +18,33 @@ function start(){
 	var gnd = new Geom4(Mesh4.cuboid(30,2,30,30)).move(new Vec4(0,-0.5002,0,0));
 	scene.add(gnd);
 	
-	var slopes = new Chunk4(8,8,16,8);
+	var slops = new Chunk4(8,8,16,8);
 	//slops:
-	slopes.set(-1, 3,1,3,3);
-	slopes.set(-2, 1,1,3,3);
-	slopes.set(-3, 2,1,13,3);
-	slopes.set(-4, 2,1,2,3);
-	slopes.set(-5, 2,1,3,4);
-	slopes.set(-6, 2,1,3,2);
+	slops.set(-1, 3,1,3,3);
+	slops.set(-2, 1,1,3,3);
+	slops.set(-3, 2,1,13,3);
+	slops.set(-4, 2,1,2,3);
+	slops.set(-5, 2,1,3,4);
+	slops.set(-6, 2,1,3,2);
 	//mat:
-	slopes.setCuboid(3, 0,0,3,3, 4,0,3,3);
-	slopes.set(3, 2,0,1,3);
-	slopes.setCuboid(3, 2,0,3,1, 2,0,3,5);
+	slops.setCuboid(3, 0,0,3,3, 4,0,3,3);
+	slops.set(3, 2,0,1,3);
+	slops.setCuboid(3, 2,0,3,1, 2,0,3,5);
 	
 	//tunel:
-	slopes.setCuboid(5, 1,1,5,2, 3,3,11,4);
-	slopes.setCuboid(0, 2,2,5,3, 2,2,11,3);
+	slops.setCuboid(5, 1,1,5,2, 3,3,11,4);
+	slops.setCuboid(0, 2,2,5,3, 2,2,11,3);
 	
 	//platform:
-	slopes.setCuboid(1, 2,1,3,3, 2,1,12,3);
+	slops.setCuboid(1, 2,1,3,3, 2,1,12,3);
 	
-	scene.add(new Geom4(slopes.generateMesh()));
+	scene.add(new Geom4(slops.generateMesh().weld()));
 	
 	var camera = new Camera4(120,0.01,30);
 	camera.position = new Vec4(2,4,2,2);
 	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	
-	var controler = new Controler4.KeepUp(renderer,(pos)=>((pos.y>0.5)?slopes.hitTest(pos):true));
+	var controler = new Controler4.KeepUp(renderer,(pos)=>((pos.y>0.5)?slops.hitTest(pos):true));
 	controler.gravity = true;
 	
 	function loop(){

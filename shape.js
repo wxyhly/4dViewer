@@ -43,6 +43,7 @@ Mesh: (Mesh2 || Mesh3 || Mesh4)
 	
 	Mesh Libraries:
 	
+		Mesh2.points(Vec2[] v, flag):Mesh2; flag decide whether close loop
 		Mesh2.polygon(Number r, int n);
 		Mesh2.rectangle(Number w, Number h);
 		
@@ -52,9 +53,10 @@ Mesh: (Mesh2 || Mesh3 || Mesh4)
 		Mesh3.cone(Number r, int n, Number h);
 		Mesh3.sphere(Number r, int u, int v);
 		Mesh3.torus(Number r, Number R, int u, int v);
+		Mesh3.grid(int m, n[, Function f(int x,y):Vec3]);
 		
 		Mesh4.tesseract(Number r);		Mesh4.glome(Number r, int u, int v, int w);		Mesh4.spherinder(Number r, int u, int v, Number h);		Mesh4.sphone(Number r, int u, int v, Number h);		Mesh4.duocylinder(Number R1, Number R2, int u, int v);		Mesh4.cubinder(Number r, int n, Number h1, Number h2);		Mesh4.cylindrone(Number r, int n, Number h, Number hc);		Mesh4.dicone(Number r, int n, Number h1, Number h2);		Mesh4.duocone(Number R1, Number R2, int u, int v);		Mesh4.coninder(Number r, int n, Number h, Number hc);		Mesh4.torinder(Number r, Number R, int u, int v, Number h);		Mesh4.spheritorus(Number r, Number R, int u, int v, int w);		Mesh4.torisphere(Number r, Number R, int u, int v, int w);		Mesh4.ditorus(Number r, Number Rr, Number R, int u, int v, int w);		Mesh4.tiger(Number r, Number R1, Number R2, int u, int v, int w);
-		
+		Mesh4.grid(int m, n, o[, Function f(int x,y,z):Vec4]);
 		//todo: polytopes and polytwisters
 	
 	common operations:
@@ -83,7 +85,6 @@ Mesh: (Mesh2 || Mesh3 || Mesh4)
 		Note - flag for Mesh.turning:
 			flag===false: half turing and form loop; else: full turing loop
 		
-		Mesh2.points(Vec2[] v, flag):Mesh2; flag decide whether close loop
 		
 		Mesh3.pyramid(Vec3 v):Mesh3;
 		Mesh3.loft(function(int m, Vec3 v) f, int n, bool flag):Mesh3;
@@ -230,12 +231,13 @@ Obj3.prototype.lookAt = function(pos,up){
 }
 Obj4.prototype.lookAt = function(pos,up){
 	var rayon = pos.sub(this.position,false).norm();
+	var front = this.rotation[0].mul(new Vec4(0,0,0,1),false).mul(this.rotation[1]);
 	if(!up){
-		var R = new Vec4(0,0,0,1).cross(rayon);
+		var R = front.cross(rayon,false);
 		var s = R.len();
-		var c = rayon.t; //Vec4(0,0,0,1) dot M
+		var c = front.dot(rayon); //Vec4(0,0,0,1) dot M
 		if(Math.abs(s)>0.000001){
-			R.mul(Math.atan2(s,c)/s);
+			R.mul(-Math.atan2(s,c)/s);
 		}
 		R = R.expQ();
 		this.rotation[0] = R[0].mul(this.rotation[0]);
@@ -454,16 +456,6 @@ Mesh4.prototype.rotate = function(axis,t){
 	return this;
 }
 /** Geometry generators **/
-Mesh2.points = function(v,flag){
-	var E = (flag===false)?[]:[[0,v.length-1]];
-	for(var i=1; i< v.length; i++){
-		E.push([i,i-1]);
-	}
-	return new Mesh2({
-		V: v,
-		E: E
-	});
-}
 Mesh2.prototype.embed = function(dimension,flag,x,y){//flag: yni insert face
 	if(dimension == 3){
 		x = x || new Vec3(1,0,0);
@@ -602,7 +594,7 @@ Mesh3.prototype.loft = function(f,n,flag){
 	return M;
 }
 Mesh4.prototype.loft = function(fn,n,flag){
-	//f(m,p): der m der  crossection of p, total n der.
+	//f(m,p): translate fn. for mth  crossection of p, total n times.
 	//flag: yni ve faces au bout, par default: non, true: oui, false: loop
 	var v = this.V.length,
 		e = this.E.length,
@@ -1106,6 +1098,16 @@ Mesh4.prototype.collapse = function(){
 	return a;
 }
 /*******Lib********/
+Mesh2.points = function(v,flag){
+	var E = (flag===false)?[]:[[0,v.length-1]];
+	for(var i=1; i< v.length; i++){
+		E.push([i,i-1]);
+	}
+	return new Mesh2({
+		V: v,
+		E: E
+	});
+}
 Mesh2.polygon = function(radius,n){
 	var step = Math.PI*2/n,
 		M = new Mesh2();
@@ -1142,6 +1144,26 @@ Mesh3.sphere = function(r,u,v){
 }
 Mesh3.torus = function(r,R,u,v){
 	return Mesh2.polygon(r,u).move(new Vec2(R,0)).embed(3,false,new Vec3(1,0,0),new Vec3(0,0,1)).turning(new Vec3(0,0,1),v);
+}
+Mesh3.grid = function(m,n,f){
+	var Arr = [];
+	m += 1;
+	n += 1;
+	for(var x = 0; x<m; x++){
+		Arr[x] = new Vec2(x/(m-1)-0.5,0);
+	}
+	var lf = function(k,P){
+		P.y += k/(n-1)-0.5;
+	}
+	var M = Mesh2.points(Arr,false).embed(3).loft(lf,n);
+	if(f){
+		for(var x = 0; x<m; x++){
+			for(var y = 0; y<n; y++){
+				M.V[x + m*y] = f(x/(m-1)-0.5,y/(n-1)-0.5);
+			}
+		}
+	}
+	return M;
 }
 /**lib4d**/
 Mesh4.tesseract = function(r){
@@ -1195,7 +1217,112 @@ Mesh4.tiger = function(r,R1,R2,u,v,w){
 Mesh4.torus = function(r,R,u,v){
 	return Mesh2.polygon(r,u).move(new Vec2(R,0)).embed(4,true,new Vec4(1,0,0,0),new Vec4(0,0,1,0)).turning(bivec(1,0,0,0,0,0),v);
 }
+Mesh4.grid = function(m,n,o,f){
+	var lf = function(i,p){
+		p.z += i/o-0.5;
+	}
+	var M = Mesh3.grid(m,n).embed().loft(lf,o+1);
+	if(f){
+		m += 1;
+		n += 1;
+		for(var x = 0; x<m; x++){
+			for(var y = 0; y<n; y++){
+				for(var z = 0; z<o+1; z++){
+					M.V[x + m*y + m*n*z] = f(x/(m-1)-0.5,y/(n-1)-0.5,z/o-0.5);
+				}
+			}
+		}
+	}
+	return M;
+}
 
+var Spline = function(ps,ctrl){
+	this.ps = ps;
+	this.ctrl = ctrl;
+	this._curve = null;
+	this._tetrad = null;
+}
+Spline._diff = function(Vs){
+	//diff[i] = Vs[i+1] - Vs[i];
+	var diff = [];
+	for(var i = 0; i<Vs.length-1; i++){
+		diff[i] = Vs[i+1].sub(Vs[i], false);
+	}
+	return diff;
+}
+Spline.prototype._generateCurve = function(h){
+	var resultPs = [];
+	for(var i=0; i<this.ps.length -1; i++){
+		var p0 = this.ps[i];
+		var p1 = this.ps[i+1];
+		var d0 = this.ctrl[i];
+		var d1 = this.ctrl[i+1];
+		var p01 = p0.sub(p1,false);
+		var A = d0.add(d1,false).add(p01.mul(2));
+		var B = d0.mul(-2,false).sub(d1).sub(p01.mul(1.5));
+		for(var j=0; j<h; j++){
+			var t = j/h;
+			var x = p0.x + t*(d0.x + t*(B.x + t*A.x));
+			var y = p0.y + t*(d0.y + t*(B.y + t*A.y));
+			var z = p0.z + t*(d0.z + t*(B.z + t*A.z));
+			var w = p0.t + t*(d0.t + t*(B.t + t*A.t));
+			resultPs.push(new Vec4(x,y,z,w));
+		}
+	}
+	this._curve = resultPs;
+	return resultPs;
+}
+Spline.prototype.getValue = function(t){
+	var i = Math.floor(t);
+	t -= i;
+	i = i < this.ps.length - 1 ? i : i % (this.ps.length-1);
+	var p0 = this.ps[i];
+	var p1 = this.ps[i+1];
+	var d0 = this.ctrl[i];
+	var d1 = this.ctrl[i+1];
+	var p01 = p0.sub(p1,false);
+	var A = d0.add(d1,false).add(p01.mul(2));
+	var B = d0.mul(-2,false).sub(d1).sub(p01.mul(1.5));
+	var x = p0.x + t*(d0.x + t*(B.x + t*A.x));
+	var y = p0.y + t*(d0.y + t*(B.y + t*A.y));
+	var z = p0.z + t*(d0.z + t*(B.z + t*A.z));
+	var w = p0.t + t*(d0.t + t*(B.t + t*A.t));
+	return new Vec4(x,y,z,w);
+}
+Spline.prototype._generateTetrad = function(h){
+	if (!this._curve) this._curve = this._generateCurve(h);
+	var curve = this._curve;
+	var ps = Spline._diff(curve);
+	var totalM = ps.length;
+	var N = [];
+	var Mat = new Mat4();
+	var dir = new Vec4(0,0,0,1);
+	for (var m=0; m<totalM; m++){
+		var ndir = ps[m].norm();
+		var R = dir.cross(ndir,false);
+		var s = R.len();
+		if(Math.abs(s)>0.000001){
+			var c = dir.dot(ndir); 
+			R.mul(-Math.atan2(s,c)/s);
+		}
+		Mat = R.exp().mul(Mat);
+		N[m] = Mat.clone();
+		dir = ndir;
+	}
+	this._tetrad = N;
+}
+Spline.prototype.loft = function(h,cross,loop,keepUp){
+	if (!this._curve) {
+		this._generateCurve(h);
+		this._generateTetrad(h);
+	}
+	var curve = this._curve;
+	var N = this._tetrad;
+	var f = function (m,P){
+		P.set(N[m].mul(P).add(curve[m]));
+	}
+	return cross.loft(f,curve.length - 1,loop==true?false:null);
+}
 var Chunk4 = function(x,y,z,t){
 	this.size = {x:x||8, y:y||8, z:z||8, t:t||8};
 	this.data = [];
@@ -1309,14 +1436,13 @@ Chunk4.prototype.hitTest = function(pos){
 	var dy = pos.y - Math.round(pos.y);
 	var dz = pos.z - Math.round(pos.z);
 	var dt = pos.t - Math.round(pos.t);
+	//slops below
 	if(value == -1) return dy < -dx;
 	if(value == -2) return dy < dx;
 	if(value == -3) return dy < -dz;
 	if(value == -4) return dy < dz;
 	if(value == -5) return dy < -dt;
 	if(value == -6) return dy < dt;
-	
-	
 }
 Chunk4.prototype.generateMesh = function(){
 	var Cellx = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
@@ -1391,5 +1517,64 @@ Chunk4.prototype.generateMesh = function(){
 		}
 	}
 	this.enableOffset = enableOffset;
-	return hyxelMesh.weld();
+	return hyxelMesh;//.weld();
+}
+
+var Perlin3 = function(seed){
+	this.seed = seed;
+	this._seed = seed;
+	this._p = [];
+	var p = this._p;
+	for(var i=0; i<256; i++){
+		p[i] = i;
+	}
+	var i = 255;
+	while(i--){
+		var x = Math.sin(this._seed++)*6047003;
+		var j = Math.floor((x-Math.floor(x))*i);
+		x = p[i];
+		p[i] = p[j];
+		p[j] = x;
+	}
+	for(var i=0; i<256; i++){
+		p[i+256] = p[i];
+	}
+};
+
+Perlin3.prototype._lerp = function(t,a,b){
+	return a + t * (b - a);
+}
+Perlin3.prototype._grad = function(hash, x, y, z) {
+	var h = hash & 15;
+	var u = h < 8 ? x : y;
+	var v = h < 4 ? y : (h == 12 || h == 14) ? x : z;
+	return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+}
+Perlin3.prototype._fade = function(t){
+	return t * t * t * (t * (t * 6 - 15) + 10);
+}
+Perlin3.prototype.value = function(x,y,z){
+	var p = this._p;
+	var X = Math.floor(x) & 255;
+	var Y = Math.floor(y) & 255;
+	var Z = Math.floor(z) & 255;
+	x -= Math.floor(x);
+	y -= Math.floor(y);
+	z -= Math.floor(z);
+
+	var u = this._fade(x);
+	var v = this._fade(y);
+	var w = this._fade(z);
+
+	var A = p[X] + Y, AA = p[A] + Z, AB = p[A + 1] + Z;
+	var B = p[X + 1] + Y, BA = p[B] + Z, BB = p[B + 1] + Z;
+
+	return this._lerp(w, this._lerp(v, this._lerp(u, this._grad(p[AA], x, y, z),
+		this._grad(p[BA], x - 1, y, z)),
+		this._lerp(u, this._grad(p[AB], x, y - 1, z),
+		this._grad(p[BB], x - 1, y - 1, z))),
+		this._lerp(v, this._lerp(u, this._grad(p[AA + 1], x, y, z - 1),
+		this._grad(p[BA + 1], x - 1, y, z - 1)),
+		this._lerp(u, this._grad(p[AB + 1], x, y - 1, z - 1),
+		this._grad(p[BB + 1], x - 1, y - 1, z - 1))));
 }

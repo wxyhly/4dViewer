@@ -215,7 +215,7 @@ Webgl.ArrayBuffer = function(gl){
 	this.set = function (value,flag){
 		gl.bindBuffer(gl.ARRAY_BUFFER, Buf);
 		_this.length = value.length;
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(value),flag===true ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, value instanceof Float32Array ? value : new Float32Array(value),flag===true ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
 	};
 }
 Webgl.ElementBuffer = function(gl){
@@ -226,7 +226,7 @@ Webgl.ElementBuffer = function(gl){
 	this.set = function (value,flag){
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffer);
 		_this.length = value.length;
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(value),flag===true ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, value instanceof Uint16Array ? value : new Uint16Array(value),flag===true ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
 	}
 }
 Webgl.ShaderProgram = function(gl,data){

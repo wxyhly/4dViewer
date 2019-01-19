@@ -1,0 +1,93 @@
+ <html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../render.js"></script>
+<script src="controler.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var loop$ = function (call){
+	window.requestAnimationFrame(call);
+}
+function start(){
+	var scene = new Scene();
+	var dust = new Chunk4(9,9,9,9);
+	var cantor = (n)=>([1,0,1,0,0,0,1,0,1][n]);
+	var FnDust = function(x,y,z,t){
+		var flag = (cantor(x)==1)&&(cantor(y)==1)&&(cantor(z)==1)&&(cantor(t)==1);
+		return flag ? 1 : 0;
+	}
+	var FnMenger3 = function(x,y,z,t){
+		var x0 = Math.floor(x/3);
+		var y0 = Math.floor(y/3);
+		var z0 = Math.floor(z/3);
+		var t0 = Math.floor(t/3);
+		if(
+			(x0==1&&y0==1)||(x0==1&&z0==1)||
+			(x0==1&&t0==1)||(y0==1&&z0==1)||
+			(t0==1&&y0==1)||(t0==1&&z0==1)
+		){
+			return 0;
+		}
+		x = x % 3;
+		y = y % 3;
+		z = z % 3;
+		t = t % 3;
+		if(
+			(x==1&&y==1)||(x==1&&z==1)||
+			(x==1&&t==1)||(y==1&&z==1)||
+			(t==1&&y==1)||(t==1&&z==1)
+		){
+			return 0;
+		}
+		return 1;
+	}
+	var FnMenger4 = function(x,y,z,t){
+		var x0 = Math.floor(x/3);
+		var y0 = Math.floor(y/3);
+		var z0 = Math.floor(z/3);
+		var t0 = Math.floor(t/3);
+		if(
+			(x0==1&&y0==1&&z0==1)||
+			(x0==1&&t0&&z0==1)||
+			(x0==1&&y0&&t0==1)||
+			(t0==1&&y0&&z0==1)
+		){
+			return 0;
+		}
+		x = x % 3;
+		y = y % 3;
+		z = z % 3;
+		t = t % 3;
+		if(
+			(x==1&&y==1&&z==1)||
+			(x==1&&t&&z==1)||
+			(x==1&&y&&t==1)||
+			(t==1&&y&&z==1)
+		){
+			return 0;
+		}
+		return 1;
+	}
+	dust.setCuboid(FnMenger3,0,0,0,0, 8,8,8,8);
+	scene.add(new Geom4(dust.generateMesh()).move(new Vec4(-4.5,-4.5,-4.5,-4.5)));
+	
+	var camera = new Camera4(120,0.01,30);
+	camera.position = new Vec4(0,0,0,-9);
+	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	var controler = new Controler4.Trackball(renderer);
+	function loop(){
+		controler.update(renderer.render.bind(renderer));
+		loop$(loop);
+	}
+	loop();
+}
+</script>
+<body onload="start()">
+<canvas id="glCanvas1" width="800" height="800" style="background-color:#000"></canvas>
+<canvas id="glCanvas2" width="800" height="800" style="background-color:#000"></canvas>
+</body>
+</html>

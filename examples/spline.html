@@ -1,0 +1,53 @@
+ <html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../render.js"></script>
+<script src="controler.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var loop$ = function (call){
+	window.requestAnimationFrame(call);
+}
+function start(){
+	var scene = new Scene();
+	var path = new Spline(
+		[new Vec4(), new Vec4(2,0,0,0), new Vec4(2,2,0.5,0),new Vec4(0,2,0.3,0.3),new Vec4(0,0,0,0)],
+		[new Vec4(2,0,0,0),new Vec4(2,2,0,0),new Vec4(-1,1,0,1),new Vec4(-2,-2,0,0),new Vec4(2,0,0,0)]
+	);
+	var tunel = new Geom4(path.loft(10,Mesh3.cylinder(0.5,10,1).embed(),true));
+	var lineMarker1 = new Geom4(path.loft(10,Mesh3.cube(0.1).move(new Vec3(0,0,-0.5)).embed(),true));
+	var lineMarker2 = new Geom4(path.loft(10,Mesh3.cube(0.1).move(new Vec3(0,0,0.5)).embed(),true));
+	lineMarker1.color = 0x0000FF;
+	lineMarker2.color = 0xFF6000;
+	scene.add(tunel);
+	scene.add(lineMarker1);
+	scene.add(lineMarker2);
+	var camera = new Camera4(120,0.01,30);
+	camera.position = new Vec4(0,0,0,-1.9);
+	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	var cameraControler = new Controler4(renderer);
+	var t=0;
+	cameraControler.beforeUpdate = function(callback){
+		var camera = this.camera4;
+		camera.position.set(path.getValue(t));
+		camera.lookAt(path.getValue(t+0.1));
+		t+=0.01;
+		this.needUpdate = true;
+	}
+	function loop(){
+		cameraControler.update(renderer.render.bind(renderer));
+		loop$(loop);
+	}
+	loop();
+}
+</script>
+<body onload="start()">
+<canvas id="glCanvas1" width="800" height="800" style="background-color:#000"></canvas>
+<canvas id="glCanvas2" width="800" height="800" style="background-color:#000"></canvas>
+<!--bug: bgColor must be 000 because of alpha transparency-->
+</body>
+</html>
