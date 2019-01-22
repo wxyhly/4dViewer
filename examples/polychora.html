@@ -5,6 +5,7 @@
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
+<script src="../polychora.js"></script>
 <script src="controler.js"></script>
 <script>
 'use strict';
@@ -16,26 +17,18 @@ var loop$ = function (call){
 }
 function start(){
 	var scene = new Scene();
-	var noise = new Perlin3(124);
-	var octave = (x,y,z,scale)=>{x*=scale;y*=scale;z*=scale;return noise.value(x,y,z) + noise.value(x*2,y*2,z*2)/2+noise.value(x*4,y*4,z*4)/4};
-	var wavefn = (x,y,z)=>{
-		var q = octave(x,y,z,0.5)*2;
-		
-		return new Vec4(
-			x*10,
-			octave(x,y,z,5)*q*q,
-			y*10,
-			z*10
-		)
-	};
-	var terrain = new Geom4(Mesh4.grid(32,32,32,wavefn));
-	terrain.color = 0xFFFF00;
-	scene.add(terrain);
+	var cell120 = Mesh4.regularPolychoron(120);
+	var ball = new Geom4(cell120);
+	ball.color = 0xFFFF00;
+	scene.add(ball);
+	var frame = new Geom4(cell120.stick(0.02));
+	frame.color = 0x0000FF;
+	scene.add(frame);
 	var camera = new Camera4(90,0.01,80);
 	camera.position = new Vec4(0,0,0,-1.9);
 	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
-	var controler = new Controler4.KeepUp(renderer);
-	controler.moveStep *=5;
+	var controler = new Controler4.Trackball(renderer);
+	//controler.moveStep *= 5;
 	function loop(){
 		controler.update(renderer.render.bind(renderer));
 		loop$(loop);

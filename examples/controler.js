@@ -75,19 +75,19 @@ Controler4.prototype._dealTransparentColor = function(gl,ev){
 		if(key<0){
 			this.renderer.opaqueColors = [
 				{
-					color: 0x000000,
+					color: 0x030201,
 					tolerance: 0
 				},
 				{
-					color: 0x000000,
+					color: 0x030201,
 					tolerance: 0
 				},
 				{
-					color: 0x000000,
+					color: 0x030201,
 					tolerance: 0
 				},
 				{
-					color: 0x000000,
+					color: 0x030201,
 					tolerance: 0
 				}
 			];
@@ -178,7 +178,7 @@ Controler4.prototype._dealRendererSettings = function(){
 Controler4.prototype.update = function(callback){
 	this.beforeUpdate();
 	this._dealRendererSettings();
-	if(this.needUpdate) {
+	if(this.needUpdate && callback) {
 		callback();//call renderer
 	}
 	this.needUpdate = false;

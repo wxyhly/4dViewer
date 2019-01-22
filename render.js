@@ -67,11 +67,12 @@ var Renderer4 = function(ctxtL,ctxtR,scene4,camera4,light4,camera3){
 	this.camera3.rotation = new Vec3(1,0,0).expQ(Math.PI/8).mul(new Vec3(0,1,0).expQ(Math.PI/6));
 	this.bgColor4 = 0x66FFFF;//sky
 	this.bgColor3 = 0xFFFFFF;//background
+	this.ambientLight = 0.5;
 	this.enableThumbnail = true;
 	if(!light4){
 		this.light4 = new Vec4(2,1,0.3,-5).norm()
 	}else{
-		this.light4 = light4.norm() || new Vec4(2,1,0.3,-5).norm();
+		this.light4 = light4 || new Vec4(2,1,0.3,-5).norm();
 	}
 	this.eyeDistanceF = 10;
 	this.eyeDistanceH = 0.5;
@@ -88,19 +89,19 @@ var Renderer4 = function(ctxtL,ctxtR,scene4,camera4,light4,camera3){
 	this._initGL(this.glR);
 	this.opaqueColors = [
 		{
-			color: 0x000000,
+			color: 0x030201,
 			tolerance: 0
 		},
 		{
-			color: 0x000000,
+			color: 0x030201,
 			tolerance: 0
 		},
 		{
-			color: 0x000000,
+			color: 0x030201,
 			tolerance: 0
 		},
 		{
-			color: 0x000000,
+			color: 0x030201,
 			tolerance: 0
 		}
 	]
@@ -134,7 +135,9 @@ Renderer4.ShaderProgram = {
 			//vec5(v,vt) est gl_Position4
 			vec4 pos = mCamera*vec4(v.xyz,-Vt);
 			//drop vw, and get gl_Position3
-			float angleCos = dot(N,mN*light);
+			float angleCos = 1.0;
+			if(length(N) > 0.1)
+				angleCos = dot(N,mN*light);
 			gl_Position = vec4(pos.x - dx*pos.w, pos.y, -0.2, pos.w);
 			//pq z = -0.2?
 			if(angleCos > 0.0){
@@ -349,6 +352,8 @@ Renderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 			gl.CBuffer.set(G.c,true);
 		}
 		if(_this.first||mode3d){
+			gl.crossProgram.uniform["float ambientLight"].set(_this.ambientLight);
+			gl.crossProgram.uniform["vec4 light"].set(_this.light4.flat());
 			gl.crossProgram.uniform["float dx"].set(gl.dx);
 			gl.crossProgram.uniform["float dx4"].set(gl.dx4);
 			gl.crossProgram.uniform["float dz4"].set(gl.dz4);
@@ -436,6 +441,7 @@ Renderer4.prototype.transGeom = function(g){
 		var a0 = [];
 		c.forEach(function(a1){a0.push(a1 + f);});
 		a0.info = c.info || {color: g.color};
+		if(g.glow) a0.info.glow = true;
 		C.push(a0);
 	}
 }
@@ -468,6 +474,7 @@ Renderer4.prototype.dealMeshBuffer = function(){
 		f.center = O.div(sum<<1);//before edge center is mul by 2
 	}
 	for(var c of this.MeshBuffer.C){
+		if(c.info.glow){ c.info.normal = new Vec4(0,0,0,0); continue;}//frag shader will recognise null vec as glow obj
 		var sum = 0;
 		var O = new Vec4(0,0,0,0);
 		var centers = [];

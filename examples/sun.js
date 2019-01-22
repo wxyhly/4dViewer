@@ -1,0 +1,86 @@
+function Planet4(){
+	this.location = {
+		WE: 120, //latitude parallel to south
+		MG: 60, //latitude parallel to north
+		NS: 30 //longitude
+	}
+	this.sun = {
+		northernTropic: 90,
+		southernTropic: 5,
+		WEPeriod: 60, //southern days in one year
+		MGPeriod: 7 //northern days in one year
+	}
+	this.initialTime = {
+		northernTime: 12,  //12h00
+		southernTime: 9.5, //9h30
+		season: 100 //sun orbit angle
+	}
+	this.time = {};
+	this.setTime(0);
+}
+Planet4.prototype._toVec4 = function(loc){
+	var c = Math.cos(loc.NS),
+		s = Math.sin(loc.NS);
+	return new Vec4(
+		Math.cos(loc.WE)*c,
+		Math.sin(loc.WE)*c,
+		Math.cos(loc.MG)*s,
+		Math.sin(loc.MG)*s
+	);
+}
+Planet4.prototype._toLocation = function(v){
+	var WE = Math.atan2(v.y,v.x);
+	var MG = Math.atan2(v.t,v.z);
+	var NS = Math.atan(Math.sqrt((v.z*v.z + v.t*v.t)/(v.x*v.x + v.y*v.y)));
+	return {WE:WE,MG:MG,NS:NS};
+}
+Planet4.prototype.getSunPosition = function(){
+	var refLoc = {
+		WE: this.time.southernTime/24*2*Math.PI - Math.PI/2 ,
+		MG: this.time.northernTime/24*2*Math.PI - Math.PI/2 , 
+		NS: this.location.NS/180*Math.PI
+	}
+	var nT = this.sun.northernTropic/180*Math.PI;
+	var sT = this.sun.southernTropic/180*Math.PI;
+	var eclipticPlane = [
+		new Vec4(Math.cos(sT),0,Math.sin(sT),0),
+		new Vec4(0,Math.cos(nT),0,Math.sin(nT))
+	];
+	var season = this.time.season/180*Math.PI;
+	var posSun = eclipticPlane[0].mul(Math.cos(season)).add(eclipticPlane[1].mul(Math.sin(season))).norm();
+	var P = this._toVec4(refLoc);
+	var WE = new Vec4(Math.sin(refLoc.WE),-Math.cos(refLoc.WE), 0, 0);
+	var MG = new Vec4(0, 0, Math.sin(refLoc.MG),-Math.cos(refLoc.MG));
+	var NS = P.cross(WE).cross(MG);
+	var m = new Mat4(
+		WE.x, P.x, MG.x, NS.x,
+		WE.y, P.y, MG.y, NS.y,
+		WE.z, P.z, MG.z, NS.z,
+		WE.t, P.t, MG.t, NS.t
+	).t();
+	return m.mul(posSun);
+}
+Planet4.prototype.setSunAndRenderer = function (renderer, sun, sundistance){
+	sundistance = sundistance || 500;
+	renderer.light4 = this.getSunPosition();
+	var y = renderer.light4.y;
+	renderer.ambientLight = Math.sin(y)*0.7 + 0.3;
+	if(renderer.ambientLight<0.3)renderer.ambientLight = 0.3;
+	renderer.light4.mul(renderer.ambientLight);
+	renderer.ambientLight *= 0.4;
+	var brightness = y*155+100;
+	if(brightness<=0)brightness = 0;
+	var white = brightness < 128 ? 0: Math.round((brightness - 128)*1.2);
+	brightness = Math.round(brightness);
+	if(brightness >= 255) brightness = 255;
+	renderer.bgColor4 = brightness*0x000101 + white*0x010000;
+	sun.position = renderer.light4.mul(sundistance,false);
+	sun.color = 0xFFFF00 + brightness*0x000001;
+	sun.lookAt(new Vec4(0,0,0,0));
+}
+Planet4.prototype.setTime = function(time){
+	//unit of the time is year;
+	this.time.southernTime = (this.initialTime.southernTime + 24*time*this.sun.WEPeriod) % 24;
+	this.time.northernTime = (this.initialTime.northernTime + 24*time*this.sun.MGPeriod) % 24;
+	this.time.season = (this.initialTime.season + time*360)%360;
+}

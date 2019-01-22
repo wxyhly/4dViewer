@@ -101,6 +101,8 @@ Mesh: (Mesh2 || Mesh3 || Mesh4)
 		Mesh4.directProduct(Mesh4 m1, Mesh4 m2):Mesh4;
 		Mesh4.duopyramid(Mesh4 m1, Mesh4 m2):Mesh4;
 		
+		Mesh4.stick(Number radius[, Mesh3 cross]):Mesh4;
+		
 	output operations:
 	
 		Mesh3.smoothFlat():{v:Number[],n:int[],f:int[]};
@@ -862,6 +864,27 @@ Mesh3.prototype.crossSection = function(t,n){
 	}
 	return M;
 }
+Mesh4.prototype.stick = function(radius,cross){
+	
+	cross = cross || Mesh3.cube(radius*2).embed(false);
+
+	var T = new Vec4(0,0,0,1);
+	var V = this.V;
+	var mesh = new Mesh4();
+	for(var e of this.E){
+		var A = V[e[0]],
+			B = V[e[1]];
+		var AB = A.sub(B,false);
+		var M = cross.clone();
+		var R = AB.norm(false).cross(T);
+		var s = R.len();
+		if (Math.abs(s)>0.000001){
+			R.mul(-Math.atan2(s,AB.t/AB.len())/s);
+		}
+		mesh.join(M.rotate(R).extrude(AB).move(B));
+	}
+	return mesh;
+}
 Mesh4.prototype.crossSection = function(t,n){
 	var M = new Mesh4();
 	var V = [],
@@ -1235,7 +1258,6 @@ Mesh4.grid = function(m,n,o,f){
 	}
 	return M;
 }
-
 var Spline = function(ps,ctrl){
 	this.ps = ps;
 	this.ctrl = ctrl;
