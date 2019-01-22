@@ -73,29 +73,17 @@ Controler4.prototype._dealTransparentColor = function(gl,ev){
 		gl.readPixels(ev.offsetX, this.renderer.height-ev.offsetY, 1,1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
 		var key = this.keyPressed[49]?0:this.keyPressed[50]?1:this.keyPressed[51]?2:this.keyPressed[52]?3:-1;
 		if(key<0){
-			this.renderer.opaqueColors = [
-				{
-					color: 0x030201,
-					tolerance: 0
-				},
-				{
-					color: 0x030201,
-					tolerance: 0
-				},
-				{
-					color: 0x030201,
-					tolerance: 0
-				},
-				{
-					color: 0x030201,
-					tolerance: 0
-				}
-			];
+			this.renderer.opaqueColors[0].color = 0x030201;
+			this.renderer.opaqueColors[0].tolerance = 0;
+			this.renderer.opaqueColors[1].color = 0x030201;
+			this.renderer.opaqueColors[1].tolerance = 0;
+			this.renderer.opaqueColors[2].color = 0x030201;
+			this.renderer.opaqueColors[2].tolerance = 0;
+			this.renderer.opaqueColors[3].color = 0x030201;
+			this.renderer.opaqueColors[3].tolerance = 0;
 		}else{
-			this.renderer.opaqueColors[key] = {
-				color: (pixels[0]<<16) + (pixels[1]<<8) + pixels[2],
-				tolerance: 5
-			}
+			this.renderer.opaqueColors[key].color = (pixels[0]<<16) + (pixels[1]<<8) + pixels[2];
+			this.renderer.opaqueColors[key].tolerance = 5;
 		}
 	}
 }
@@ -181,9 +169,35 @@ Controler4.prototype.update = function(callback){
 	if(this.needUpdate && callback) {
 		callback();//call renderer
 	}
+	if(this.gui){
+		this.gui.updateDisplay();
+	}
 	this.needUpdate = false;
 }
-
+Controler4.prototype.addGUI = function(gui){
+	var _this = this;
+	this.gui = gui;
+	var change = function(){_this.needUpdate = true};
+	var renderer = this.renderer;
+	var rend = gui.addFolder('Renderer');
+	var trans = rend.addFolder('Transparent');
+	trans.addColor(renderer.opaqueColors[0],"color").onChange(change);
+	trans.add(renderer.opaqueColors[0],"tolerance").onChange(change);
+	trans.addColor(renderer.opaqueColors[1],"color").onChange(change);
+	trans.add(renderer.opaqueColors[1],"tolerance").onChange(change);
+	trans.addColor(renderer.opaqueColors[2],"color").onChange(change);
+	trans.add(renderer.opaqueColors[2],"tolerance").onChange(change);
+	trans.addColor(renderer.opaqueColors[3],"color").onChange(change);
+	trans.add(renderer.opaqueColors[3],"tolerance").onChange(change);
+	rend.add(renderer,"thickness",0.01,1).onChange(change);
+	rend.add(renderer,"flow",0,20).onChange(change);
+	rend.add(renderer,"thumbSize",1.8,22).onChange(change);
+	rend.add(renderer,"wireFrameMode").onChange(change);
+	rend.addColor(renderer,"bgColor4").onChange(change);
+	rend.addColor(renderer,"bgColor3").onChange(change);
+	var cam4 = gui.addFolder('Camera4');
+	cam4.add(this,"fov",10,170).onChange(function(fov){_this.camera4.setProjectMat4(fov);_this.needUpdate = true;});
+}
 Controler4.Trackball = function(renderer){
 	Controler4.call(this,renderer);
 	var _this = this;
@@ -192,7 +206,7 @@ Controler4.Trackball = function(renderer){
 	this.zoomStep = 0.02;
 	this.button = false;
 	this.center = new Vec4(0,0,0,0);
-	this.damp = 0.1;
+	this.damp = 0.3;
 	//this.isDamping = false;
 	this.resRot = new Bivec(0,0,0,0,0,0);
 	this.resZoom = 0;
@@ -200,19 +214,22 @@ Controler4.Trackball = function(renderer){
 	document.addEventListener('mousemove', function( ev ) {
 		var x = ev.movementX/_this.rotateMouseStep;
 		var y = ev.movementY/_this.rotateMouseStep;
-		if(this.button === 0){
+		if(_this.button === 0){
 			_this._rotateA_B(-x,y,_this.x.cross(_this.z),_this.y.cross(_this.z));
-		}else if(this.button === 2){
+		}else if(_this.button === 2){
 			_this._rotateA_B(-x,y,_this.x.cross(_this.t),_this.y.cross(_this.t));
-		}else if(this.button === 1){
+		}else if(_this.button === 1){
 			_this._rotateA_B(x,-y,_this.x.cross(_this.y),_this.z.cross(_this.t));
 		}
 	});
-	document.addEventListener('mousedown', function( ev ) {
-		this.button = ev.button;
+	this.renderer.glL.canvas.addEventListener('mousedown', function( ev ) {
+		_this.button = ev.button;
+	});
+	this.renderer.glR.canvas.addEventListener('mousedown', function( ev ) {
+		_this.button = ev.button;
 	});
 	document.addEventListener('mouseup', function( ev ) {
-		this.button = false;
+		_this.button = -1;
 	});
 	document.addEventListener('mousewheel', function( ev ) {
 		var step = -ev.wheelDelta/120*_this.zoomStep;
@@ -223,6 +240,11 @@ Controler4.Trackball = function(renderer){
 	
 }
 Controler4.Trackball.prototype = Object.create(Controler4.prototype);
+Controler4.Trackball.prototype.addGUI = function(gui){
+	Controler4.prototype.addGUI.call(this,gui);
+	var con = gui.addFolder("Control");
+	con.add(this,"damp",0,1);
+}
 Controler4.Trackball.prototype._needDamping = function(){
 	return this.resRot.len(false)>0.00001 || Math.abs(this.resZoom)>0.00001;
 }
@@ -313,13 +335,23 @@ Controler4.KeepUp = function(renderer,hitTest){
 			_this.needUpdate = true;
 		}
 	});
-	document.addEventListener('click', function( ev ) {
+	this.renderer.glL.canvas.addEventListener('click', function( ev ) {
+		if(ev.button == 0){
+			document.body.requestPointerLock();
+		}
+	});
+	this.renderer.glR.canvas.addEventListener('click', function( ev ) {
 		if(ev.button == 0){
 			document.body.requestPointerLock();
 		}
 	});
 }
 Controler4.KeepUp.prototype = Object.create(Controler4.prototype);
+Controler4.KeepUp.prototype.addGUI = function(gui){
+	Controler4.prototype.addGUI.call(this,gui);
+	var con = gui.addFolder("Control");
+	con.add(this,"moveStep");
+}
 Controler4.KeepUp.prototype._rotateHorizontal = function(x,y){
 	var xt = this.x.cross(this.t).mul(x);
 	var zt = this.z.cross(this.t).mul(y);

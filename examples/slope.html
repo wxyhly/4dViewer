@@ -5,6 +5,7 @@
 <script src="../render.js"></script>
 <script src="sun.js"></script>
 
+<script src="dat.gui.min.js"></script>
 <script src="controler.js"></script>
 <script>
 'use strict';
@@ -70,8 +71,8 @@ function start(){
 		NS: 30 //longitude
 	}
 	laTerre.sun = {
-		northernTropic: 12,
-		southernTropic: 55,
+		southernTropic: 12,
+		northernTropic: 55,
 		WEPeriod: 365.4, //southern days in one year
 		MGPeriod: 123 //northern days in one year
 	}
@@ -81,11 +82,15 @@ function start(){
 		season: 100 //sun orbit angle
 	}
 	var time = 0;
-	var step = 1/365/24/60;
+	laTerre.timeStep = 6;
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	laTerre.addGUI(gui);
+	gui.add(laTerre,"timeStep",1,20);
 	function loop(){
 		laTerre.setTime(time);
 		laTerre.setSunAndRenderer(renderer,sun,500);
-		time += step;
+		time += Math.exp(-20+laTerre.timeStep);
 		controler.update();
 		renderer.render();
 		loop$(loop);

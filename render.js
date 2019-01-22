@@ -258,6 +258,7 @@ Renderer4.prototype.render = function(){
 	this.glR.clear(this.glR.COLOR_BUFFER_BIT | this.glR.DEPTH_BUFFER_BIT);
 	this.MeshBuffer = new Mesh4();//empty MeshBuffer
 	this.scene4.child.forEach(function(e){
+		if(!e.visible) return;
 		_this.transGeom(e); //join into MeshBuffer
 	});
 	this.dealMeshBuffer();

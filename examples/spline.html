@@ -3,6 +3,8 @@
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
+
+<script src="dat.gui.min.js"></script>
 <script src="controler.js"></script>
 <script>
 'use strict';
@@ -30,12 +32,16 @@ function start(){
 	camera.position = new Vec4(0,0,0,-1.9);
 	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	var cameraControler = new Controler4(renderer);
-	var t=0;
+	cameraControler.speed = 0.01;
+	var t = 0;
+	var gui = new dat.GUI();
+	cameraControler.addGUI(gui);
+	gui.add(cameraControler,"speed",-0.1,0.1);
 	cameraControler.beforeUpdate = function(callback){
 		var camera = this.camera4;
 		camera.position.set(path.getValue(t));
 		camera.lookAt(path.getValue(t+0.1));
-		t+=0.01;
+		t += this.speed;
 		this.needUpdate = true;
 	}
 	function loop(){

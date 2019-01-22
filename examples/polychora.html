@@ -6,6 +6,7 @@
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
 <script src="../polychora.js"></script>
+<script src="dat.gui.min.js"></script>
 <script src="controler.js"></script>
 <script>
 'use strict';
@@ -17,18 +18,39 @@ var loop$ = function (call){
 }
 function start(){
 	var scene = new Scene();
-	var cell120 = Mesh4.regularPolychoron(120);
-	var ball = new Geom4(cell120);
-	ball.color = 0xFFFF00;
-	scene.add(ball);
-	var frame = new Geom4(cell120.stick(0.02));
-	frame.color = 0x0000FF;
-	scene.add(frame);
+	var polytope = {};
+	
+	polytope["24"] = Mesh4.regularPolychoron(24);
+	polytope["cell"] = new Geom4(polytope["24"]);
+	polytope["cell"].color = 0xFFFF00;
+	scene.add(polytope["cell"]);
+	polytope["edge"] = new Geom4(polytope["24"].stick(0.02));
+	polytope["edge"].color = 0x0000FF;
+	scene.add(polytope["edge"]);
 	var camera = new Camera4(90,0.01,80);
 	camera.position = new Vec4(0,0,0,-1.9);
 	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	var controler = new Controler4.Trackball(renderer);
-	//controler.moveStep *= 5;
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	gui.cell = 24;
+	gui.display = 3;
+	gui.add(gui,"cell",[5,8,16,24,120,600]).onChange(function(v){
+		polytope[v] = polytope[v] || Mesh4.regularPolychoron(Number(v));
+		polytope["cell"].mesh = polytope[v];
+		polytope["edge"].mesh = polytope[v].stick(0.02);
+		controler.needUpdate = true;
+	});
+	var change = function(){
+		controler.needUpdate = true;
+	}
+	gui.add(gui,"display",{"Cell":1,"Edge":2,"Both":3}).onChange(function(v){
+		polytope["cell"].visible = v & 1;
+		polytope["edge"].visible = v >> 1;
+		controler.needUpdate = true;
+	});
+	gui.addColor(polytope["cell"],"color").onChange(change);
+	gui.addColor(polytope["edge"],"color").onChange(change);
 	function loop(){
 		controler.update(renderer.render.bind(renderer));
 		loop$(loop);

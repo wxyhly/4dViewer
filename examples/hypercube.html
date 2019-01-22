@@ -4,6 +4,7 @@
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
 <script src="controler.js"></script>
+<script src="dat.gui.min.js"></script>
 <script>
 'use strict';
 var gl$ = function (obj){
@@ -30,6 +31,8 @@ function start(){
 	camera.position = new Vec4(0,0,0,-1.9);
 	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	var controler = new Controler4.Trackball(renderer);
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
 	function loop(){
 		controler.update(renderer.render.bind(renderer));
 		loop$(loop);

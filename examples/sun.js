@@ -17,6 +17,7 @@ function Planet4(){
 	}
 	this.time = {};
 	this.setTime(0);
+	this.guiData = {sunAngle:0, sunNS:0};
 }
 Planet4.prototype._toVec4 = function(loc){
 	var c = Math.cos(loc.NS),
@@ -58,6 +59,9 @@ Planet4.prototype.getSunPosition = function(){
 		WE.z, P.z, MG.z, NS.z,
 		WE.t, P.t, MG.t, NS.t
 	).t();
+	this.guiData.sunAngle = 90 - Math.acos(posSun.dot(P))/Math.PI*180;
+	this.guiData.sunNS = this._toLocation(posSun).NS/Math.PI*180;
+	this.guiData.sunAngle = 90 - Math.acos(posSun.dot(P))/Math.PI*180;
 	return m.mul(posSun);
 }
 Planet4.prototype.setSunAndRenderer = function (renderer, sun, sundistance){
@@ -83,4 +87,19 @@ Planet4.prototype.setTime = function(time){
 	this.time.southernTime = (this.initialTime.southernTime + 24*time*this.sun.WEPeriod) % 24;
 	this.time.northernTime = (this.initialTime.northernTime + 24*time*this.sun.MGPeriod) % 24;
 	this.time.season = (this.initialTime.season + time*360)%360;
+}
+Planet4.prototype.addGUI = function(gui){
+	this.gui = gui;
+	var p = this.gui.addFolder("Sun");
+	p.add(this.location,"NS",0,90);
+	p.add(this.time,"southernTime",0,24);
+	p.add(this.time,"northernTime",0,24);
+	p.add(this.time,"season",0,360);
+	p.add(this.sun,"southernTropic",0,90);
+	p.add(this.sun,"northernTropic",0,90);
+	p.add(this.sun,"MGPeriod",0);
+	p.add(this.sun,"WEPeriod",0);
+	p.add(this.guiData,"sunAngle",-90,90);
+	p.add(this.guiData,"sunNS",0,90);
+	p.open();
 }

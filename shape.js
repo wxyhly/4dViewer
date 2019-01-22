@@ -260,6 +260,7 @@ var Geom2 = function(m,pos,rot,color){
 	Obj2.call(this,pos,rot);
 	this.scale = 1;
 	this.color = color||0x0000FF;
+	this.visible = true;
 }
 Geom2.prototype = Object.create(Obj2.prototype);
 var Geom3 = function(m,pos,rot,color){
@@ -268,6 +269,7 @@ var Geom3 = function(m,pos,rot,color){
 	Obj3.call(this,pos,rot);
 	this.scale = 1;
 	this.color = color||0xFF0000;
+	this.visible = true;
 }
 Geom3.prototype = Object.create(Obj3.prototype);
 var Geom4 = function(m,pos,rot,color){
@@ -276,6 +278,7 @@ var Geom4 = function(m,pos,rot,color){
 	Obj4.call(this,pos,rot);
 	this.scale = 1;
 	this.color = color||0x00FF00;
+	this.visible = true;
 }
 Geom4.prototype = Object.create(Obj4.prototype);
 
@@ -1297,7 +1300,9 @@ Spline.prototype._generateCurve = function(h){
 Spline.prototype.getValue = function(t){
 	var i = Math.floor(t);
 	t -= i;
-	i = i < this.ps.length - 1 ? i : i % (this.ps.length-1);
+	i %= this.ps.length-1;
+	if(i<0) i+=this.ps.length-1
+	//i = i < this.ps.length - 1 ? i : i % (this.ps.length-1);
 	var p0 = this.ps[i];
 	var p1 = this.ps[i+1];
 	var d0 = this.ctrl[i];
