@@ -111,24 +111,6 @@ Mesh: (Mesh2 || Mesh3 || Mesh4)
 		Mesh3.collapse():Mesh2;
 		Mesh4.collapse():Mesh3;
 		
-Chunk4:
-	
-	Construct Chunk4:
-	
-		Chunk4(int x,y,z,t); size of the chunk
-	
-	operation:
-	
-		Chunk4.get(int x,y,z,t):int;
-		Chunk4.set(int id, int x,y,z,t):int;
-		Chunk4.setCuboid((int||function) id, int x,y,z,t):int;
-		Chunk4.offset(int x,y,z,t);
-		
-		Chunk4.generateMesh():Mesh4;
-		
-	propriety:
-	
-		bool Chunk4.enableOffset; whether to use offset coord or absolute coord
 **/
 'use strict'
 
@@ -230,27 +212,10 @@ Obj3.prototype.lookAt = function(pos,up){
 		this.lookAt(pos.add(rayon_horizontal,false), false);
 		this.lookAt(pos.add(rayon,false), false);
 	}
+	return this;
 }
 Obj4.prototype.lookAt = function(pos,up){
-	var rayon = pos.sub(this.position,false).norm();
-	var front = this.rotation[0].mul(new Vec4(0,0,0,1),false).mul(this.rotation[1]);
-	if(!up){
-		var R = front.cross(rayon,false);
-		var s = R.len();
-		var c = front.dot(rayon); //Vec4(0,0,0,1) dot M
-		if(Math.abs(s)>0.000001){
-			R.mul(-Math.atan2(s,c)/s);
-		}
-		R = R.expQ();
-		this.rotation[0] = R[0].mul(this.rotation[0]);
-		this.rotation[1].mul(R[1]);
-	}else{
-		up.norm();
-		var rayon_horizontal = rayon.sub(rayon.mul(rayon.dot(up),false),false);
-		this.lookAt(pos.add(rayon_horizontal,false), false);
-		this.lookAt(pos.add(rayon,false), false);
-	}
-	return this;
+	return PMat5Q.prototype.lookAt.call(this, pos,up);
 }
 
 
@@ -1350,202 +1315,6 @@ Spline.prototype.loft = function(h,cross,loop,keepUp){
 	}
 	return cross.loft(f,curve.length - 1,loop==true?false:null);
 }
-var Chunk4 = function(x,y,z,t){
-	this.size = {x:x||8, y:y||8, z:z||8, t:t||8};
-	this.data = [];
-	for(var x = 0; x<this.size.x; x++){
-		this.data.push([]);
-		for(var y = 0; y<this.size.y; y++){
-			this.data[x].push([]);
-			for(var z = 0; z<this.size.z; z++){
-				this.data[x][y].push([]);
-				for(var t = 0; t<this.size.t; t++){
-					this.data[x][y][z].push(0);
-				}
-			}
-		}
-	}
-	this._offset = {x:0, y:0, z:0, t:0};//operation coord offset
-	this.enableOffset = true;
-	this.colorTable = [
-		null,	//air
-		0xAAAAAA,//stone
-		0x00FF00,//grass
-		0x996600,//dirt
-		0xFFFFFF,
-		0xFFAA00,
-		0xFFFF00,
-		0xAAFF00,
-		0x00FF00,
-		0x00FFFF,
-		0x0000FF,
-		0xBB00FF,
-	]
-}
-Chunk4.prototype.offset = function(x, y, z, t){
-	if(this.enableOffset){
-		this._offset.x += x;
-		this._offset.y += y;
-		this._offset.z += z;
-		this._offset.t += t;
-	}else{
-		this._offset.x = x;
-		this._offset.y = y;
-		this._offset.z = z;
-		this._offset.t = t;
-	}
-}
-Chunk4.prototype.isInside = function(x, y, z, t){
-	return (
-		x>=0 && x<this.size.x &&
-		y>=0 && y<this.size.y &&
-		z>=0 && z<this.size.z &&
-		t>=0 && t<this.size.t );
-}
-Chunk4.prototype.setCuboid = function(id,x1,y1,z1,t1,x2,y2,z2,t2){//id can be int or function
-	var ox = 0;
-	var oy = 0;
-	var oz = 0;
-	var ot = 0;
-	if(this.enableOffset){
-		ox = this._offset.x;
-		oy = this._offset.y;
-		oz = this._offset.z;
-		ot = this._offset.t;
-	}
-	var xm = Math.max(0,Math.min(x1,x2)+ox), xp = Math.min(this.size.x,Math.max(x1,x2)+1+ox);
-	var ym = Math.max(0,Math.min(y1,y2)+oy), yp = Math.min(this.size.y,Math.max(y1,y2)+1+oy);
-	var zm = Math.max(0,Math.min(z1,z2)+oz), zp = Math.min(this.size.z,Math.max(z1,z2)+1+oz);
-	var tm = Math.max(0,Math.min(t1,t2)+ot), tp = Math.min(this.size.t,Math.max(t1,t2)+1+ot);
-	var enableOffset = this.enableOffset;
-	this.enableOffset = false;
-	for(var x = xm; x<xp; x++){
-		for(var y = ym; y<yp; y++){
-			for(var z = zm; z<zp; z++){
-				for(var t = tm; t<tp; t++){
-					if(typeof id == "number"){
-						this.set(id, x,y,z,t);
-					}else{
-						this.set(id(x-ox,y-oy,z-oz,t-ot), x,y,z,t);
-					}
-				}
-			}
-		}
-	}
-	this.enableOffset = enableOffset;
-}
-Chunk4.prototype.get = function(x,y,z,t){
-	if(!this.isInside(x,y,z,t)) return 0;
-	if(this.enableOffset){
-		x += this._offset.x;
-		y += this._offset.y;
-		z += this._offset.z;
-		t += this._offset.t;
-	}
-	return this.data[x][y][z][t];
-}
-Chunk4.prototype.set = function(id, x,y,z,t){
-	if(!this.isInside(x,y,z,t)) return 0;
-	if(this.enableOffset){
-		x += this._offset.x;
-		y += this._offset.y;
-		z += this._offset.z;
-		t += this._offset.t;
-	}
-	this.data[x][y][z][t] = id;
-	return id;
-}
-Chunk4.prototype.hitTest = function(pos){
-	var value = this.get(Math.round(pos.x),Math.round(pos.y),Math.round(pos.z),Math.round(pos.t));
-	if(value > 0) return true; //block detected
-	if(value == 0) return false; //air detected
-	var dx = pos.x - Math.round(pos.x);
-	var dy = pos.y - Math.round(pos.y);
-	var dz = pos.z - Math.round(pos.z);
-	var dt = pos.t - Math.round(pos.t);
-	//slops below
-	if(value == -1) return dy < -dx;
-	if(value == -2) return dy < dx;
-	if(value == -3) return dy < -dz;
-	if(value == -4) return dy < dz;
-	if(value == -5) return dy < -dt;
-	if(value == -6) return dy < dt;
-}
-Chunk4.prototype.generateMesh = function(){
-	var Cellx = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
-	var Celly = Mesh3.cube(1).embed(true, new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
-	var Cellz = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(1,0,0,0),new Vec4(0,0,0,1));
-	var Cellt = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(0,0,1,0),new Vec4(1,0,0,0));
-	var slope = Mesh2.points([new Vec2(0,0),new Vec2(0,1),new Vec2(1,0)]).embed(3,true).extrude(new Vec3(0,0,1)).embed(true).extrude(new Vec4(0,0,0,1)).move(new Vec4(-0.5,-0.5,-0.5,-0.5));
-	var glome = Mesh4.glome(0.5,6,6,6);
-	var hyxelMesh = new Mesh4();
-	var enableOffset = this.enableOffset;
-	this.enableOffset = false;
-	for(var x = 0; x<this.size.x; x++){
-		for(var y = 0; y<this.size.y; y++){
-			for(var z = 0; z<this.size.z; z++){
-				for(var t = 0; t<this.size.t; t++){
-					var datavalue = this.get(x,y,z,t);
-					if(datavalue>0){
-						var color = this.colorTable[datavalue];
-						if(this.get(x,y,z,t+1)<=0) // air:0, -x:slope
-							hyxelMesh.join(Cellt.clone().move(new Vec4(x,y,z,t+0.5)).setInfo({color: color}));
-						if(this.get(x,y,z+1,t)<=0)
-							hyxelMesh.join(Cellz.clone().move(new Vec4(x,y,z+0.5,t)).setInfo({color: color}));
-						if(this.get(x,y+1,z,t)<=0)
-							hyxelMesh.join(Celly.clone().move(new Vec4(x,y+0.5,z,t)).setInfo({color: color}));
-						if(this.get(x+1,y,z,t)<=0)
-							hyxelMesh.join(Cellx.clone().move(new Vec4(x+0.5,y,z,t)).setInfo({color: color}));
-						
-						if(this.get(x,y,z,t-1)<=0)
-							hyxelMesh.join(Cellt.clone().move(new Vec4(x,y,z,t-0.5)).setInfo({color: color}));
-						if(this.get(x,y,z-1,t)<=0)
-							hyxelMesh.join(Cellz.clone().move(new Vec4(x,y,z-0.5,t)).setInfo({color: color}));
-						if(this.get(x,y-1,z,t)<=0)
-							hyxelMesh.join(Celly.clone().move(new Vec4(x,y-0.5,z,t)).setInfo({color: color}));
-						if(this.get(x-1,y,z,t)<=0)
-							hyxelMesh.join(Cellx.clone().move(new Vec4(x-0.5,y,z,t)).setInfo({color: color}));
-					}else if(datavalue <0){
-						
-						switch(datavalue){
-							case -1:
-								//from x+ to x-
-								hyxelMesh.join(slope.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
-							break;
-							case -2:
-								//from x- to x+
-								hyxelMesh.join(slope.clone().rotate(new Bivec(0,1,0,0,0,0),Math.PI).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
-							break;
-							case -3:
-								//from z+ to z-
-								hyxelMesh.join(slope.clone().rotate(new Bivec(0,1,0,0,0,0),-Math.PI/2).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
-							break;
-							case -4:
-								//from z+ to z-
-								hyxelMesh.join(slope.clone().rotate(new Bivec(0,1,0,0,0,0),Math.PI/2).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
-							break;
-							case -5:
-								//from z+ to z-
-								hyxelMesh.join(slope.clone().rotate(new Bivec(0,0,1,0,0,0),-Math.PI/2).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
-							break;
-							case -6:
-								//from z+ to z-
-								hyxelMesh.join(slope.clone().rotate(new Bivec(0,0,1,0,0,0),Math.PI/2).move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
-							break;
-							case -7:
-								//glome
-								hyxelMesh.join(glome.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
-							break;
-							
-						}
-					}
-				}
-			}
-		}
-	}
-	this.enableOffset = enableOffset;
-	return hyxelMesh;//.weld();
-}
 
 var Perlin3 = function(seed){
 	this.seed = seed;
@@ -1568,18 +1337,6 @@ var Perlin3 = function(seed){
 	}
 };
 
-Perlin3.prototype._lerp = function(t,a,b){
-	return a + t * (b - a);
-}
-Perlin3.prototype._grad = function(hash, x, y, z) {
-	var h = hash & 15;
-	var u = h < 8 ? x : y;
-	var v = h < 4 ? y : (h == 12 || h == 14) ? x : z;
-	return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
-}
-Perlin3.prototype._fade = function(t){
-	return t * t * t * (t * (t * 6 - 15) + 10);
-}
 Perlin3.prototype.value = function(x,y,z){
 	var p = this._p;
 	var X = Math.floor(x) & 255;
@@ -1588,20 +1345,33 @@ Perlin3.prototype.value = function(x,y,z){
 	x -= Math.floor(x);
 	y -= Math.floor(y);
 	z -= Math.floor(z);
-
-	var u = this._fade(x);
-	var v = this._fade(y);
-	var w = this._fade(z);
-
+	function _fade(t){
+		return t * t * t * (t * (t * 6 - 15) + 10);
+	}
+	var u = _fade(x);
+	var v = _fade(y);
+	var w = _fade(z);
+	
+	function _lerp(t,a,b){
+		return a + t * (b - a);
+	}
+	
+	function _grad(hash, x, y, z) {
+		var h = hash & 15;
+		var u = h < 8 ? x : y;
+		var v = h < 4 ? y : (h == 12 || h == 14) ? x : z;
+		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+	}
+	
 	var A = p[X] + Y, AA = p[A] + Z, AB = p[A + 1] + Z;
 	var B = p[X + 1] + Y, BA = p[B] + Z, BB = p[B + 1] + Z;
 
-	return this._lerp(w, this._lerp(v, this._lerp(u, this._grad(p[AA], x, y, z),
-		this._grad(p[BA], x - 1, y, z)),
-		this._lerp(u, this._grad(p[AB], x, y - 1, z),
-		this._grad(p[BB], x - 1, y - 1, z))),
-		this._lerp(v, this._lerp(u, this._grad(p[AA + 1], x, y, z - 1),
-		this._grad(p[BA + 1], x - 1, y, z - 1)),
-		this._lerp(u, this._grad(p[AB + 1], x, y - 1, z - 1),
-		this._grad(p[BB + 1], x - 1, y - 1, z - 1))));
+	return _lerp(w, _lerp(v, _lerp(u, _grad(p[AA], x, y, z),
+		_grad(p[BA], x - 1, y, z)),
+		_lerp(u, _grad(p[AB], x, y - 1, z),
+		_grad(p[BB], x - 1, y - 1, z))),
+		_lerp(v, _lerp(u, _grad(p[AA + 1], x, y, z - 1),
+		_grad(p[BA + 1], x - 1, y, z - 1)),
+		_lerp(u, _grad(p[AB + 1], x, y - 1, z - 1),
+		_grad(p[BB + 1], x - 1, y - 1, z - 1))));
 }

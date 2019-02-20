@@ -11,9 +11,6 @@
 var gl$ = function (obj){
 	return document.getElementById(obj).getContext("experimental-webgl");
 }
-var loop$ = function (call){
-	window.requestAnimationFrame(call);
-}
 function start(){
 	var scene = new Scene();
 	var path = new Spline(
@@ -30,7 +27,7 @@ function start(){
 	scene.add(lineMarker2);
 	var camera = new Camera4(120,0.01,30);
 	camera.position = new Vec4(0,0,0,-1.9);
-	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	var cameraControler = new Controler4(renderer);
 	cameraControler.speed = 0.01;
 	var t = 0;
@@ -46,14 +43,12 @@ function start(){
 	}
 	function loop(){
 		cameraControler.update(renderer.render.bind(renderer));
-		loop$(loop);
+		window.requestAnimationFrame(loop);
 	}
 	loop();
 }
 </script>
 <body onload="start()">
-<canvas id="glCanvas1" width="800" height="800" style="background-color:#000"></canvas>
-<canvas id="glCanvas2" width="800" height="800" style="background-color:#000"></canvas>
-<!--bug: bgColor must be 000 because of alpha transparency-->
+<canvas id="glCanvas" width="1600" height="800"></canvas>
 </body>
 </html>

@@ -4,28 +4,43 @@
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
 <script src="controler.js"></script>
+<script src="minecraft4.js"></script>
 <script src="dat.gui.min.js"></script>
 <script>
 'use strict';
 var gl$ = function (obj){
 	return document.getElementById(obj).getContext("experimental-webgl");
 }
-var loop$ = function (call){
-	window.requestAnimationFrame(call);
-}
 function start(){
 	var scene = new Scene();
-	var dust = new Chunk4(9,9,9,9);
-	var cantor = (n)=>([1,0,1,0,0,0,1,0,1][n]);
+	var world = new MCWorld(27,27,27,27);
+	var cantor = (n)=>([1,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,0,1][n]);
 	var FnDust = function(x,y,z,t){
+		x=Math.round(x+13);
+		z=Math.round(z+13);
+		t=Math.round(t+13);
 		var flag = (cantor(x)==1)&&(cantor(y)==1)&&(cantor(z)==1)&&(cantor(t)==1);
 		return flag ? 1 : 0;
 	}
 	var FnMenger3 = function(x,y,z,t){
-		var x0 = Math.floor(x/3);
-		var y0 = Math.floor(y/3);
-		var z0 = Math.floor(z/3);
-		var t0 = Math.floor(t/3);
+		x=Math.round(x+13);
+		z=Math.round(z+13);
+		t=Math.round(t+13);
+		var x0 = Math.floor(x/9);
+		var y0 = Math.floor(y/9);
+		var z0 = Math.floor(z/9);
+		var t0 = Math.floor(t/9);
+		if(
+			(x0==1&&y0==1)||(x0==1&&z0==1)||
+			(x0==1&&t0==1)||(y0==1&&z0==1)||
+			(t0==1&&y0==1)||(t0==1&&z0==1)
+		){
+			return 0;
+		}
+		x0 = Math.floor(x/3) % 3;
+		y0 = Math.floor(y/3) % 3;
+		z0 = Math.floor(z/3) % 3;
+		t0 = Math.floor(t/3) % 3;
 		if(
 			(x0==1&&y0==1)||(x0==1&&z0==1)||
 			(x0==1&&t0==1)||(y0==1&&z0==1)||
@@ -44,18 +59,34 @@ function start(){
 		){
 			return 0;
 		}
+		
 		return 1;
 	}
 	var FnMenger4 = function(x,y,z,t){
-		var x0 = Math.floor(x/3);
-		var y0 = Math.floor(y/3);
-		var z0 = Math.floor(z/3);
-		var t0 = Math.floor(t/3);
+		x=Math.round(x+13);
+		z=Math.round(z+13);
+		t=Math.round(t+13);
+		var x0 = Math.floor(x/9);
+		var y0 = Math.floor(y/9);
+		var z0 = Math.floor(z/9);
+		var t0 = Math.floor(t/9);
 		if(
 			(x0==1&&y0==1&&z0==1)||
-			(x0==1&&t0&&z0==1)||
-			(x0==1&&y0&&t0==1)||
-			(t0==1&&y0&&z0==1)
+			(x0==1&&t0==1&&z0==1)||
+			(x0==1&&y0==1&&t0==1)||
+			(t0==1&&y0==1&&z0==1)
+		){
+			return 0;
+		}
+		x0 = Math.floor(x/3) % 3;
+		y0 = Math.floor(y/3) % 3;
+		z0 = Math.floor(z/3) % 3;
+		t0 = Math.floor(t/3) % 3;
+		if(
+			(x0==1&&y0==1&&z0==1)||
+			(x0==1&&t0==1&&z0==1)||
+			(x0==1&&y0==1&&t0==1)||
+			(t0==1&&y0==1&&z0==1)
 		){
 			return 0;
 		}
@@ -65,32 +96,50 @@ function start(){
 		t = t % 3;
 		if(
 			(x==1&&y==1&&z==1)||
-			(x==1&&t&&z==1)||
-			(x==1&&y&&t==1)||
-			(t==1&&y&&z==1)
+			(x==1&&t==1&&z==1)||
+			(x==1&&y==1&&t==1)||
+			(t==1&&y==1&&z==1)
 		){
 			return 0;
 		}
 		return 1;
 	}
-	dust.setCuboid(FnMenger3,0,0,0,0, 8,8,8,8);
-	scene.add(new Geom4(dust.generateMesh()).move(new Vec4(-4.5,-4.5,-4.5,-4.5)));
-	
+	MCChunk.SIZE_Y = 29;
+	MCWorld.renderDistance = 6;
+	world.autoGenerate = false;
+	world.generateGeom(0,0,0);
+	world.setCuboid(FnDust,-13,0,-13,-13, 13,26,13,13);
+	var geoms = world.generateGeom(0,0,0);
+	for(var g of geoms){
+		g.move(new Vec4(0,-13,0,0));
+	}
+	scene.add(geoms);
 	var camera = new Camera4(120,0.01,30);
-	camera.position = new Vec4(0,0,0,-9);
-	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	camera.position = new Vec4(0,0,0,-20);
+	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	var controler = new Controler4.Trackball(renderer);
 	var gui = new dat.GUI();
 	controler.addGUI(gui);
+	gui.Fractal = 0;
+	gui.add(gui,"Fractal",{"Dust":0,"Hole 2D":1,"Hole 3D":2}).onChange(function(v){
+		var fn = [FnDust,FnMenger3,FnMenger4][gui.Fractal];
+		world.setCuboid(fn,-13,0,-13,-13, 13,26,13,13);
+		var geoms = world.generateGeom(0,0,0);
+		for(var g of geoms){
+			g.move(new Vec4(0,-13,0,0));
+		}
+		scene.child[0] = geoms;
+		
+		controler.needUpdate = true;
+	});
 	function loop(){
 		controler.update(renderer.render.bind(renderer));
-		loop$(loop);
+		window.requestAnimationFrame(loop);
 	}
 	loop();
 }
 </script>
 <body onload="start()">
-<canvas id="glCanvas1" width="800" height="800" style="background-color:#000"></canvas>
-<canvas id="glCanvas2" width="800" height="800" style="background-color:#000"></canvas>
+<canvas id="glCanvas" width="1600" height="800"></canvas>
 </body>
 </html>

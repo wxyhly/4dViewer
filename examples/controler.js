@@ -39,32 +39,26 @@ var Controler4 = function(renderer){
 			_this.renderer.wireFrameMode = !_this.renderer.wireFrameMode;
 			_this.needUpdate = true;
 		}
-		if(_this.onkeydown) _this.onkeydown();
+		if(_this.onkeydown) _this.onkeydown(ev);
 	});
 	document.addEventListener('keyup', function( ev ) {
 		_this.keyPressed[ev.keyCode] = false;
-		if(_this.onkeyup) _this.onkeyup();
+		if(_this.onkeyup) _this.onkeyup(ev);
 	});
-	var glL = _this.renderer.glL;
-	var glR = _this.renderer.glR;
-	glL.canvas.addEventListener('contextmenu', function(ev) {
+	var canvas = _this.renderer.gl.canvas;
+	this.canvas = canvas;
+	canvas.addEventListener('contextmenu', function(ev) {
 		ev.preventDefault();
 	}, false);
-	glR.canvas.addEventListener('contextmenu', function(ev) {
-		ev.preventDefault();
-	}, false);
-	glL.canvas.addEventListener('mousedown', function( ev ) {
+	canvas.addEventListener('mousedown', function( ev ) {
 		if(ev.button != 0){
-			_this._dealTransparentColor(glL,ev);
+			_this._dealTransparentColor(ev);
 		}
-	});
-	glR.canvas.addEventListener('mousedown', function( ev ) {
-		if(ev.button != 0){
-			_this._dealTransparentColor(glR,ev);
-		}
+		if(_this.onmousedown) _this.onmousedown(ev);
 	});
 }
-Controler4.prototype._dealTransparentColor = function(gl,ev){
+Controler4.prototype._dealTransparentColor = function(ev){
+	var gl = this.renderer.gl;
 	if(this.keyPressed[18]){ //Alt + 1
 		if(this.keyPressed[18])
 		var pixels = new Uint8Array(4);
@@ -222,10 +216,7 @@ Controler4.Trackball = function(renderer){
 			_this._rotateA_B(x,-y,_this.x.cross(_this.y),_this.z.cross(_this.t));
 		}
 	});
-	this.renderer.glL.canvas.addEventListener('mousedown', function( ev ) {
-		_this.button = ev.button;
-	});
-	this.renderer.glR.canvas.addEventListener('mousedown', function( ev ) {
+	this.canvas.addEventListener('mousedown', function( ev ) {
 		_this.button = ev.button;
 	});
 	document.addEventListener('mouseup', function( ev ) {
@@ -281,6 +272,8 @@ Controler4.KeepUp = function(renderer,hitTest){
 	Controler4.call(this,renderer);
 	
 	this.hitTest = hitTest || (()=>false);
+	this.figure_height = 0.5; // used in hitTest
+	this.figure_width = 0.1; // used in hitTest
 	this.rotateMouseStep = 100;
 	this.moveStep = 0.02;
 	this.rotateKeyStep = 0.05;
@@ -335,12 +328,7 @@ Controler4.KeepUp = function(renderer,hitTest){
 			_this.needUpdate = true;
 		}
 	});
-	this.renderer.glL.canvas.addEventListener('click', function( ev ) {
-		if(ev.button == 0){
-			document.body.requestPointerLock();
-		}
-	});
-	this.renderer.glR.canvas.addEventListener('click', function( ev ) {
+	this.canvas.addEventListener('click', function( ev ) {
 		if(ev.button == 0){
 			document.body.requestPointerLock();
 		}
@@ -449,8 +437,8 @@ Controler4.KeepUp.prototype.beforeUpdate = function(){
 Controler4.KeepUp.prototype.tryMove = function(movement,climb){
 	var eye = this.camera4.position.add(movement,false);
 	var foot = eye.clone();
-	var height = 0.5;
-	var width = 0.1;
+	var height = this.figure_height;
+	var width = this.figure_width;
 	var _this = this;
 	function test(eye){
 		return (!_this.hitTest(eye))&&(!_this.hitTest(eye.sub(new Vec4(0,height,0,0),false)))&&

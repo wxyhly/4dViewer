@@ -15,31 +15,114 @@ var gl$ = function (obj){
 var loop$ = function (call){
 	window.requestAnimationFrame(call);
 }
+var TerrainWorld = function(heightMap,seed){
+	this.seed = seed || Math.floor(Math.random()*1000000);
+	this.chunks = {};
+	this.heightMap = heightMap;
+}
+TerrainWorld.CHUNK_SIZE = 3;
+TerrainWorld.DETAIL = [3,8,15];
+var Chunk = function(size,x,z,t,geom){
+	this.size = size;
+	this.x = x;
+	this.z = z;
+	this.t = t;
+	geom.mesh.update();
+	this.geom = geom;
+}
+TerrainWorld.prototype.generateChunk = function(size,x0,z0,t0,detail){
+	var ch = this.chunks[size+"-"+x0+","+z0+","+t0];
+	if(ch) {
+		ch.geom.visible = true;
+		return 0;
+	};
+	var _this = this;
+	var chunk = new Chunk(size,x0,z0,t0,new Geom4(Mesh4.grid(detail,detail,detail,function(x,z,t){
+		x = x*size + x0;
+		z = z*size + z0;
+		t = t*size + t0;
+		return new Vec4(x,_this.heightMap(x,z,t),z,t);
+	})));
+	//chunk.geom.color = Math.round(Math.random()*0xFFFFFF);
+	chunk.geom.visible = true;
+	this.chunks[size+"-"+x0+","+z0+","+t0] = chunk;
+}
+//chunk_size is the smallest(scale-1) chunk's size, size of scale-n chunk is chunk_size^n.
+TerrainWorld.prototype.loadChunk = function(cx,cz,ct){
+	var size = TerrainWorld.CHUNK_SIZE;
+	var X = Math.round(cx);
+	var Z = Math.round(cz);
+	var T = Math.round(ct);
+	this.generateChunk(size,X,Z,T,TerrainWorld.DETAIL[0]);
+	for(var level = 1; level < TerrainWorld.DETAIL.length; level++){
+		for(var x = -1; x<= 1; x++){
+		for(var z = -1; z<= 1; z++){
+		for(var t = -1; t<= 1; t++){
+			if(x == 0 && z == 0 && t == 0) continue;
+			var xX = x*size+X;
+			var zZ = z*size+Z;
+			var tT = t*size+T;
+			this.generateChunk(size,xX,zZ,tT,TerrainWorld.DETAIL[level]);
+		}
+		}
+		}
+		size *= 3;
+	}
+}
+TerrainWorld.prototype.generateGeom = function(cx,cz,ct){
+	var GeomList = [];
+	for(var i in this.chunks){
+		this.chunks[i].geom.visible = false;
+	}
+	this.loadChunk(cx,cz,ct);
+	var distance = 3;
+	for(var i in this.chunks){
+		var c = this.chunks[i];
+		var cd = distance * c.size;
+		if(Math.abs(c.x - cx) > cd || Math.abs(c.z - cz) > cd || Math.abs(c.t - ct) > cd){
+			delete this.chunks[i];
+		}else{
+			GeomList.push(c.geom);
+		}
+	}
+	return GeomList;
+}
+
+
 function start(){
 	var scene = new Scene();
-	var noise = new Perlin3(124);
-	var octave = (x,y,z,scale)=>{x*=scale;y*=scale;z*=scale;return noise.value(x,y,z) + noise.value(x*2,y*2,z*2)/2+noise.value(x*4,y*4,z*4)/4};
-	var wavefn = (x,y,z)=>{
-		var q = octave(x,y,z,0.5)*2;
-		
-		return new Vec4(
-			x*10,
-			octave(x,y,z,5)*q*q,
-			y*10,
-			z*10
-		)
+	var noise = new Perlin3(4);
+	var octave = function (x,y,z,scale){
+		x*=scale;y*=scale;z*=scale;
+		return noise.value(x,y,z) + noise.value(x*2,y*2,z*2)/2 + noise.value(x*4,y*4,z*4)/4;
 	};
-	var terrain = new Geom4(Mesh4.grid(32,32,32,wavefn));
-	terrain.color = 0xFFFF00;
-	scene.add(terrain);
+	var heightMap = (x,y,z)=>{
+		var q = octave(x,y,z,0.01)*2+0.5;
+		return octave(x,y,z,0.1)*q*q*5;
+	};
+	var terrain = new TerrainWorld(heightMap,1); //new Geom4(Mesh4.grid(32,32,32,wavefn));
+	scene.add(terrain.generateGeom(0,0,0));
 	var camera = new Camera4(90,0.01,80);
-	camera.position = new Vec4(0,0,0,-1.9);
-	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	camera.position = new Vec4(0,2,0,0);
+	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	var controler = new Controler4.KeepUp(renderer);
-	controler.moveStep *=5;
+	controler.moveStep *=50;
 	var gui = new dat.GUI();
 	controler.addGUI(gui);
+	var count = 0;
+	var cx = 0, cz = 0, ct = 0;
+	var d = 3;
 	function loop(){
+		count++;
+		var x = camera.position.x;
+		var z = camera.position.z;
+		var t = camera.position.t;
+		if(count % 4 == 0 && (Math.abs(cx - x)>d||Math.abs(cz - z)>d||Math.abs(ct - t)>d)){
+			scene.child[0] = terrain.generateGeom(x,z,t);
+			cx = x;
+			cz = z;
+			ct = t;
+		}
 		controler.update(renderer.render.bind(renderer));
 		loop$(loop);
 	}
@@ -47,8 +130,6 @@ function start(){
 }
 </script>
 <body onload="start()">
-<canvas id="glCanvas1" width="800" height="800" style="background-color:#000"></canvas>
-<canvas id="glCanvas2" width="800" height="800" style="background-color:#000"></canvas>
-<!--bug: bgColor must be 000 because of alpha transparency-->
+<canvas id="glCanvas" width="1600" height="800"></canvas>
 </body>
 </html>

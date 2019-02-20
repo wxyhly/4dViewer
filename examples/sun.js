@@ -70,17 +70,18 @@ Planet4.prototype.setSunAndRenderer = function (renderer, sun, sundistance){
 	var y = renderer.light4.y;
 	renderer.ambientLight = Math.sin(y)*0.7 + 0.3;
 	if(renderer.ambientLight<0.3)renderer.ambientLight = 0.3;
-	renderer.light4.mul(renderer.ambientLight);
 	renderer.ambientLight *= 0.4;
-	var brightness = y*155+100;
+	var brightness = y*200+100;
 	if(brightness<=0)brightness = 0;
 	var white = brightness < 128 ? 0: Math.round((brightness - 128)*1.2);
 	brightness = Math.round(brightness);
 	if(brightness >= 255) brightness = 255;
 	renderer.bgColor4 = brightness*0x000101 + white*0x010000;
 	sun.position = renderer.light4.mul(sundistance,false);
+	renderer.light4.mul(-renderer.ambientLight*1.2);
 	sun.color = 0xFFFF00 + brightness*0x000001;
 	sun.lookAt(new Vec4(0,0,0,0));
+	sun.position.add(renderer.camera4.position)
 }
 Planet4.prototype.setTime = function(time){
 	//unit of the time is year;

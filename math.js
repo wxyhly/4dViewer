@@ -1,6 +1,6 @@
 /**
 reserved:
-	Vec2, Vec3, Vec4, Bivec, Mat2, Mat3, Mat4, 
+	Vec2, Vec3, Vec4, Bivec, Mat2, Mat3, Mat4, PMat5
 	fft, ifft
 
 Matrix: Mat (Mat2||Mat3||Mat4)
@@ -28,6 +28,20 @@ Matrix: Mat (Mat2||Mat3||Mat4)
 		Mat.inv(bool flag):Mat;
 		Mat.t(bool flag):Mat;
 		Mat.det():Number;
+		Mat.clone():Mat;
+		
+Affine Matrix: PMat5
+
+	Construct Matrices:
+	
+		PMat5(Mat4 rotation, Vec4 position);
+		
+	operations:
+	
+		PMat5.inv(bool flag):PMat5;
+		PMat5.clone():PMat5;
+		PMat5.mul(PMat5 pm):PMat5;
+		PMat5.inv(bool flag):PMat5;
 		
 Bivector: Bivec (only 4d Bivec)
 
@@ -920,8 +934,8 @@ Mat2.prototype.div = Mat3.prototype.div = Mat4.prototype.div = function(k,flag){
 }
 Mat2.prototype.t = function (flag) {
 	var te = this.array;
-	if(flag==false){
-		var M = mat4();
+	if(flag===false){
+		var M = this.clone();
 		var me = M.array;
 		me[1] = te[2]; me[2] = te[1];
 		return M;
@@ -961,8 +975,8 @@ Mat2.prototype.inv = function (flag){
 }
 Mat3.prototype.t = function (flag) {
 	var te = this.array;
-	if(flag==false){
-		var M = new Mat3();
+	if(flag===false){
+		var M = this.clone();
 		var me = M.array;
 		me[1] = te[3]; me[3] = te[1];
 		me[2] = te[6]; me[6] = te[2];
@@ -1018,8 +1032,8 @@ Mat3.prototype.inv = function (flag){
 }
 Mat4.prototype.t = function (flag) {
 	var te = this.array;
-	if(flag==false){
-		var M = new Mat4();
+	if(flag===false){
+		var M = this.clone();
 		var me = M.array;
 		me[1] = te[4]; me[4] = te[1];
 		me[2] = te[8]; me[8] = te[2];
@@ -1092,4 +1106,103 @@ Mat4.prototype.inv = function (flag){
 	te[14] = (n14 * n22 * n31 - n12 * n24 * n31 - n14 * n21 * n32 + n11 * n24 * n32 + n12 * n21 * n34 - n11 * n22 * n34) * detInv;
 	te[15] = (n12 * n23 * n31 - n13 * n22 * n31 + n13 * n21 * n32 - n11 * n23 * n32 - n12 * n21 * n33 + n11 * n22 * n33) * detInv;
 	return Matrix;
+}
+
+var PMat5 = function(m4,v4){
+	if(!m4){
+		this.m4 = new Mat4();//Identity
+	}
+	if(!v4){
+		this.v4 = new Vec4();//null Vector4
+	}
+	this.rotation = m4.clone();
+	this.position = v4.clone();
+}
+PMat5.clone = function(){
+	return new PMat5(this.rotation.clone(),this.position.clone());
+}
+//no add sub mul(scalar) div(scalar) ! (Pmat5 not closed under these operations!)
+
+PMat5.prototype.inv = function(v4,flag){
+	if(flag === false){
+		var r = this.rotation.t(false);
+		return new PMat5(r,r.mul(this.position).sub());
+	}
+	this.rotation.t();
+	this.position = this.rotation.mul(this.position).sub();
+}
+PMat5.prototype.mul = function (pm5){
+	return new PMat5(this.rotation.mul(pm5.rotation), this.rotation.mul(pm5.position).add(this.position));
+}
+PMat5.prototype.lookAt = function(pos,up){
+	var rayon = pos.sub(this.position,false).norm();
+	var front = this.rotation.mul(new Vec4(0,0,0,1));
+	if(!up){
+		var R = front.cross(rayon,false);
+		var s = R.len();
+		var c = front.dot(rayon); //Vec4(0,0,0,1) dot M
+		if(Math.abs(s)>0.000001){
+			R.mul(-Math.atan2(s,c)/s);
+		}
+		R = R.exp();
+		this.rotation = R.mul(this.rotation);
+	}else{
+		up.norm();
+		var rayon_horizontal = rayon.sub(rayon.mul(rayon.dot(up),false),false);
+		this.lookAt(pos.add(rayon_horizontal,false), false);
+		this.lookAt(pos.add(rayon,false), false);
+	}
+	return this;
+}
+
+//Quanternion version of PMat5
+
+var PMat5Q = function(l,r,v4){
+	if(!l){
+		l = new Vec4();//Identity
+		r = new Vec4();//Identity
+	}
+	if(!v4){
+		this.position = new Vec4();//null Vector4
+	}
+	this.rotation = [l, r];
+	this.position = v4.clone();
+}
+PMat5Q.clone = function(){
+	return new PMat5Q(this.rotation[0].clone(),this.r.clone(),this.position.clone());
+}
+
+PMat5Q.prototype.inv = function(flag){
+	if(flag === false){
+		var l = this.rotation[0].conj(false);
+		var r = this.rotation[1].conj(false);
+		return new PMat5Q(l,r,l.mul(this.position,false).mul(r).sub());
+	}
+	this.rotation[0].conj();
+	this.rotation[1].conj();
+	this.position = this.rotation[0].mul(this.position,false).mul(this.rotation[1]).sub();
+}
+PMat5Q.prototype.mul = function (pm5,flag){
+	return new PMat5Q(this.rotation[0].mul(pm5.l,false),pm5.r.mul(this.rotation[1],false), this.rotation[0].mul(pm5.position,false).mul(this.rotation[1]).add(this.position));
+}
+PMat5Q.prototype.lookAt = function(pos,up){
+	var rayon = pos.sub(this.position,false).norm();
+	var front = this.rotation[0].mul(new Vec4(0,0,0,1),false).mul(this.rotation[1]);
+	if(!up){
+		var R = front.cross(rayon,false);
+		var s = R.len();
+		var c = front.dot(rayon); //Vec4(0,0,0,1) dot M
+		if(Math.abs(s)>0.000001){
+			R.mul(-Math.atan2(s,c)/s);
+		}
+		R = R.expQ();
+		this.rotation[0] = R[0].mul(this.rotation[0]);
+		this.rotation[1].mul(R[1]);
+	}else{
+		up.norm();
+		var rayon_horizontal = rayon.sub(rayon.mul(rayon.dot(up),false),false);
+		this.lookAt(pos.add(rayon_horizontal,false), false);
+		this.lookAt(pos.add(rayon,false), false);
+	}
+	return this;
 }

@@ -4,6 +4,7 @@
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
 <script src="sun.js"></script>
+<script src="minecraft4.js"></script>
 
 <script src="dat.gui.min.js"></script>
 <script src="controler.js"></script>
@@ -12,8 +13,8 @@
 var gl$ = function (obj){
 	return document.getElementById(obj).getContext("experimental-webgl");
 }
-var loop$ = function (call){
-	window.requestAnimationFrame(call);
+var $ = function (obj){
+	return document.getElementById(obj);
 }
 function start(){
 	var scene = new Scene();
@@ -23,48 +24,39 @@ function start(){
 	sun.color = 0xFFFFFF;
 	sun.glow = true;
 	scene.add(sun);
-	var slops = new Chunk4(8,8,16,8);
-	//slops:
-	slops.set(-1, 3,1,3,3);
-	slops.set(-2, 1,1,3,3);
-	slops.set(-3, 2,1,13,3);
-	slops.set(-4, 2,1,2,3);
-	slops.set(-5, 2,1,3,4);
-	slops.set(-6, 2,1,3,2);
+	var world = new MCWorld();
+	world.distance = 4;
+	world.autoGenerate = false;
+	world.generateGeom(2,8,2); //empty generation center: {x:1, z:8, t:0}, prepare chunks for setBlocks below
+	//slopes:
+	world.setBlockId(-1, 3,1,3,3);
+	world.setBlockId(-2, 1,1,3,3);
+	world.setBlockId(-3, 2,1,13,3);
+	world.setBlockId(-4, 2,1,2,3);
+	world.setBlockId(-5, 2,1,3,4);
+	world.setBlockId(-6, 2,1,3,2);
 	//mat:
-	slops.setCuboid(3, 0,0,3,3, 4,0,3,3);
-	slops.set(3, 2,0,1,3);
-	slops.setCuboid(3, 2,0,3,1, 2,0,3,5);
+	world.setCuboid(3, 0,0,3,3, 4,0,3,3);
+	world.setBlockId(3, 2,0,1,3);
+	world.setCuboid(3, 2,0,3,1, 2,0,3,5);
 	
 	//tunel:
-	slops.setCuboid(5, 1,1,5,2, 3,3,11,4);
-	slops.setCuboid(0, 2,2,5,3, 2,2,11,3);
+	world.setCuboid(6, 1,1,5,2, 3,3,11,4);
+	world.setCuboid(0, 2,2,5,3, 2,2,11,3);
 	
 	//platform:
-	slops.setCuboid(1, 2,1,3,3, 2,1,12,3);
+	world.setCuboid(1, 2,1,3,3, 2,1,12,3);
 	
-	scene.add(new Geom4(slops.generateMesh().weld()));
+	scene.add(world.generateGeom(2,8,2));//final generation
 	
 	var camera = new Camera4(90,0.01,550);
-	camera.position = new Vec4(2,4,2,2);
-	var renderer = new Renderer4(gl$("glCanvas1"),gl$("glCanvas2"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	camera.position = new Vec4(2,2,2,2);
+	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	
-	var controler = new Controler4.KeepUp(renderer,(pos)=>((pos.y>0.5)?slops.hitTest(pos):true));
+	var controler = new Controler4.KeepUp(renderer,(pos)=>((pos.y>0.5)?world.hitTest(pos):true));
 	controler.gravity = true;
 	
 	var laTerre = new Planet4();
-	/*laTerre.location = {
-		WE: 120, //latitude parallel to south
-		MG: 60, //latitude parallel to north
-		NS: 30 //longitude
-	}
-	laTerre.sun = {
-		northernTropic: 60.5,
-		southernTropic: 21.5,
-		WEPeriod: 365.4, //southern days in one year
-		MGPeriod: 365.3 //northern days in one year
-	}*/
-	
 	laTerre.location = {
 		WE: 60, //latitude parallel to south
 		MG: 120, //latitude parallel to north
@@ -77,8 +69,8 @@ function start(){
 		MGPeriod: 123 //northern days in one year
 	}
 	laTerre.initialTime = {
-		northernTime: 6,  //12h00
-		southernTime: 6, //9h30
+		northernTime: 9,  //12h00
+		southernTime: 9, //9h30
 		season: 100 //sun orbit angle
 	}
 	var time = 0;
@@ -91,16 +83,14 @@ function start(){
 		laTerre.setTime(time);
 		laTerre.setSunAndRenderer(renderer,sun,500);
 		time += Math.exp(-20+laTerre.timeStep);
-		controler.update();
+		controler.update();		
 		renderer.render();
-		loop$(loop);
+		window.requestAnimationFrame(loop);
 	}
 	loop();
 }
 </script>
 <body onload="start()">
-<canvas id="glCanvas1" width="800" height="800" style="background-color:#000"></canvas>
-<canvas id="glCanvas2" width="800" height="800" style="background-color:#000"></canvas>
-<!--bug: bgColor must be 000 because of alpha transparency-->
+<canvas id="glCanvas" width="1600" height="800"></canvas>
 </body>
 </html>
