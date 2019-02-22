@@ -11,6 +11,7 @@ reserved:
 Mesh4.prototype.update = function(){
 	this.getNormal();
 	this.getBoundingObjs();
+	return this;
 }
 Mesh4.prototype.inFrustum = function(renderer,camera,gg){
 	var border = 1/camera.projectMat.ctg;
@@ -99,6 +100,7 @@ Mesh4.prototype.getNormal = function(){
 		}
 		c.info.normal = cn;
 	}
+	return this;
 }
 Mesh4.prototype.getBoundingObjs = function(){
 	var min = new Vec4(Infinity,Infinity,Infinity,Infinity);
@@ -122,6 +124,7 @@ Mesh4.prototype.getBoundingObjs = function(){
 	}
 	this.boundingBox = {min:min, max:max};
 	this.boundingSphere = {center:O, radius:r};
+	return this;
 }
 
 var Scene = function(){
@@ -227,10 +230,10 @@ Renderer4.ShaderProgram = {
 		F: `
 		precision highp float;
 		varying vec3 vcolor;
-		uniform int vertice;
+		uniform int displayMode;
 		void main(void) {
-			if(vertice==0){
-				gl_FragColor=vec4(1.0,0.0,0.0,0.5);
+			if(displayMode == 1){
+				gl_FragColor=vec4(1.0,0.0,0.0,0.1);
 			}else{
 				gl_FragColor=vec4(vcolor,1.0);
 			}
@@ -284,7 +287,7 @@ Renderer4.ShaderProgram = {
 			"vec4 vCam4":{},"mat4 mCam4":{},//PMat5 Cam4
 			"vec4 light":{},
 			"float ambientLight":{},
-			"int vertice":{}//wireFrameMode 0 or 1
+			"int displayMode":{}//wireFrameMode: 1
 		}
 	},
 	fbo4D: {
@@ -297,6 +300,7 @@ Renderer4.ShaderProgram = {
 		uniform vec4 oC1;
 		uniform vec4 oC2;
 		uniform vec4 oC3;
+		uniform int displayMode;
 		float opacity(vec3 cc){
 			return 1.0
 				- clamp(1.0-distance(oC0.rgb, cc)*oC0.a,0.0,1.0)*0.99
@@ -338,7 +342,8 @@ Renderer4.ShaderProgram = {
 			"vec4 oC0":{},//opaqueColor
 			"vec4 oC1":{},//opaqueColor
 			"vec4 oC2":{},//opaqueColor
-			"vec4 oC3":{}//opaqueColor
+			"vec4 oC3":{},//opaqueColor
+			"int displayMode":{}//wireFrameMode: 1
 		}
 	}
 }
@@ -350,8 +355,6 @@ Renderer4.prototype._initGL = function(gl){
 	
 	gl.crossProgram = new Webgl.ShaderProgram(gl,Renderer4.ShaderProgram.cross4D);
 	gl.crossProgram.use();
-	gl.crossProgram.uniform["vec4 light"].set(this.light4.flat());
-	gl.crossProgram.uniform["float ambientLight"].set(0.5);
 	gl.VBuffer = new Webgl.ArrayBuffer(gl);
 	gl.NBuffer = new Webgl.ArrayBuffer(gl);
 	gl.CBuffer = new Webgl.ArrayBuffer(gl);
@@ -424,15 +427,34 @@ Renderer4.prototype.render = function(){
 	this._matCamera = this.camera4.coordMat();
 	
 	var mt = 0.99/this.camera4.projectMat.ctg;
-	if(this.thickness>=1){
+	/*if(this.thickness>=1){
 		this.renderCrossSection(new Vec4(0,0,1,mt*i),true,false);
-	}else{
+	}else{*/
+	var displayMode = this.wireFrameMode;
+	//this.wireFrameMode = false;
+	for(var i = 0; i <= 1; i += this.thickness);
+	while(i >= -1){
+		this.renderCrossSection(new Vec4(0,0,1,mt*i),false,false);
+		i -= this.thickness;
+	}
+	//this.wireFrameMode = displayMode;
+	var flow = this.flow;
+	this.flow = 0;
+	if(this.wireFrameMode){
+		this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
 		for(var i = 0; i <= 1; i += this.thickness);
 		while(i >= -1){
-			this.renderCrossSection(new Vec4(0,0,1,mt*i),false,false);
+			this.renderCrossSection(new Vec4(0,1,0,mt*i),false,false);
+			i -= this.thickness;
+		}
+		this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
+		for(var i = 0; i <= 1; i += this.thickness);
+		while(i >= -1){
+			this.renderCrossSection(new Vec4(1,0,0,-mt*i),false,false);
 			i -= this.thickness;
 		}
 	}
+	this.flow = flow;
 	function renderThumbnail(vec3,angle,crossSection,viewport){
 		var r = vec3.expQ(angle).toMatLR().array;
 		_setEyeMatrix(_this.eyeL,new Vec3(-_this.eyeDistanceH,0,-_this.eyeDistanceF),r);
@@ -440,11 +462,13 @@ Renderer4.prototype.render = function(){
 		_this.renderCrossSection(crossSection,true,viewport);
 		_this.viewportL();
 	}
+	this.wireFrameMode = false;
 	if(this.enableThumbnail){
 		renderThumbnail(new Vec3(0,0,1),0,new Vec4(0,0,1,0),this.LEFT_BOTTOM);
 		renderThumbnail(new Vec3(1,0,0),Math.PI/2,new Vec4(0,1,0,0),this.RIGHT_UP);
 		renderThumbnail(new Vec3(0,1,0),Math.PI/2,new Vec4(1,0,0,0),this.RIGHT_BOTTOM);
 	}
+	this.wireFrameMode = displayMode;
 }
 Renderer4.prototype._setCrossProgramUniform = function(){
 	var gl = this.gl;
@@ -463,6 +487,11 @@ Renderer4.prototype._setFboProgramUniform = function(){
 	gl.fboProgram.uniform["vec4 oC1"].set(this._opaqueColor[1]);
 	gl.fboProgram.uniform["vec4 oC2"].set(this._opaqueColor[2]);
 	gl.fboProgram.uniform["vec4 oC3"].set(this._opaqueColor[3]);
+	if(this.wireFrameMode){
+		gl.fboProgram.uniform["int displayMode"].set(1);
+	}else{
+		gl.fboProgram.uniform["int displayMode"].set(0);
+	}
 }
 Renderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 	var _this = this;
@@ -679,12 +708,13 @@ Renderer4.prototype._renderMeshbuffer = function(mode3d,thumbnail){
 		}else{
 			gl.crossProgram.uniform["vec4 vCam4"].set(this.camera4.position.flat());
 		}
-		gl.crossProgram.uniform["int vertice"].set(1);
+		
 		gl.crossProgram.uniform["mat4 mCamera3"].set(this.eyeL.Mat.array);
 		gl.drawFaces(gl.FBuffer);
 		if(this.wireFrameMode){
-			gl.crossProgram.uniform["int vertice"].set(0);
+			gl.crossProgram.uniform["int displayMode"].set(1);
 			gl.drawPoints(gl.FBuffer);
+			gl.crossProgram.uniform["int displayMode"].set(0);
 		}
 		gl.fbolink1.use([],gl.fboR);
 		this.viewportL();//not R, because is in the fbo
@@ -693,12 +723,12 @@ Renderer4.prototype._renderMeshbuffer = function(mode3d,thumbnail){
 		}else{
 			gl.crossProgram.uniform["vec4 vCam4"].set(this.camera4.position.flat());
 		}
-		gl.crossProgram.uniform["int vertice"].set(1);
 		gl.crossProgram.uniform["mat4 mCamera3"].set(this.eyeR.Mat.array);
 		gl.drawFaces(gl.FBuffer);
 		if(this.wireFrameMode){
-			gl.crossProgram.uniform["int vertice"].set(0);
+			gl.crossProgram.uniform["int displayMode"].set(1);
 			gl.drawPoints(gl.FBuffer);
+			gl.crossProgram.uniform["int displayMode"].set(0);
 		}
 	}
 	gl.fboProgram.use();

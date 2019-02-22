@@ -234,12 +234,13 @@ Webgl.ShaderProgram = function(gl,data){
 	this.V = data.V;
 	this.F = data.F;
 	this.attribute = {};
+	
 	for(var a in data.attribute){
-		this.attribute[a] = {};
+		this.attribute[a] = null;
 	}
 	this.uniform = {};
 	for(var a in data.uniform){
-		this.uniform[a] = {};
+		this.uniform[a] = null;
 	}
 	this._create();
 	this.use();

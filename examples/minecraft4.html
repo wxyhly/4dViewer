@@ -164,7 +164,6 @@ function start(){
 			gnd.position.z = camera.position.t;
 			gnd.position.t = camera.position.z;
 		}
-		//console.log(scene.child[3].length);
 		controler.update();
 		focusPos = terrain.rayCast(camera.position, camera.rotation[0].mul(new Vec4(0,0,0,5),false).mul(camera.rotation[1]).add(camera.position));
 		if(focusPos){

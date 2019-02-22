@@ -69,6 +69,8 @@ MCWorld.ColorTable = [
 	0x00FFFF,//cyan
 	0x0000FF,//blue
 	0xBB00FF,//purple
+	0xFFFFFF,//glow white
+	0x000000,//pure black
 ];
 MCWorld.prototype._findChunk = function(x,y,z,t){
 	var cx = Math.floor(x/MCChunk.SIZE);
@@ -154,7 +156,7 @@ var MCChunk = function(x,z,t,data){
 	this.t = t;
 	this.data = data;
 }
-
+MCChunk.SlopeColor = 0xFFFFFF;
 MCChunk.Cellx = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
 MCChunk.Celly = Mesh3.cube(1).embed(true, new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
 MCChunk.Cellz = Mesh3.cube(1).embed(true, new Vec4(0,1,0,0),new Vec4(1,0,0,0),new Vec4(0,0,0,1));
@@ -205,52 +207,53 @@ MCChunk.prototype.generateGeom = function(mcWorld){
 			for(var z = 0; z<MCChunk.SIZE; z++){
 				for(var t = 0; t<MCChunk.SIZE; t++){
 					var datavalue = this.data[x][y][z][t];
+					var n = datavalue == 12 ? 0 : 1;
 					if(datavalue>0){
 						var color = MCWorld.ColorTable[datavalue];
 						if(mcWorld.getBlockId(x+dx,y,z+dz,t+1+dt)<=0) // air:0, -x:slope
-							join(MCChunk.Cellt,x,y,z,t+0.5,color,0,0,0,1);
+							join(MCChunk.Cellt,x,y,z,t+0.5,color,0,0,0,n);
 						if(mcWorld.getBlockId(x+dx,y,z+dz+1,t+dt)<=0)
-							join(MCChunk.Cellz,x,y,z+0.5,t,color,0,0,1,0);
+							join(MCChunk.Cellz,x,y,z+0.5,t,color,0,0,n,0);
 						if(mcWorld.getBlockId(x+dx,y+1,z+dz,t+dt)<=0)
-							join(MCChunk.Celly,x,y+0.5,z,t,color,0,1,0,0);
+							join(MCChunk.Celly,x,y+0.5,z,t,color,0,n,0,0);
 						if(mcWorld.getBlockId(x+dx+1,y,z+dz,t+dt)<=0)
-							join(MCChunk.Cellx,x+0.5,y,z,t,color,1,0,0,0);
+							join(MCChunk.Cellx,x+0.5,y,z,t,color,n,0,0,0);
 						
 						if(mcWorld.getBlockId(x+dx,y,z+dz,t-1+dt)<=0) // air:0, -x:slope
-							join(MCChunk.Cellt,x,y,z,t-0.5,color,0,0,0,1);
+							join(MCChunk.Cellt,x,y,z,t-0.5,color,0,0,0,n);
 						if(mcWorld.getBlockId(x+dx,y,z+dz-1,t+dt)<=0)
-							join(MCChunk.Cellz,x,y,z-0.5,t,color,0,0,1,0);
+							join(MCChunk.Cellz,x,y,z-0.5,t,color,0,0,n,0);
 						if(mcWorld.getBlockId(x+dx,y-1,z+dz,t+dt)<=0)
-							join(MCChunk.Celly,x,y-0.5,z,t,color,0,1,0,0);
+							join(MCChunk.Celly,x,y-0.5,z,t,color,0,n,0,0);
 						if(mcWorld.getBlockId(x+dx-1,y,z+dz,t+dt)<=0)
-							join(MCChunk.Cellx,x-0.5,y,z,t,color,1,0,0,0);
+							join(MCChunk.Cellx,x-0.5,y,z,t,color,n,0,0,0);
 						
 					}else if(datavalue <0){
 						
 						switch(datavalue){
 							case -1:
 								//from x+ to x-
-								hyxelMesh.join(MCChunk.SlopeXp.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+								hyxelMesh.join(MCChunk.SlopeXp.clone().move(new Vec4(x,y,z,t)).setInfo({color: MCChunk.SlopeColor}));
 							break;
 							case -2:
 								//from x- to x+
-								hyxelMesh.join(MCChunk.SlopeXm.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+								hyxelMesh.join(MCChunk.SlopeXm.clone().move(new Vec4(x,y,z,t)).setInfo({color: MCChunk.SlopeColor}));
 							break;
 							case -3:
 								//from y+ to y-
-								hyxelMesh.join(MCChunk.SlopeYp.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+								hyxelMesh.join(MCChunk.SlopeYp.clone().move(new Vec4(x,y,z,t)).setInfo({color: MCChunk.SlopeColor}));
 							break;
 							case -4:
 								//from y- to y+
-								hyxelMesh.join(MCChunk.SlopeYm.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+								hyxelMesh.join(MCChunk.SlopeYm.clone().move(new Vec4(x,y,z,t)).setInfo({color: MCChunk.SlopeColor}));
 							break;
 							case -5:
 								//from z+ to z-
-								hyxelMesh.join(MCChunk.SlopeZp.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+								hyxelMesh.join(MCChunk.SlopeZp.clone().move(new Vec4(x,y,z,t)).setInfo({color: MCChunk.SlopeColor}));
 							break;
 							case -6:
 								//from z- to z+
-								hyxelMesh.join(MCChunk.SlopeZm.clone().move(new Vec4(x,y,z,t)).setInfo({color: 0xFFFFFF}));
+								hyxelMesh.join(MCChunk.SlopeZm.clone().move(new Vec4(x,y,z,t)).setInfo({color: MCChunk.SlopeColor}));
 							break;
 						}
 					}
@@ -426,12 +429,14 @@ MCWorld.prototype.rayCast = function(s, e){
 
 		// 检测新起点方块
 		id = this.getBlockId(intX1, intY1, intZ1, intT1);
-		if(id > 0) return {position: new Vec4(intX1, intY1, intZ1, intT1),direction:direction};
+		if(id >= -255 && id!=0) return {position: new Vec4(intX1, intY1, intZ1, intT1),direction:direction};
+		//所有非空气方块
 	}
 }
 MCWorld.prototype.hitTest = function(pos){
 	var value = this.getBlockId(Math.round(pos.x),Math.round(pos.y),Math.round(pos.z),Math.round(pos.t));
 	if(value > 0) return true; //block detected
+	if(value == -7) return true; //transparent barrier detected
 	if(value == 0) return false; //air detected
 	//slopes below
 	var dx = pos.x - Math.round(pos.x);

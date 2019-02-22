@@ -1,0 +1,494 @@
+ <html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../render.js"></script>
+<script src="sun.js"></script>
+<script src="minecraft4.js"></script>
+
+<script src="dat.gui.min.js"></script>
+<script src="controler.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var $ = function (obj){
+	return document.getElementById(obj);
+}
+var tetraspaceLevel = function(cameraPosition,x,z,t,goal,onload){
+	this.x = x;
+	this.z = z;
+	this.t = t;
+	this.goal = goal;
+	this.onload = onload;
+	this.cameraPosition = cameraPosition;
+}
+tetraspaceLevel.next = function(){
+	var l = tetraspaceLevel.levels[++tetraspaceLevel.currentLevel];
+	if(l){
+		l.load();
+	}else{
+		//tetraspaceLevel.levels[0]
+	}
+}
+tetraspaceLevel.currentLevel = Number(location.search.substr(1)) || 0;
+tetraspaceLevel.emitters = [];
+tetraspaceLevel.hitTestLightStreams = function(pos){
+	for(var l of tetraspaceLevel.emitters){
+		var p = l.position;
+		var q = p.add(l.direction.mul(l.length,false),false);
+		var x = Math.round(pos.x);
+		var y = Math.round(pos.y);
+		var z = Math.round(pos.z);
+		var t = Math.round(pos.t);
+		var xmax = Math.max(p.x,q.x);
+		var ymax = Math.max(p.y,q.y);
+		var zmax = Math.max(p.z,q.z);
+		var tmax = Math.max(p.t,q.t);
+		var xmin = Math.min(p.x,q.x);
+		var ymin = Math.min(p.y,q.y);
+		var zmin = Math.min(p.z,q.z);
+		var tmin = Math.min(p.t,q.t);
+		if(x>=xmin && x<=xmax && y>=ymin && y<=ymax && z>=zmin && z<=zmax && t<=tmax && t>=tmin){
+			tetraspaceLevel.levels[tetraspaceLevel.currentLevel].load();
+			tetraspaceLevel.camera.rotation = [new Vec4(0.454,0.541,0.541,-0.454),new Vec4(0.541,-0.454,0.454,-0.541)];
+			tetraspaceLevel.controler.updateCamera();
+		}
+	}
+}
+tetraspaceLevel.updateLightStreams = function(){
+	for(var l of tetraspaceLevel.emitters){
+		var p = l.position.clone();
+		var modified = false;
+		for(var i=0; i<20; i++){
+			var dataValue = tetraspaceLevel.world.getBlockId(
+				Math.round(p.x),Math.round(p.y),Math.round(p.z),Math.round(p.t)
+			);
+			if(dataValue!=0 || tetraspaceLevel.box.position.sub(p,false).len(false)<0.1){
+				l.length = i;
+				modified = true;
+				break;
+			}
+			p.add(l.direction);
+		}
+		if(modified){
+			l.lightStream.mesh = Mesh4.cuboid(
+				Math.abs(l.direction.x)*(l.length-0.15) + 0.15,
+				Math.abs(l.direction.y)*(l.length-0.15) + 0.15,
+				Math.abs(l.direction.z)*(l.length-0.15) + 0.15,
+				Math.abs(l.direction.t)*(l.length-0.15) + 0.15
+			).update();
+			l.lightStream.position = l.direction.mul(l.length/2,false).add(l.position);
+		}
+	}
+}
+tetraspaceLevel.moveBox = function (direction){
+	var b = tetraspaceLevel.box.position;
+	var goal = b.add(direction,false);
+	var _this = tetraspaceLevel.levels[tetraspaceLevel.currentLevel];
+	var dataValue = tetraspaceLevel.world.getBlockId(Math.round(goal.x),Math.round(goal.y),Math.round(goal.z),Math.round(goal.t));
+	if(dataValue != 0) return 0;
+	for(var l of tetraspaceLevel.emitters){
+		if(l.position.sub(goal,false).len(false)<0.1) return 0;//avoid pushing box into laser emitter
+	}
+	if(goal.y>0.5 && goal.x>-0.5 && goal.x < _this.x-0.5 &&
+		goal.z>-0.5 && goal.z < _this.z-0.5 &&
+		goal.t>-0.5 && goal.t < _this.t-0.5
+	){
+		tetraspaceLevel.isMoving = true;
+		tetraspaceLevel.movingBoxGoal = goal;
+	}
+}
+tetraspaceLevel.prototype.load = function(){
+	tetraspaceLevel.world.chunks = {};//clear the world;
+	tetraspaceLevel.emitters = [];
+	
+	tetraspaceLevel.controler.hitTest = function(pos){
+		var _this = tetraspaceLevel.levels[tetraspaceLevel.currentLevel];
+		var b = tetraspaceLevel.box.position;
+		if(Math.abs(pos.x - b.x)<0.5 && Math.abs(pos.y - b.y)<0.5 && Math.abs(pos.z - b.z)<0.5 && Math.abs(pos.t - b.t)<0.5){
+		//touched with vube
+			if(pos.y - b.y > 0.2) return true;//not stand aside
+			if(Math.abs(pos.x - b.x)>0.4 && Math.abs(pos.z - b.z)<0.4 && Math.abs(pos.t - b.t)<0.4){
+			//touched in x axis and not in the corner
+				tetraspaceLevel.moveBox(new Vec4(pos.x < b.x ? 1: -1,0,0,0));
+			}
+			if(Math.abs(pos.z - b.z)>0.4 && Math.abs(pos.x - b.x)<0.4 && Math.abs(pos.t - b.t)<0.4){
+				tetraspaceLevel.moveBox(new Vec4(0,0,pos.z < b.z ? 1: -1,0));
+			}
+			if(Math.abs(pos.t - b.t)>0.4 && Math.abs(pos.x - b.x)<0.4 && Math.abs(pos.z - b.z)<0.4){
+				tetraspaceLevel.moveBox(new Vec4(0,0,0,pos.t < b.t ? 1: -1));
+			}
+			return true;
+		}
+		return (pos.y>0.5 && pos.x>-0.5 && pos.x < _this.x-0.5 &&
+			pos.z>-0.5 && pos.z < _this.z-0.5 &&
+			pos.t>-0.5 && pos.t < _this.t-0.5 
+		) ? tetraspaceLevel.world.hitTest(pos):true;
+	}
+	tetraspaceLevel.camera.position.set(this.cameraPosition);
+	tetraspaceLevel.gnd.mesh = Mesh4.cuboid(this.x,10,this.z,this.t).move(new Vec4(this.x/2-0.5,10/2+0.499,this.z/2-0.5,this.t/2-0.5));
+	tetraspaceLevel.gnd.mesh.update();
+	tetraspaceLevel.goal.position = this.goal;
+	tetraspaceLevel.world.generateGeom(0,0,0); //generation center
+	tetraspaceLevel.scene.child[0] = [];
+	tetraspaceLevel.box.position = new Vec4(0,-2,0,0);
+	this.onload();
+	for(var l of tetraspaceLevel.emitters){
+		var emitter = new Geom4(Mesh4.tesseract(0.5).update(),l.position,null,0x00FF00);
+		var length = 10;
+		var lightStream = new Geom4(
+			Mesh4.cuboid(
+				Math.abs(l.direction.x)*(length-0.15) + 0.15,
+				Math.abs(l.direction.y)*(length-0.15) + 0.15,
+				Math.abs(l.direction.z)*(length-0.15) + 0.15,
+				Math.abs(l.direction.t)*(length-0.15) + 0.15
+			).update(),
+			l.direction.mul(length/2,false).add(l.position),null,0x00FF00
+		);
+		l.length = length;
+		l.lightStream = lightStream;
+		lightStream.glow = true;
+		tetraspaceLevel.scene.child[0].push(emitter);
+		tetraspaceLevel.scene.child[0].push(lightStream);
+	}
+	tetraspaceLevel.scene.child[0].push(tetraspaceLevel.world.generateGeom(0,0,0));
+}
+function start(){
+	var scene = new Scene();
+	scene.add([]);//empty array take place for the storage of the world
+	var goal = new Geom4(Mesh4.tesseract(0.2));
+	goal.color = 0xFFFFFF; goal.glow = true;
+	var fondain = Mesh4.cuboid(1,0.1,1,1).move(new Vec4(0,-0.45,0,0)).setInfo({color: 0xFFFFFF});
+	var fondainEau = Mesh4.cuboid(0.8,0.1,0.8,0.8).move(new Vec4(0,-0.44,0,0)).setInfo({color: 0});
+	
+	var valve = Mesh4.cuboid(0.4,0.8,0.8,0.8).move(new Vec4(-0.3,2,0,0)).setInfo({color: 0xFFFFFF});
+	var eau = Mesh4.cuboid(0.1,2.3,0.6,0.6).move(new Vec4(-0.05,1 - 0.2,0,0)).setInfo({color: 0});
+	
+	fondain.join(fondainEau).join(valve).join(eau).update();
+	scene.add(goal);
+	var gnd = new Geom4(new Mesh4());
+	MCWorld.ColorTable[1] = 0x666666;
+	gnd.color = MCWorld.ColorTable[1];
+	scene.add(gnd);
+	
+	MCChunk.SlopeColor = MCWorld.ColorTable[1];
+	var world = new MCWorld();
+	world.distance = 4;
+	world.autoGenerate = false;
+	
+	var box = new Geom4(Mesh4.tesseract(1).update());
+	box.color = 0x00FFFF;
+	box.position = new Vec4(0,-2,0,0);
+	scene.add(box);
+	tetraspaceLevel.box = box;
+	tetraspaceLevel.gnd = gnd;
+	tetraspaceLevel.goal = goal;
+	tetraspaceLevel.world = world;
+	tetraspaceLevel.scene = scene;
+	tetraspaceLevel.levels = [];
+	tetraspaceLevel.levels[0] = new tetraspaceLevel(new Vec4(0,1,0,0), 5,3,1, new Vec4(2,3,0,0),function(){
+		world.setBlockId( 12, 2,1,0,0);
+		world.setBlockId( 1, 2,2,0,0);
+		world.setBlockId(-2, 2,1,1,0);
+		world.setBlockId(-1, 3,2,0,0);
+		world.setCuboid(  1, 3,1,1,0, 4,1,0,0);
+		scene.child[0].push(new Geom4(fondain,new Vec4(0,1,2,0)));
+	});
+	tetraspaceLevel.levels[1] = new tetraspaceLevel(new Vec4(0,1,1,0), 6,3,2, new Vec4(4,1,1,0),function(){
+		world.setCuboid( 1, 2,1,0,0, 2,0,2,1);
+		world.setBlockId(0, 2,1,1,1);
+		var glome = Mesh4.glome(0.5,8,8,8);
+		glome.update();
+		scene.child[0].push(new Geom4(glome,null,null,MCWorld.ColorTable[1]).move(new Vec4(2,2,0,0)));
+		scene.child[0].push(new Geom4(glome,null,null,MCWorld.ColorTable[1]).move(new Vec4(2,2,2,0)));
+		scene.child[0].push(new Geom4(glome,null,null,MCWorld.ColorTable[1]).move(new Vec4(2,2,0,1)));
+		scene.child[0].push(new Geom4(glome,null,null,MCWorld.ColorTable[1]).move(new Vec4(2,2,2,1)));
+	});
+	tetraspaceLevel.levels[2] = new tetraspaceLevel(new Vec4(0,1,1,1), 5,3,3, new Vec4(4,2,1,1),function(){
+		world.setBlockId( 4, 0,1,0,1);
+		world.setBlockId( 4, 2,1,1,1);
+		world.setBlockId( 4, 4,1,1,1);
+		
+		world.setCuboid(  4, 0,0,0,0, 4,0,3,0);
+		world.setCuboid(  4, 0,0,0,2, 4,0,3,2);
+		world.setBlockId( 4, 0,1,0,2);
+		world.setBlockId( 4, 0,1,2,2);
+		world.setBlockId(-1, 1,1,2,2);
+		
+		world.setBlockId( 4, 2,1,1,0);
+		world.setCuboid(  4, 0,1,0,0, 2,1,0,0);
+		world.setCuboid(  4, 0,1,2,0, 2,2,2,0);
+		world.setCuboid(  4, 0,1,1,2, 4,1,1,2);
+		world.setCuboid( 12, 1,1,1,2, 1,3,1,2);
+	});
+	tetraspaceLevel.levels[3] = new tetraspaceLevel(new Vec4(1,1,0,1), 3,3,3, new Vec4(2,2,0,2),function(){
+		
+		world.setCuboid(  4, 2,0,0,0, 0,0,0,2);
+		world.setCuboid(  4, 0,0,2,0, 2,0,2,2);
+		
+		world.setBlockId( 1, 2,2,1,1);
+		box.position = new Vec4(2,1,1,1);
+		world.setBlockId( 1, 2,1,0,2);
+		world.setBlockId( 1, 2,1,2,2);
+		world.setBlockId(-2, 1,1,2,2);
+	});
+	tetraspaceLevel.levels[4] = new tetraspaceLevel(new Vec4(0,1,2,0), 5,5,2, new Vec4(3,4,2,0),function(){
+		scene.child[0].push(new Geom4(fondain,new Vec4(3,1,3,1)).rotate(new Bivec(0,Math.PI,0,0,0,0)));
+		world.setCuboid(  4, 0,0,0,1, 4,0,4,1);
+		world.setCuboid(  1, 1,1,1,0, 1,1,3,0);
+		world.setCuboid(  7, 2,1,1,0, 3,1,1,0);
+		world.setCuboid(  1, 4,1,1,0, 4,1,2,0);
+		world.setBlockId( 7, 1,1,2,0);
+		world.setBlockId(12, 2,1,3,0);
+		world.setBlockId(-2, 2,2,3,0);
+		world.setBlockId(-2, 3,1,2,0);
+		world.setBlockId( 4, 4,3,2,0);
+		world.setBlockId( 7, 3,3,2,0);
+		world.setCuboid(  1, 3,1,3,0, 3,2,3,0);
+		world.setCuboid(  1, 1,1,1,1, 1,1,3,1);
+		world.setBlockId( 1, 1,2,2,1);
+		world.setBlockId( 1, 2,1,1,1);
+		world.setBlockId( 1, 3,2,1,1);
+		world.setBlockId( 1, 2,1,3,1);
+		world.setBlockId( -2, 2,2,1,1);
+		world.setBlockId( -2, 3,3,1,1);
+		world.setCuboid(  1, 4,3,1,1, 4,3,3,1);
+	});
+	tetraspaceLevel.levels[5] = new tetraspaceLevel(new Vec4(0,1,1,0), 4,4,3, new Vec4(3,2,0,0),function(){
+		var fondain2 = Mesh4.cuboid(1,0.1,1,1).move(new Vec4(0,-0.45,0,0)).setInfo({color: MCWorld.ColorTable[1]});
+		var fondainEau = Mesh4.cuboid(0.8,0.1,0.8,0.8).move(new Vec4(0,-0.44,0,0)).setInfo({color: 0});
+		
+		var valve = Mesh4.cuboid(0.4,0.8,0.8,0.8).move(new Vec4(-0.3,1,0,0)).setInfo({color: MCWorld.ColorTable[1]});
+		var eau = Mesh4.cuboid(0.1,1.7,0.6,0.6).move(new Vec4(-0.05, 0.5 - 0.2,0,0)).setInfo({color: 0});
+		
+		fondain2.join(fondainEau).join(valve).join(eau).update();
+		world.setBlockId( 1, 3,1,0,0);
+		world.setBlockId(-3, 3,1,2,0);
+		world.setBlockId( 1, 2,1,2,1);
+		world.setBlockId( 1, 3,3,2,1);
+		scene.child[0].push(new Geom4(fondain2,new Vec4(2,2,2,1)).rotate(new Bivec(0,Math.PI,0,0,0,0)));
+		world.setCuboid(  1, 3,1,3,1, 3,3,3,1);
+		world.setCuboid(  1, 2,1,1,0, 2,2,1,0);
+		
+		world.setBlockId( 1, 3,1,0,2);
+		world.setCuboid(  1, 2,1,0,2, 2,1,2,2);
+		
+		world.setCuboid(  4, 0,0,0,1, 3,0,3,1);
+		box.position = new Vec4(1,1,1,1);
+	});
+	tetraspaceLevel.levels[6] = new tetraspaceLevel(new Vec4(0,1,2,0), 5,4,3, new Vec4(3,1,1,0),function(){
+		var glome = Mesh4.glome(0.5,8,8,8);
+		glome.update();
+		scene.child[0].push(new Geom4(glome,null,null,MCWorld.ColorTable[1]).move(new Vec4(1,1,1,0)));
+		tetraspaceLevel.emitters = [{position:new Vec4(2,1,0,0), direction: new Vec4(0,0,1,0)}];
+		world.setBlockId(-7, 1,1,1,0);
+		box.position = new Vec4(1,1,1,1);
+		world.setCuboid(  4, 0,0,0,1, 4,0,3,1);
+		world.setCuboid(  7, 2,1,3,1, 4,1,0,1);
+	});
+	tetraspaceLevel.levels[7] = new tetraspaceLevel(new Vec4(2,1,1,1), 5,7,3, new Vec4(1,2,0,1),function(){
+		scene.child[0].push(new Geom4(fondain,new Vec4(4,1,1,0)).rotate(new Bivec(0,Math.PI,0,0,0,0)));
+		scene.child[0].push(new Geom4(fondain,new Vec4(4,1,4,0)).rotate(new Bivec(0,Math.PI,0,0,0,0)));
+		world.setBlockId( 1, 1,1,0,1);
+		world.setBlockId(-3, 3,1,0,1);
+		world.setBlockId( 7, 3,1,4,1);
+		world.setBlockId( 7, 1,1,4,1);
+		world.setBlockId( 7, 2,1,5,1);
+		world.setBlockId( 7, 2,1,3,1);
+		
+		box.position = new Vec4(2,1,4,1);
+		world.setCuboid(  4, 0,0,0,0, 4,0,6,0);
+		world.setCuboid(  4, 0,0,0,2, 4,0,6,2);
+		
+		world.setCuboid(  12, 1,3,3,1, 3,3,5,1);
+		world.setCuboid(  1, 1,3,3,1, 1,1,3,1);
+		world.setCuboid(  1, 3,3,5,1, 3,1,5,1);
+		world.setCuboid(  1, 1,3,5,1, 1,1,5,1);
+		world.setCuboid(  1, 3,3,3,1, 3,1,3,1);
+		world.setBlockId( 0, 2,3,4,1);
+		world.setBlockId( 1, 4,1,4,1);
+		world.setBlockId( 1, 0,1,4,1);
+	});
+	tetraspaceLevel.levels[8] = new tetraspaceLevel(new Vec4(1,1,1,3), 3,2,6, new Vec4(1,2,1,4),function(){
+		world.setCuboid(  4, 0,0,0,4, 2,0,1,5);
+		world.setCuboid(  4, 0,0,0,0, 2,0,1,1);
+		world.setCuboid(  1, 2,1,1,3, 2,2,0,0);
+		world.setCuboid(  1, 2,1,1,4, 2,1,1,5);
+		world.setBlockId(-2, 1,1,1,5);
+		world.setBlockId( 4, 0,1,1,1);
+		world.setBlockId( 4, 1,1,0,3);
+		world.setBlockId( 7, 0,1,0,2);
+		box.position = new Vec4(1,1,1,2);
+	});
+	tetraspaceLevel.levels[9] = new tetraspaceLevel(new Vec4(0,1,3,2), 6,6,3, new Vec4(2,6,3,2),function(){
+		world.setCuboid(  4, 0,0,0,0, 5,0,5,2);
+		world.setCuboid(  1, 2,1,3,2, 3,5,2,2);
+		world.setCuboid( 12, 2,4,3,2, 3,4,2,2);
+		world.setCuboid(  1, 1,1,2,1, 1,4,2,1);
+		world.setCuboid(  1, 3,1,2,1, 3,5,2,1);
+		world.setBlockId( 1, 1,1,3,1);
+		world.setBlockId(-1, 2,1,3,1);
+		world.setBlockId(-2, 2,5,2,1);
+		world.setBlockId( 1, 2,4,2,1);
+		box.position = new Vec4(4,1,1,1);
+		world.setBlockId( 1, 1,1,4,0);
+		world.setBlockId( 1, 2,1,4,0);
+		world.setBlockId(-2, 2,2,4,0);
+		world.setCuboid(  1, 3,1,4,0, 3,2,4,0);
+		world.setBlockId( 1, 3,2,3,0);
+		world.setBlockId(-3, 3,3,3,0);
+		world.setCuboid(  1, 3,1,2,0, 3,3,2,0);
+		world.setBlockId( 1, 2,3,2,0);
+		world.setBlockId(-1, 2,4,2,0);
+		world.setCuboid(  1, 1,1,2,0, 1,4,2,0);
+	});
+	tetraspaceLevel.levels[10] = new tetraspaceLevel(new Vec4(0,2,2,0), 5,5,5, new Vec4(4,2,4,4),function(){
+		world.setCuboid( 13, 0,0,0,0, 4,0,4,4);//black bottom
+		//we don't build bridge here
+		world.setCuboid( 4, 1,1,2,0, 3,1,2,0);
+		world.setCuboid( 1, 0,1,2,0, 0,1,2,2);
+		world.setCuboid( 1, 2,1,2,0, 2,1,2,3);
+		world.setCuboid( 1, 4,1,2,0, 4,1,2,3);
+		world.setBlockId(-3, 2,2,3,0);
+		world.setBlockId( 1, 4,1,3,0);
+		world.setBlockId( 1, 4,1,4,0);
+		world.setBlockId( 1, 3,1,4,0);
+		world.setBlockId( 1, 2,1,4,0);
+		world.setBlockId( 1, 2,1,0,0);
+		world.setBlockId(-4, 2,2,1,0);
+		
+		world.setBlockId( 1, 2,1,4,1);
+		world.setBlockId( 1, 2,1,0,1);
+		tetraspaceLevel.emitters = [
+			{position:new Vec4(2,2,3,1), direction: new Vec4(0,0,-1,0)},
+			{position:new Vec4(3,2,2,3), direction: new Vec4(0,0,0,-1)},
+			{position:new Vec4(4,2,1,2), direction: new Vec4(-1,0,0,0)}
+		
+		];
+		
+		world.setBlockId( 1, 2,1,4,2);
+		world.setBlockId( 1, 2,1,0,2);
+		world.setBlockId( 4, 2,1,3,2);
+		world.setBlockId( 4, 2,1,1,2);
+		world.setBlockId( 4, 1,1,2,2);
+		world.setBlockId( 4, 3,1,2,2);
+		box.position = new Vec4(2,2,2,2);
+		
+		world.setCuboid(  4, 2,1,3,3, 4,1,3,3);
+		world.setBlockId( 4, 2,1,0,3);
+		
+		world.setBlockId( 1, 2,1,0,4);
+		world.setBlockId( 1, 1,1,0,4);
+		world.setCuboid(  1, 0,1,0,4, 0,1,4,4);
+		world.setCuboid(  1, 4,1,4,4, 0,1,4,4);
+		
+		var bridge = Mesh4.cuboid(1,0.2,1,1).move(new Vec4(0,0.4,0,0));
+		scene.child[0].push(new Geom4(bridge.update(),null,null,MCWorld.ColorTable[1]).move(new Vec4(2,2,2,0)));
+		scene.child[0].push(new Geom4(valve.clone().join(eau).update()).move(new Vec4(0,1,2,3)));
+	});
+	
+	// for training : (not real tetraspace)
+	
+	tetraspaceLevel.levels[11] = new tetraspaceLevel(new Vec4(0,2,0,0), 5,5,5, new Vec4(4,2,4,4),function(){
+		world.setCuboid( 13, 0,0,0,0, 4,0,4,4);//black bottom
+		world.setBlockId(12, 0,1,0,0);
+		world.setBlockId(12, 0,1,1,0);
+		world.setBlockId(12, 0,1,2,0);
+		world.setBlockId(12, 1,1,2,0);
+		world.setBlockId(12, 2,1,2,0);
+		world.setBlockId(12, 2,1,2,1);
+		world.setBlockId(12, 2,1,2,2);
+		world.setBlockId(12, 2,1,1,2);
+		world.setBlockId(12, 2,1,0,2);
+		world.setBlockId(12, 3,1,0,2);
+		world.setBlockId(12, 4,1,0,2);
+		world.setBlockId(12, 4,1,0,3);
+		world.setBlockId(12, 4,1,0,4);
+		world.setBlockId(12, 4,1,1,4);
+		world.setBlockId(12, 4,1,2,4);
+		world.setBlockId(12, 4,1,3,4);
+		world.setBlockId(12, 4,1,4,4);
+	});
+	tetraspaceLevel.levels[12] = new tetraspaceLevel(new Vec4(0,2,0,0), 5,5,5, new Vec4(4,1,4,4),function(){
+		world.setCuboid( 1, 0,1,0,0, 4,1,4,4);//black bottom
+		world.setBlockId(0, 0,1,0,0);
+		world.setBlockId(0, 0,1,1,0);
+		world.setBlockId(0, 0,1,2,0);
+		world.setBlockId(0, 1,1,2,0);
+		world.setBlockId(0, 2,1,2,0);
+		world.setBlockId(0, 2,1,2,1);
+		world.setBlockId(0, 2,1,2,2);
+		world.setBlockId(0, 2,1,1,2);
+		world.setBlockId(0, 2,1,0,2);
+		world.setBlockId(0, 3,1,0,2);
+		world.setBlockId(0, 4,1,0,2);
+		world.setBlockId(0, 4,1,0,3);
+		world.setBlockId(0, 4,1,0,4);
+		world.setBlockId(0, 4,1,1,4);
+		world.setBlockId(0, 4,1,2,4);
+		world.setBlockId(0, 4,1,3,4);
+		world.setBlockId(0, 4,1,4,4);
+	});
+	
+	var camera = new Camera4(90,0.01,550);
+	camera.rotation = [new Vec4(0.454,0.541,0.541,-0.454),new Vec4(0.541,-0.454,0.454,-0.541)];
+	camera.position = new Vec4(0,1,0,0);
+	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(0.2,0.3,0.45,0.56).mul(1.2));
+	renderer.ambientLight = 0.3;
+	var controler = new Controler4.KeepUp(renderer);
+	controler.gravity = true;
+	tetraspaceLevel.camera = camera;
+	tetraspaceLevel.controler = controler;
+	
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	gui.add(camera.position,"x");
+	gui.add(camera.position,"y");
+	gui.add(camera.position,"z");
+	gui.add(camera.position,"t");
+	tetraspaceLevel.levels[tetraspaceLevel.currentLevel].load();
+	
+	function loop(){
+		tetraspaceLevel.hitTestLightStreams(camera.position);
+		var goal = tetraspaceLevel.levels[tetraspaceLevel.currentLevel].goal;
+		if(camera.position.sub(goal,false).len(false)<0.04){
+			tetraspaceLevel.next();
+			camera.rotation = [new Vec4(0.454,0.541,0.541,-0.454),new Vec4(0.541,-0.454,0.454,-0.541)];
+			controler.updateCamera();
+		}
+		if(tetraspaceLevel.currentLevel == 10){
+			//implentation of bridge
+			if(camera.position.y > 2.5){
+				world.setBlockId(-7, 2,2,2,0);
+				world.setBlockId( 0, 2,3,2,0);
+			}else{
+				world.setBlockId( 0, 2,2,2,0);
+				world.setBlockId(-7, 2,3,2,0);
+			}
+		}
+		if(tetraspaceLevel.isMoving){
+			var d = tetraspaceLevel.movingBoxGoal.sub(tetraspaceLevel.box.position,false);
+			tetraspaceLevel.updateLightStreams();
+			if(d.len(false)>0.00001){
+				tetraspaceLevel.box.position.add(d.mul(0.1));
+			}else{
+				tetraspaceLevel.isMoving = false;
+				
+			}
+		}
+		controler.update();
+		renderer.light4.set(controler.t);
+		renderer.light4.y = 0.5;
+		renderer.light4.norm();
+		renderer.render();
+		window.requestAnimationFrame(loop);
+	}
+	loop();
+}
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>

@@ -188,6 +188,7 @@ Obj4.prototype.rotate = function(bivec,s){
 	if(bivec[1]){//quanternion [L,R]
 		R = [bivec[0],bivec[1]];
 	}else if(typeof s=="number"){
+		console.error("expQ failed");
 		R = bivec.expQ(s);
 	}else{
 		R = bivec.expQ();
@@ -242,7 +243,7 @@ var Geom4 = function(m,pos,rot,color){
 	else throw "Geom4(m): m must be instance of Mesh4";
 	Obj4.call(this,pos,rot);
 	this.scale = 1;
-	this.color = color||0x00FF00;
+	this.color = typeof color == "number" ? color : 0x00FF00;
 	this.visible = true;
 }
 Geom4.prototype = Object.create(Obj4.prototype);
@@ -277,7 +278,11 @@ Mesh4._util = {
 			else{
 			var a0 = [];
 			a.forEach(function(a1){a0.push(a1 + offset);});
-			if(a.info) a0.info = a.info;
+			if(a.info) {
+				a0.info = {};
+				for(var i in a.info)
+					a0.info[i] = a.info[i];
+			};
 			dest.push(a0);}
 		});
 		

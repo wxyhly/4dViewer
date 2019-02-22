@@ -273,7 +273,7 @@ Controler4.KeepUp = function(renderer,hitTest){
 	
 	this.hitTest = hitTest || (()=>false);
 	this.figure_height = 0.5; // used in hitTest
-	this.figure_width = 0.1; // used in hitTest
+	this.figure_width = 0.2; // used in hitTest
 	this.rotateMouseStep = 100;
 	this.moveStep = 0.02;
 	this.rotateKeyStep = 0.05;
@@ -304,10 +304,8 @@ Controler4.KeepUp = function(renderer,hitTest){
 		rotateback: "O".charCodeAt(0)
 	});
 	//camera4 rotation quanternions:
-	this.planeRotation = [new Vec4(1,0,0,0),new Vec4(1,0,0,0)];
-	this.verticalRotation = [new Vec4(1,0,0,0),new Vec4(1,0,0,0)];
+	this.updateCamera();
 	//and vertical angle:
-	this.verticalDelta = 0;
 	
 	var _this = this;
 	
@@ -335,6 +333,38 @@ Controler4.KeepUp = function(renderer,hitTest){
 	});
 }
 Controler4.KeepUp.prototype = Object.create(Controler4.prototype);
+Controler4.KeepUp.prototype.updateCamera = function(){
+	var mat = this.camera4.coordMat();
+	var x = mat.mul(new Vec4(1,0,0,0));
+	var y = mat.mul(new Vec4(0,1,0,0));
+	var t = mat.mul(new Vec4(0,0,0,1));
+	this.verticalDelta = Math.asin(t.y/t.len());
+	var hx = new Vec4(x.x,0,x.z,x.t).norm();
+	var ht = new Vec4(t.x,0,t.z,t.t).norm();
+	var R = new Vec4(0,0,0,1).cross(ht,false);
+	var s = R.len();
+	var c = ht.t; //Vec4(0,0,0,1) dot M
+	if(Math.abs(s)>0.000001){
+		R.mul(-Math.atan2(s,c)/s);
+	}
+	this.planeRotation = R.expQ();
+	mat = this.planeRotation[0].toMatL().mul(this.planeRotation[1].toMatR());
+	x = mat.mul(new Vec4(1,0,0,0));
+	y = mat.mul(new Vec4(0,1,0,0));
+	t = mat.mul(new Vec4(0,0,0,1));
+	
+	var R = x.cross(hx,false);
+	var s = R.len();
+	var c = hx.dot(x); //Vec4(0,0,0,1) dot M
+	if(Math.abs(s)>0.000001){
+		R.mul(-Math.atan2(s,c)/s);
+	}
+	R = R.expQ();
+	this.planeRotation[0] = R[0].mul(this.planeRotation[0],false);
+	this.planeRotation[1].mul(R[1]);
+	
+	this.verticalRotation = y.cross(t).mul(this.verticalDelta).expQ();
+}
 Controler4.KeepUp.prototype.addGUI = function(gui){
 	Controler4.prototype.addGUI.call(this,gui);
 	var con = gui.addFolder("Control");
@@ -440,8 +470,20 @@ Controler4.KeepUp.prototype.tryMove = function(movement,climb){
 	var height = this.figure_height;
 	var width = this.figure_width;
 	var _this = this;
+	var w = width/Math.sqrt(3);
 	function test(eye){
-		return (!_this.hitTest(eye))&&(!_this.hitTest(eye.sub(new Vec4(0,height,0,0),false)))&&
+		return (!_this.hitTest(eye))&&
+			(!_this.hitTest(eye.sub(new Vec4(0,height,0,0),false)))&&
+			
+			(!_this.hitTest(eye.sub(new Vec4(w,height,w,w),false)))&&
+			(!_this.hitTest(eye.sub(new Vec4(w,height,w,-w),false)))&&
+			(!_this.hitTest(eye.sub(new Vec4(w,height,-w,w),false)))&&
+			(!_this.hitTest(eye.sub(new Vec4(w,height,-w,-w),false)))&&
+			(!_this.hitTest(eye.sub(new Vec4(-w,height,w,w),false)))&&
+			(!_this.hitTest(eye.sub(new Vec4(-w,height,w,-w),false)))&&
+			(!_this.hitTest(eye.sub(new Vec4(-w,height,-w,w),false)))&&
+			(!_this.hitTest(eye.sub(new Vec4(-w,height,-w,-w),false)))&&
+			
 			(!_this.hitTest(eye.add(new Vec4(width,0,0,0),false)))&&
 			(!_this.hitTest(eye.add(new Vec4(-width,0,0,0),false)))&&
 			(!_this.hitTest(eye.add(new Vec4(0,0,width,0),false)))&&
