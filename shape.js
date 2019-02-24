@@ -622,6 +622,7 @@ Mesh4.prototype.loft = function(fn,n,flag){
 Mesh4.prototype.directProduct = function(M4){
 	//this and M4: 2d new Mesh4
 	var M = new Mesh4();
+	var face = M4.F.length;
 	for(var i=0; i<this.V.length; i++){
 		var N = M4.clone().move(this.V[i]);
 		M.join(N);
@@ -631,14 +632,21 @@ Mesh4.prototype.directProduct = function(M4){
 	var m = M4.V.length;
 	var eall = M.E.length;
 	for(var j=0; j<M4.V.length; j++){
-		var f = [];
 		for(var i=0; i<this.E.length; i++){
-			f.push(M.E.length);
+			
 			M.E.push([j+this.E[i][0]*m, j+this.E[i][1]*m]);
 			//add edge to connect each copy
 		}
-		M.F.push(f);
 		//add face formed by edge loop
+	}
+	for(var j=0; j<M4.V.length; j++){
+		for(var i=0; i<this.F.length; i++){
+			var f = [];
+			for(var k=0; k<this.F[i].length; k++){
+				f.push(this.F[i][k]+j*this.E.length+eall);
+			}
+			M.F.push(f);
+		}
 	}
 	var fall = M.F.length;
 	for(var j=0; j<M4.E.length; j++){
@@ -653,20 +661,25 @@ Mesh4.prototype.directProduct = function(M4){
 		}
 	}
 	for(var j=0; j<M4.E.length; j++){
-		//cellule: deux face grandes
-		var c = [fa+M4.E[j][0],fa+M4.E[j][1]];
-		for(var i=0; i<this.E.length; i++){
-			c.push(fall+i+j*this.E.length);
+		for(var m=0; m<this.F.length; m++){
+			var c = [fa+M4.E[j][0]*this.F.length+m,fa+M4.E[j][1]*this.F.length+m];
+			for(var n=0; n<this.F[m].length; n++){
+				var l = this.F[m][n];
+				c.push(fall+l+j*this.E.length);
+			}
+			M.C.push(c);
 		}
-		M.C.push(c);
 	}
 	for(var j=0; j<this.E.length; j++){
-		//cellule: deux face grandes
-		var c = [this.E[j][0],this.E[j][1]];
-		for(var i=0; i<M4.E.length; i++){
-			c.push(fall+j+i*this.E.length);
+		for(var m=0; m<M4.F.length; m++){
+			var c = [this.E[j][0]*face+m,this.E[j][1]*face+m];
+			for(var n=0; n<M4.F[m].length; n++){
+				var l = M4.F[m][n];
+				c.push(fall+j+l*this.E.length);
+			}
+			c.info = {color: 0xFFFFFF};
+			M.C.push(c);
 		}
-		M.C.push(c);
 	}
 	return M;
 	

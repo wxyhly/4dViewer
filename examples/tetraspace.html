@@ -288,11 +288,11 @@ function start(){
 		world.setCuboid(  4, 0,0,0,1, 4,0,3,1);
 		world.setCuboid(  7, 2,1,3,1, 4,1,0,1);
 	});
-	tetraspaceLevel.levels[7] = new tetraspaceLevel(new Vec4(2,1,1,1), 5,7,3, new Vec4(1,2,0,1),function(){
+	tetraspaceLevel.levels[7] = new tetraspaceLevel(new Vec4(2,1,1,1), 5,7,3, new Vec4(3,2,0,1),function(){
 		scene.child[0].push(new Geom4(fondain,new Vec4(4,1,1,0)).rotate(new Bivec(0,Math.PI,0,0,0,0)));
 		scene.child[0].push(new Geom4(fondain,new Vec4(4,1,4,0)).rotate(new Bivec(0,Math.PI,0,0,0,0)));
-		world.setBlockId( 1, 1,1,0,1);
-		world.setBlockId(-3, 3,1,0,1);
+		world.setBlockId( 1, 3,1,0,1);
+		world.setBlockId(-2, 1,1,0,1);
 		world.setBlockId( 7, 3,1,4,1);
 		world.setBlockId( 7, 1,1,4,1);
 		world.setBlockId( 7, 2,1,5,1);

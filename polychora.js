@@ -436,12 +436,15 @@ Mesh4.ToddCoxeter.prototype = {
         var edges = 0;
         var faces = 0;
         var cells = 0;
+		var is4D = this.cosetTable.extraColumns.length == 4;
 
         for (var i = 0; i < this.cosetTable.extraColumns[0].length; i++) {
             vertices = Math.max(this.cosetTable.extraColumns[0][i] + 1, vertices);
             edges = Math.max(this.cosetTable.extraColumns[1][i] + 1, edges);
             faces = Math.max(this.cosetTable.extraColumns[2][i] + 1, faces);
-            cells = Math.max(this.cosetTable.extraColumns[3][i] + 1, cells);
+            if(is4D){
+				cells = Math.max(this.cosetTable.extraColumns[3][i] + 1, cells);
+			}
         }
 
         var vxs = new Array(vertices);
@@ -458,24 +461,26 @@ Mesh4.ToddCoxeter.prototype = {
 
         var edgeList = new Array(edges);
         var faceList = new Array(faces);
-        var cellList = new Array(cells);
+		var cellList = null;
+        if(is4D) cellList = new Array(cells);
 
         // Edges and faces
         for (var i = 0; i < this.cosetTable.extraColumns[1].length; i++) {
             var v = this.cosetTable.extraColumns[0][i];
             var e = this.cosetTable.extraColumns[1][i];
             var f = this.cosetTable.extraColumns[2][i];
-            var c = this.cosetTable.extraColumns[3][i];
+            if(is4D)  var c = this.cosetTable.extraColumns[3][i];
             if (edgeList[e] == undefined) edgeList[e] = [];
             if (edgeList[e].indexOf(v) == -1) edgeList[e].push(v);
 
             if (faceList[f] == undefined) faceList[f] = [];
             if (faceList[f].indexOf(e) == -1) faceList[f].push(e);
 			
-            if (cellList[c] == undefined) cellList[c] = [];
-            if (cellList[c].indexOf(f) == -1) cellList[c].push(f);
+            if(is4D){
+				if (cellList[c] == undefined) cellList[c] = [];
+				if (cellList[c].indexOf(f) == -1) cellList[c].push(f);
+			}
         }
-
         return { vertexOperators: vxs, edgeList: edgeList, faceList: faceList, cellList: cellList};
     }
 }
@@ -544,7 +549,7 @@ Mesh4.regularPolychoron = function(n){
 	});
 }
 
-Mesh4._util.getCoxeterGroup4 = function(rgPower, gbPower, baPower, uniform) {
+Mesh4._util.getCoxeterGroup4 = function(rgPower, gbPower, baPower) {
 	rbPower = raPower = gaPower = 2;
     function copyString(string, copies) {
         var s = "";
@@ -590,6 +595,105 @@ Mesh4._util.getCoxeterGroup4 = function(rgPower, gbPower, baPower, uniform) {
 	freeGroup.cosetTable.extraColumns.push(findSub(ra + "," + rg + "," + ga, "r,g,a", "E"));
 	freeGroup.cosetTable.extraColumns.push(findSub(rb + "," + ba + "," + ra, "r,b,a", "F"));
 	freeGroup.cosetTable.extraColumns.push(findSub(ba + "," + ga + "," + gb, "g,b,a", "C"));
+
+    return freeGroup;
+}
+
+Mesh3.regularPolyhedron = function(n){
+	var rg, gb;
+	switch(n){
+		case 4: rg = gb = 3;
+		break;
+		case 6: rg = 3; gb = 4;
+		break;
+		case 8: rg = 4; gb = 3;
+		break;
+		case 12: rg = 3; gb = 5;
+		break;
+		case 20: rg = 5; gb = 3;
+		break;
+		default:
+		throw "regularPolyhedron "+n+"-face doesn't exist! Try 4, 6, 8, 12, 20 instead.";
+	}
+	var structure = Mesh4._util.getCoxeterGroup3(rg,gb).getStructure();
+	var c1 = Math.cos(Math.PI/rg),
+		c2 = Math.cos(Math.PI/gb);
+	var c = c1, s = Math.sin(Math.PI/rg);
+	var y = c2/s;
+	var z = Math.sqrt(1-y*y);
+	var r = new Vec3(1,0,0),
+	 	g = new Vec3(c,s,0),
+		b = new Vec3(0,y,z);
+	var vxs = structure.vertexOperators;
+	var V = new Array(vxs.length);
+	V[0] = r.cross(g,false).norm();
+	var Rgxx = 1-2*c*c, Rgxy = -2*c*s, Rgyy = 1-2*s*s;
+	var Rbyy = 1-2*y*y, Rbzz = 1-2*z*z, Rbyz = -2*y*z;
+	for(var i=1; i<vxs.length; i++){//step by step reflections
+		var v = V[vxs[i][0]];//prev vertex
+		V[i] = v.clone();
+		switch(vxs[i][1]){
+			case "r":
+				V[i].x = -V[i].x;
+			break;
+			case "g":
+				V[i].x = Rgxx*v.x+Rgxy*v.y;
+				V[i].y = Rgxy*v.x+Rgyy*v.y;
+			break;
+			case "b":
+				V[i].y = Rbyy*v.y+Rbyz*v.z;
+				V[i].z = Rbyz*v.y+Rbzz*v.z;
+			break;
+		}
+	}
+	return new Mesh3({
+		V: V,
+		E: structure.edgeList,
+		F: structure.faceList
+	});
+}
+Mesh4._util.getCoxeterGroup3 = function(rgPower, gbPower) {
+	var gaPower = 2;
+    function copyString(string, copies) {
+        var s = "";
+        for (var i = 0; i < copies; i++) {
+            s += string;
+        }
+        return s;
+    }
+
+    function findSub(subgroupRelation, subgroupGenerators, name) {
+        var tc = new Mesh4.ToddCoxeter(subgroupRelation);
+        var total = tc.solve();
+        var subgroupMembers = freeGroup.getCosetsForRepresentives(tc.translate(tc.getRepresentivesForCosets(), freeGroup));
+
+        var tc = new Mesh4.ToddCoxeter(relations, subgroupGenerators);
+        var total = tc.solve();
+
+        var cosetActions = tc.translate(tc.getRepresentivesForCosets(), freeGroup);
+
+        var subsets = freeGroup.apply(cosetActions, subgroupMembers);
+
+        var vLabel = new Array(tc.getCosetCounts());
+        for (var i = 0; i < subsets.length; i++) {
+            for (var j = 0; j < subsets[i].length; j++) {
+                vLabel[subsets[i][j]] = i;
+            }
+        }
+		if(name == "V") freeGroup.VGroup = tc;
+        return vLabel;
+    }
+	var rg = copyString("rg", rgPower),
+		rb = copyString("rb", rbPower),
+		gb = copyString("gb", gbPower);
+
+    var relations = rb + "," + rg + "," + gb;
+    var freeGroup = new Mesh4.ToddCoxeter(relations);
+	var total = freeGroup.solve();
+	freeGroup.cosetTable.extraColumns = [];
+	freeGroup.cosetTable.extraColumns.push(findSub(rg, "r,g", "V"));
+	freeGroup.cosetTable.extraColumns.push(findSub(rb, "r,b", "E"));
+	freeGroup.cosetTable.extraColumns.push(findSub(gb, "g,b", "F"));
 
     return freeGroup;
 }

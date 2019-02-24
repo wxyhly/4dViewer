@@ -84,7 +84,7 @@ MCWorld.prototype.getBlockId = function(x,y,z,t){
 	if(chunk){
 		var dx = ((x % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
 		var dy = y;
-		if(y<0 || y>MCChunk.SIZE_Y)return -Infinity;
+		if(y<0 || y>=MCChunk.SIZE_Y)return -Infinity;
 		var dz = ((z % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
 		var dt = ((t % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
 		return chunk.data[dx][dy][dz][dt];
