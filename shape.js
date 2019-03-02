@@ -725,6 +725,45 @@ Mesh4.prototype.duopyramid = function(M4){
 	}
 	return M;
 }
+Mesh4.prototype.dual = function(){
+	var M = new Mesh4();
+	var ce = [];
+	for(var ei=0; ei<this.E.length; ei++){
+		var e = this.E[ei];
+		ce[ei] = new Vec4();
+		for(var i of e){
+			ce[ei].add(this.V[i]);
+			if(!M.C[i]) M.C[i] = [];
+			M.C[i].push(ei);
+		}
+		ce[ei].div(2);
+	}
+	var cf = [];
+	for(var fi=0; fi<this.F.length; fi++){
+		var f = this.F[fi];
+		cf[fi] = new Vec4();
+		for(var i of f){
+			cf[fi].add(ce[i]);
+			if(!M.F[i]) M.F[i] = [];
+			M.F[i].push(fi);
+		}
+		cf[fi].div(f.length);
+	}
+	
+	for(var ci=0; ci<this.C.length; ci++){
+		var c = this.C[ci];
+		var cc = new Vec4();
+		for(var i of c){
+			cc.add(cf[i]);
+			if(!M.E[i]) M.E[i] = [];
+			M.E[i].push(ci);
+		}
+		cc.div(c.length);
+		M.V[ci] = cc;
+	}
+	return M;
+}
+
 Mesh3.prototype.weld = Mesh4.prototype.weld = function(threshold){
 	function mapreduce(source, map, dest){
 		/*example:
@@ -1244,6 +1283,7 @@ Mesh4.grid = function(m,n,o,f){
 	}
 	return M;
 }
+
 var Spline = function(ps,ctrl){
 	this.ps = ps;
 	this.ctrl = ctrl;

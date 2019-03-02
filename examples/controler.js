@@ -33,7 +33,7 @@ var Controler4 = function(renderer){
 	this.keyPressed = {};
 	var _this = this;
 	document.addEventListener('keydown', function( ev ) {
-		ev.preventDefault();
+		//ev.preventDefault();
 		_this.keyPressed[ev.keyCode] = true;
 		if(_this.keyPressed[_this.keyConfig.wireFrame]){
 			_this.renderer.wireFrameMode = !_this.renderer.wireFrameMode;
@@ -174,7 +174,7 @@ Controler4.prototype.addGUI = function(gui){
 	var change = function(){_this.needUpdate = true};
 	var renderer = this.renderer;
 	var rend = gui.addFolder('Renderer');
-	var trans = rend.addFolder('Transparent');
+	var trans = rend.addFolder('Transparency');
 	trans.addColor(renderer.opaqueColors[0],"color").onChange(change);
 	trans.add(renderer.opaqueColors[0],"tolerance").onChange(change);
 	trans.addColor(renderer.opaqueColors[1],"color").onChange(change);

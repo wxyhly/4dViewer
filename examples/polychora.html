@@ -18,10 +18,11 @@ function start(){
 	var polytope = {};
 	
 	polytope["24"] = Mesh4.regularPolychoron(24);
-	polytope["cell"] = new Geom4(polytope["24"]);
-	polytope["cell"].color = 0xFFFF00;
-	scene.add(polytope["cell"]);
-	polytope["edge"] = new Geom4(polytope["24"].stick(0.02));
+	polytope["mesh"] = polytope["24"];
+	polytope["obj"] = new Geom4(polytope["mesh"]);
+	polytope["obj"].color = 0xFFFF00;
+	scene.add(polytope["obj"]);
+	polytope["edge"] = new Geom4(polytope["mesh"].stick(0.02));
 	polytope["edge"].color = 0x0000FF;
 	scene.add(polytope["edge"]);
 	
@@ -34,14 +35,15 @@ function start(){
 	
 	gui["显示 display"] = 3; //"Both"
 	gui.add(gui,"显示 display",{"胞":1,"边":2,"两者":3}).onChange(function(v){
-		polytope["cell"].visible = v & 1;
+		polytope["obj"].visible = v & 1;
 		polytope["edge"].visible = v >> 1;
 		controler.needUpdate = true;
 	});
-	gui.addColor(polytope["cell"],"color").onChange(change);
+	gui.addColor(polytope["obj"],"color").onChange(change);
 	gui.addColor(polytope["edge"],"color").onChange(change);
 	
 	gui["选择形状"] = "正多胞体";
+	gui["对偶 Dual"] = false;
 	gui.add(gui,"选择形状",["正多胞体","超球","柱体","锥体","旋转体","直积形"]).onChange(function(v){
 		gui.removeFolder(gui.ShapePanel);
 		switch(v){
@@ -65,6 +67,9 @@ function start(){
 			break;
 			
 		}
+	});
+	gui.add(gui,"对偶 Dual").onChange(function(){
+		setPolytope(polytope["mesh"]);
 	});
 	addFolder_RegularPolychoron();
 	
@@ -484,8 +489,12 @@ function start(){
 	}
 	
 	function setPolytope(mesh4){
-		polytope["cell"].mesh = mesh4.update();
-		polytope["edge"].mesh = mesh4.stick(0.02).update();
+		polytope["mesh"] = mesh4;
+		if(gui["对偶 Dual"])
+			polytope["obj"].mesh = polytope["mesh"].dual().update();
+		else
+			polytope["obj"].mesh = polytope["mesh"].update();
+		polytope["edge"].mesh = polytope["obj"].mesh.stick(0.02).update();
 		controler.needUpdate = true;
 	}
 	function loop(){
