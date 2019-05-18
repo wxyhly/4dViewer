@@ -35,8 +35,14 @@ TerrainGen.prototype.generateChunk = function(cx,cz,ct,data){
 	this.generateRoad(data,cx,cz,ct);
 	this.generateBuilding(data,cx,cz,ct);
 	this.generateForest(data,cx,cz,ct);
+	this.replaceBloc(data);
 }
-
+TerrainGen.prototype.replaceBloc = function(data){
+	var size = 4*4*4*32
+	for(var i = 0; i<size; i++){
+		if(data[i]==255)data[i] = 0;
+	}
+}
 TerrainGen.TerrainConfig = {
 	scale0 : 0.1,
 	height0 : 2,
@@ -48,7 +54,7 @@ TerrainGen.TerrainConfig = {
 	heightHill: 20,
 	scaleSand: 0.005,
 	riverLevel: 4,
-	roadSize: 16
+	roadSize: 25
 };
 TerrainGen.prototype.initPerlins = function(seed){
 	this.perlinTerrain0 = new Perlin3(seed);
@@ -65,6 +71,7 @@ TerrainGen.prototype.generateTerrain = function(data,cx,cz,ct){
 	var dz = cz*MCChunk.SIZE;
 	var dt = ct*MCChunk.SIZE;
 	var Info = TerrainGen.currentBlocInfo;
+	Info.building = false;
 	for(var x = 0; x<MCChunk.SIZE; x++){
 		for(var z = 0; z<MCChunk.SIZE; z++){
 			for(var t = 0; t<MCChunk.SIZE; t++){
@@ -152,22 +159,23 @@ TerrainGen.prototype.getTerrain_Y = function(X,Z,T,dont){
 	
 }
 TerrainGen.prototype.generateBuilding = function(data,cx,cz,ct){
-	var size = 25;
+	var size = 29;
 	var bx = Math.floor(cx/size)*size;
 	var bz = Math.floor(cz/size)*size;
 	var bt = Math.floor(ct/size)*size;
 	var seed = this.seed+bx+bz*45+(bt>>9);
 	var building = false;
 	if(seed%11<8){
-		TerrainGen.currentBlocInfo.building = MCStruct.generate(MCStruct.city1.bind(null,seed,this),data,"C"+bx+","+bz+","+bt, bx,bz,bt ,cx,cz,ct);
+		MCStruct.generate(MCStruct.city1.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,MCStruct.list);
 	}
-	
-	bx = Math.floor((cx+7)/size)*size-7;
-	bz = Math.floor((cz+7)/size)*size-7;
-	bt = Math.floor((ct+7)/size)*size-7;
-	building = MCStruct.generate(MCStruct.observatoir.bind(null,Math.floor(seed*Math.PI),this),data,"O"+bx+","+bz+","+bt, bx,bz,bt ,cx,cz,ct);
-	TerrainGen.currentBlocInfo.building = TerrainGen.currentBlocInfo.building || building;
-	
+	size = 11;
+	var bx = Math.floor(cx/size)*size;
+	var bz = Math.floor(cz/size)*size;
+	var bt = Math.floor(ct/size)*size;
+	seed = this.seed+bx+bz*45+(bt>>9);
+	if(seed%30<TerrainGen.currentBlocInfo.riverDistance*10){
+		MCStruct.generate(MCStruct.observatoir.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,null);
+	}
 	
 }
 TerrainGen.prototype.getTree = function(cx,cz,ct){

@@ -66,6 +66,16 @@ var HUD = {
 		fillText("time1: "+trunc(HUD.planet.time.southernTime),w1,110);
 		fillText("time2: "+trunc(HUD.planet.time.northernTime),w1,120);
 		
+		var chunkx = Math.floor(Math.round(HUD.position.x)/4);
+		var chunkz = Math.floor(Math.round(HUD.position.z)/4);
+		var chunkt = Math.floor(Math.round(HUD.position.t)/4);
+		
+		fillText((Math.round(HUD.position.x)-chunkx*4)+" chunkX: "+chunkx,w1,140);
+		fillText((Math.round(HUD.position.z)-chunkz*4)+" chunkZ: "+chunkz,w1,150);
+		fillText((Math.round(HUD.position.t)-chunkt*4)+" chunkT: "+chunkt,w1,160);
+		
+		
+		
 		fillText("Face Toward:",w2,20);
 		fillText("Front: "+dealToward(HUD.faceToward),w2,30);
 		fillText("Left: "+dealToward(HUD.leftToward),w2,40);
@@ -203,6 +213,26 @@ Command = {
 				HUD.planet.timeStep = step/10;
 				HUD.info("Speed of day set: "+(step));
 				break;
+			case "regen":
+				var result = str.match(/regen\s+(me|all)/);
+				if(!result){
+					HUD.info("Syntax Error: regen <me|all>");
+					HUD.blur2Game();
+					return 0;
+				}
+				switch(result[1]){
+					case "me":
+						var p = HUD.controler.camera4.position;
+						var cx = Math.floor(p.x/MCChunk.SIZE);
+						var cz = Math.floor(p.z/MCChunk.SIZE);
+						var ct = Math.floor(p.t/MCChunk.SIZE);
+						HUD.controler.renderer.scene4.chunks[cx+","+cz+","+ct] = undefined;
+						break;
+					case "all":
+						HUD.controler.renderer.scene4.chunks = {};
+				}
+				break;
+				
 			default:
 				if(command.length){
 					HUD.info("Syntax Error: Command inconnu \"/"+command+"\"");

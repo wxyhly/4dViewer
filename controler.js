@@ -160,7 +160,7 @@ Controler4.prototype._dealRendererSettings = function(){
 }
 Controler4.prototype.update = function(callback){
 	this.beforeUpdate();
-	this._dealRendererSettings();
+	if(this.enableKey) this._dealRendererSettings();
 	if(this.needUpdate && callback) {
 		callback();//call renderer
 	}
