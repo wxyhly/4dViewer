@@ -1,0 +1,192 @@
+ <html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../sun.js"></script>
+<script src="../minecraft4.js"></script>
+<script src="../controler.js"></script>
+<script src="controler.js"></script>
+<script src="hud.js"></script>
+
+<script src="shaderRay.js"></script>
+<script src="MCRTrenderer.js"></script>
+
+<script src="terrainGen.js"></script>
+<script src="minecraftStruct.js"></script>
+
+<script src="../lib/dat.gui.min.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var ctxt$ = function (obj){
+	return document.getElementById(obj).getContext("2d");
+}
+var $ = function (obj){
+	return document.getElementById(obj);
+}
+function start(){
+	var mcworld = new MCWorld(TerrainGen,window.location.search.length?Number(window.location.search.substr(1)):null);
+	var terrain = mcworld.terrain;
+	var camera = new Camera4(90,0.01,550);
+	MCWorld.renderDistance = 9;
+	camera.position = new Vec4(0.01,terrain.getTerrain_Y(0,0,0, 0,0,0)+2,0.01,0.01);
+	var renderer = new MCRTRenderer4(gl$("glCanvas"),mcworld,camera,new Vec4(1.4,-4,1,2).norm());
+	renderer.thickness = 0.2;
+	renderer.hudCanvas = $("hudCanvas");
+	var controler = new Controler4.MC(renderer,(pos)=>((pos.y>-0.5)?mcworld.hitTest(pos):true));
+	controler.gravity = true;
+	controler.onkeydown = keyDown.bind(controler);
+	Command.init();
+	var laTerre = new Planet4();
+	var seed = terrain.seed*terrain.seed;
+	laTerre.location = {
+		WE: 60, //latitude parallel to south
+		MG: 120, //latitude parallel to north
+		NS: seed%60+15 //longitude
+	}
+	seed *= Math.PI;
+	laTerre.sun = {
+		southernTropic: (seed%12)+10,
+		northernTropic: ((seed*254.7)%12)+20,
+		WEPeriod: 365.4, //southern days in one year
+		MGPeriod: 123+((seed<<2)%13) //northern days in one year
+	}
+	laTerre.initialTime = {
+		northernTime: 11,  //12h00
+		southernTime:10, //9h30
+		season: seed%90 //sun orbit angle
+	}
+	HUD.planet = laTerre;
+	HUD.controler = controler;
+	var time = 0;
+	laTerre.timeStep = 0.1;
+	if(false){
+		var gui = new dat.GUI();
+		controler.addGUI(gui);
+		laTerre.addGUI(gui);
+		gui.add(laTerre,"timeStep",1,20);
+		gui.add(camera.position,"x");
+		gui.add(camera.position,"y");
+		gui.add(camera.position,"z");
+		gui.add(camera.position,"t");
+		gui.add(MCWorld,"renderDistance", 3, 10);
+	}
+	var focusPos = null;
+	document.addEventListener('mousedown',function(ev){
+		if(focusPos && !!document.pointerLockElement){
+			var p = focusPos.position;
+			if(ev.button == 0){
+				console.log("removed");
+				mcworld.setBlockId(0, p.x, p.y, p.z, p.t);
+			}else if(ev.button == 1){
+				var ID = mcworld.getBlockId(p.x, p.y, p.z, p.t);
+				if(ID){
+					HUD.block = ID;
+				}
+			}else if(ev.button == 2){
+				var id = HUD.block;
+				function _set(mcworld,id,p,direction){
+					switch(direction){
+						case 5:
+							mcworld.setBlockId(id, p.x+1, p.y, p.z, p.t);
+							break;
+						case 4:
+							mcworld.setBlockId(id, p.x-1, p.y, p.z, p.t);
+							break;
+						case 1:
+							mcworld.setBlockId(id, p.x, p.y+1, p.z, p.t);
+							break;               
+						case 0:                  
+							mcworld.setBlockId(id, p.x, p.y-1, p.z, p.t);
+							break;
+						case 3:
+							mcworld.setBlockId(id, p.x, p.y, p.z+1, p.t);
+							break;                    
+						case 2:                       
+							mcworld.setBlockId(id, p.x, p.y, p.z-1, p.t);
+							break;
+						case 7:
+							mcworld.setBlockId(id, p.x, p.y, p.z, p.t+1);
+							break;                         
+						case 6:                            
+							mcworld.setBlockId(id, p.x, p.y, p.z, p.t-1);
+							break;
+							
+					}
+				}
+				_set(mcworld,id,p,focusPos.direction);
+				if(!mcworld.hitTest(camera.position)){
+					console.log("placed"+focusPos.direction);
+				}else{
+					_set(mcworld,0,p,focusPos.direction);
+				}
+			}
+		}
+	});
+	var count = 0;
+	function loop(){
+		laTerre.setTime(time);
+		laTerre.setSunAndRenderer(renderer,null,500);
+		time += Math.exp(-20+laTerre.timeStep);
+		
+		if(count%8==0){
+			mcworld.generateGeom(camera.position.x,camera.position.z,camera.position.t,false);
+			renderer.writeChunk();
+			renderer.chunkCenter.x = camera.position.x;
+			renderer.chunkCenter.z = camera.position.z;
+			renderer.chunkCenter.t = camera.position.t;
+		}
+		count++;
+		controler.update();
+		HUD.sunToward = renderer.light4.norm(false);
+		HUD.faceToward = camera.rotation[0].mul(new Vec4(0,0,0,5),false).mul(camera.rotation[1]);
+		HUD.leftToward = camera.rotation[0].mul(new Vec4(-5,0,0,0),false).mul(camera.rotation[1]);
+		HUD.sideFrontToward = camera.rotation[0].mul(new Vec4(0,0,5,0),false).mul(camera.rotation[1]);
+		focusPos = mcworld.rayCast(camera.position, HUD.faceToward.add(camera.position,false));
+		if(focusPos){
+			HUD.focusPos = focusPos;
+			focus.position = focusPos.position;
+		}else{
+			focus.position = new Vec4(0,-10,0,0);
+			HUD.focusPos = null;
+		}
+		renderer.focusPos = focus.position;
+		HUD.position = camera.position;
+		HUD.draw();
+		renderer.render();
+		window.requestAnimationFrame(loop);
+	}
+	var blocTxtImg = new Image();
+	HUD.blocTxtImg = blocTxtImg;
+	blocTxtImg.onload = function(){
+		renderer.blocTxtImg = blocTxtImg;
+		renderer._initGL(renderer.gl);
+		loop();
+	}
+	blocTxtImg.src = "texture3d.bmp";
+}
+
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1024" height="512"></canvas>
+<canvas id="hudCanvas" width="1024" height="512"></canvas>
+<br>
+<input id="CMD" width="1024" style="color:#FFF;display:none;background-color:rgba(0,0,0,0.5); border:0;"/>
+<style>
+#hudCanvas {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
+#CMD {
+	position: absolute;
+	top: 500px;
+	left: 0px;
+	width:1024px;
+	z-index:10;
+}
+</style>
+</body>
+</html>

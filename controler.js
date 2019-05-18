@@ -9,6 +9,7 @@ var Controler4 = function(renderer){
 	this.retinaStep = 0.05;
 	this.fov = this.camera4.fov;
 	this.fovStep = 5;
+	this.enableKey = true;
 	//camera3 rotation euler angle:
 	this.rx3 = Math.PI/6;
 	this.ry3 = Math.PI/8;
@@ -45,7 +46,7 @@ var Controler4 = function(renderer){
 		_this.keyPressed[ev.keyCode] = false;
 		if(_this.onkeyup) _this.onkeyup(ev);
 	});
-	var canvas = _this.renderer.gl.canvas;
+	var canvas = _this.renderer.hudCanvas || _this.renderer.gl.canvas;
 	this.canvas = canvas;
 	canvas.addEventListener('contextmenu', function(ev) {
 		ev.preventDefault();

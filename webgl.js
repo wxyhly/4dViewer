@@ -138,6 +138,10 @@ var Webgl = function(gl){
 		gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer.buffer);
 		gl.drawArrays(gl.LINES, 0, arrayBuffer.length/arrayBuffer.type);
 	};
+	gl.drawStrip = function(arrayBuffer){
+		gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer.buffer);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, arrayBuffer.length/arrayBuffer.type);
+	};
 	gl.addFBO = function(width,height,floatFlag){
 		var num = gl._FBOVertexID;
 		gl._FBOVertexID++;

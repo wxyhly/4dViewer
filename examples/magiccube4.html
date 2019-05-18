@@ -1,0 +1,164 @@
+ <html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../render.js"></script>
+<script src="../controler.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var MagicCube = function(order,size){
+	this.order = order;
+	this.size = size || 0.5;
+	var cubes = [];//geom4s
+	var etats = [];//states
+	for(var i=0; i<order; i++){
+		var x = (i+0.5)/order-0.5;
+		cubes[i] = [];
+		etats[i] = [];
+		for(var j=0; j<order; j++){
+			var y = (j+0.5)/order-0.5;
+			cubes[i][j] = [];
+			etats[i][j] = [];
+			for(var k=0; k<order; k++){
+				var z = (k+0.5)/order-0.5;
+				cubes[i][j][k] = [];
+				etats[i][j][k] = [];
+				for(var l=0; l<order; l++){
+					var t = (l+0.5)/order-0.5;
+					var mesh = Mesh4.tesseract(this.size/order).move(new Vec4(x,y,z,t));
+					mesh.C[0].info = {color: 0xFFFFFF};
+					mesh.C[1].info = {color: 0xFFFF00};
+					
+					mesh.C[2].info = {color: 0xFF00AA};
+					mesh.C[3].info = {color: 0xFF0000};
+					
+					mesh.C[7].info = {color: 0x333333};
+					mesh.C[5].info = {color: 0x0000FF};
+					
+					mesh.C[6].info = {color: 0x00FFFF};
+					mesh.C[4].info = {color: 0x00FF00};
+					
+					if(l!==0) mesh.C[0] = [];
+					if(l!== order-1) mesh.C[1] = [];
+					if(j!==0) mesh.C[7] = [];
+					if(j!== order-1) mesh.C[5] = [];
+					if(i!==0) mesh.C[4] = [];
+					if(i!== order-1) mesh.C[6] = [];
+					if(k!==0) mesh.C[2] = [];
+					if(k!== order-1) mesh.C[3] = [];
+					
+					cubes[i][j][k][l] = new Geom4(mesh.update());
+					cubes[i][j][k][l].i = i;
+					cubes[i][j][k][l].j = j;
+					cubes[i][j][k][l].k = k;
+					cubes[i][j][k][l].l = l;
+					etats[i][j][k][l] = cubes[i][j][k][l];
+				}
+			}
+		}
+	}
+	
+	this.cubes = cubes;
+	this.etats = etats;
+}
+MagicCube.prototype.rotate = function(bivec){
+	var th = 0.5;
+	var order = this.order;
+	var bivec1 = bivec.mul(Math.PI/2,false);
+	if(Math.abs(bivec.xy)>th){
+		for(var i=0; i<order; i++){
+		for(var j=0; j<order; j++){
+			
+			this.etats[i][j][0][0].isRotating = bivec1;
+		}
+		}
+	}else if(Math.abs(bivec.xz)>th){
+		for(var i=0; i<order; i++){
+		for(var j=0; j<order; j++){
+			this.etats[i][0][j][0].isRotating = bivec1;
+		}
+		}
+	}else if(Math.abs(bivec.xt)>th){
+		for(var i=0; i<order; i++){
+		for(var j=0; j<order; j++){
+			this.etats[i][0][0][j].isRotating = bivec1;
+		}
+		}
+	}else if(Math.abs(bivec.yz)>th){
+		for(var i=0; i<order; i++){
+		for(var j=0; j<order; j++){
+			this.etats[0][i][j][0].isRotating = bivec1;
+		}
+		}
+	}else if(Math.abs(bivec.yt)>th){
+		for(var i=0; i<order; i++){
+		for(var j=0; j<order; j++){
+			this.etats[0][i][0][j].isRotating = bivec1;
+		}
+		}
+	}else if(Math.abs(bivec.yt)>th){
+		for(var i=0; i<order; i++){
+		for(var j=0; j<order; j++){
+			this.etats[0][0][i][j].isRotating = bivec1;
+		}
+		}
+	}
+}
+
+
+function start(){
+	var scene = new Scene();
+	var magicCube = new MagicCube(3);
+	scene.add(magicCube.cubes);
+	window.M = magicCube;
+	var camera = new Camera4(100,0.01,30);
+	camera.position = new Vec4(0,0,0,-0.3);
+	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(0.4,0.2,0.1,0.5));
+	renderer.ambientLight = 0.7;
+	renderer.thickness = 0.02;
+	renderer.flow = 6;
+	renderer.opaqueColors[0].color = renderer.bgColor4;
+	renderer.opaqueColors[0].tolerance = 5;
+	var controler = new Controler4.Trackball(renderer);
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	function loop(){
+		
+		controler.update();
+		var order = magicCube.order;
+		for(var i=0; i<order;i++){
+		for(var j=0; j<order;j++){
+		for(var k=0; k<order;k++){
+		for(var l=0; l<order;l++){
+			var c = magicCube.cubes[i][j][k][l];
+			if(c.isRotating){
+				c.rotate(c.isRotating.div(1.0));
+				if(c.isRotating.len(false)<0.000000000001){
+					c.isRotating = false;
+					var pos = c.rotation[0].mul(new Vec4((i+0.5)/order-0.5,(j+0.5)/order-0.5,(k+0.5)/order-0.5,(l+0.5)/order-0.5),false).mul(c.rotation[1]);
+					c.i = Math.round((pos.x+0.5)*order-0.5);
+					c.j = Math.round((pos.y+0.5)*order-0.5);
+					c.k = Math.round((pos.z+0.5)*order-0.5);
+					c.l = Math.round((pos.t+0.5)*order-0.5);
+					magicCube.etats[c.i][c.j][c.k][c.l] = c;
+				}
+			}
+		}
+		}
+		}
+		}
+		renderer.render();
+		
+		window.requestAnimationFrame(loop);
+	}
+	loop();
+}
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>

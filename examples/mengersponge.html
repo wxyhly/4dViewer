@@ -3,9 +3,9 @@
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
-<script src="controler.js"></script>
-<script src="minecraft4.js"></script>
-<script src="dat.gui.min.js"></script>
+<script src="../controler.js"></script>
+<script src="../minecraft4.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
 <script>
 'use strict';
 var gl$ = function (obj){
@@ -13,7 +13,7 @@ var gl$ = function (obj){
 }
 function start(){
 	var scene = new Scene();
-	var world = new MCWorld(27,27,27,27);
+	var world = new MCWorld();
 	var cantor = (n)=>([1,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,0,1][n]);
 	var FnDust = function(x,y,z,t){
 		x=Math.round(x+13);
@@ -106,7 +106,6 @@ function start(){
 	}
 	MCChunk.SIZE_Y = 29;
 	MCWorld.renderDistance = 6;
-	world.autoGenerate = false;
 	world.generateGeom(0,0,0);
 	world.setCuboid(FnDust,-13,0,-13,-13, 13,26,13,13);
 	var geoms = world.generateGeom(0,0,0);

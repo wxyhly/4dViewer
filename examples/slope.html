@@ -3,11 +3,11 @@
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
 <script src="../render.js"></script>
-<script src="sun.js"></script>
-<script src="minecraft4.js"></script>
+<script src="../sun.js"></script>
+<script src="../minecraft4.js"></script>
 
-<script src="dat.gui.min.js"></script>
-<script src="controler.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
+<script src="../controler.js"></script>
 <script>
 'use strict';
 var gl$ = function (obj){
@@ -29,12 +29,12 @@ function start(){
 	world.autoGenerate = false;
 	world.generateGeom(2,8,2); //empty generation center: {x:1, z:8, t:0}, prepare chunks for setBlocks below
 	//slopes:
-	world.setBlockId(-1, 3,1,3,3);
-	world.setBlockId(-2, 1,1,3,3);
-	world.setBlockId(-3, 2,1,13,3);
-	world.setBlockId(-4, 2,1,2,3);
-	world.setBlockId(-5, 2,1,3,4);
-	world.setBlockId(-6, 2,1,3,2);
+	world.setBlockId(256-1, 3,1,3,3);
+	world.setBlockId(256-2, 1,1,3,3);
+	world.setBlockId(256-3, 2,1,13,3);
+	world.setBlockId(256-4, 2,1,2,3);
+	world.setBlockId(256-5, 2,1,3,4);
+	world.setBlockId(256-6, 2,1,3,2);
 	//mat:
 	world.setCuboid(3, 0,0,3,3, 4,0,3,3);
 	world.setBlockId(3, 2,0,1,3);
