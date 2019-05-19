@@ -82,9 +82,16 @@ TerrainGen.prototype.generateTerrain = function(data,cx,cz,ct){
 				
 				var level = Math.min(h,MCChunk.SIZE_Y);
 				var river = Info.river;
-				if(level<=TerrainGen.TerrainConfig.riverLevel && Info.riverDistance<0.3){
-					level = TerrainGen.TerrainConfig.riverLevel;
-					Info.riverLevel = true;
+				if(level<=TerrainGen.TerrainConfig.riverLevel){
+					if(Info.riverDistance<0.4){
+						level = TerrainGen.TerrainConfig.riverLevel;
+						Info.riverLevel = true;
+					}else if(Info.riverDistance<0.45){//河堤
+						level += (Info.riverDistance-0.4)*10;
+						level = Math.max(level, TerrainGen.TerrainConfig.riverLevel);
+					}else if(Info.riverDistance<0.5){
+						level += (0.5-Info.riverDistance)*10;
+					}
 				}
 				for(var y = 0; y<level; y++){
 					data[x+4*y+32*4*z+32*4*4*t] = (river<0.5||Info.riverLevel)?(
@@ -163,7 +170,7 @@ TerrainGen.prototype.generateBuilding = function(data,cx,cz,ct){
 	var bx = Math.floor(cx/size)*size;
 	var bz = Math.floor(cz/size)*size;
 	var bt = Math.floor(ct/size)*size;
-	var seed = this.seed+bx+bz*45+(bt>>9);
+	var seed = Math.abs(this.seed+bx+bz*45+(bt>>9));
 	var building = false;
 	if(seed%11<8){
 		MCStruct.generate(MCStruct.city1.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,MCStruct.list);
@@ -172,9 +179,16 @@ TerrainGen.prototype.generateBuilding = function(data,cx,cz,ct){
 	var bx = Math.floor(cx/size)*size;
 	var bz = Math.floor(cz/size)*size;
 	var bt = Math.floor(ct/size)*size;
-	seed = this.seed+bx+bz*45+(bt>>9);
-	if(seed%30<TerrainGen.currentBlocInfo.riverDistance*10){
+	seed = Math.abs(this.seed+bx+bz*45+(bt>>9));
+	var Info = this.getTerrain_Y((bx+5)*4,(bz+5)*4,(bt+5)*4,false);
+	if(seed%50<Info.riverDistance*5+3){
 		MCStruct.generate(MCStruct.observatoir.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,null);
+	}else if(seed%30>22 && Info.sand>0.2){
+		MCStruct.generate(MCStruct.pyramid.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,null);
+	}else{
+		if(Math.abs(seed/(this.seed+17)*29)%33<Info.sand*25 + 25){
+			MCStruct.generate(MCStruct.well.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,null);
+		}
 	}
 	
 }

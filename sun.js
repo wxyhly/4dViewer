@@ -79,6 +79,7 @@ Planet4.prototype.setSunAndRenderer = function (renderer, sun, sundistance){
 	renderer.bgColor4 = brightness*0x000101 + white*0x010000;
 	if(!sun){
 		renderer.light4.mul(-renderer.ambientLight*1.2);
+		//renderer.light4 = new Vec4(1,-1,0,0).norm().div(2);
 		renderer.sunColor = 0xFFFF00 + brightness*0x000001;
 		return 0;
 	};

@@ -31,15 +31,18 @@ function start(){
 	var terrain = mcworld.terrain;
 	var camera = new Camera4(90,0.01,550);
 	MCWorld.renderDistance = 9;
-	camera.position = new Vec4(0.01,terrain.getTerrain_Y(0,0,0, 0,0,0)+2,0.01,0.01);
-	var renderer = new MCRTRenderer4(gl$("glCanvas"),mcworld,camera,new Vec4(1.4,-4,1,2).norm());
-	renderer.thickness = 0.2;
+	camera.position = new Vec4(0.01,terrain.getTerrain_Y(0,0,0, 0,0,0)+2,0,0);
+	var renderer = new MCRTRenderer4(gl$("glCanvas"),mcworld,camera);
+	renderer.flow = 2;
+	renderer.thumbSize = 5;
+	renderer.thickness = 0.1;
 	renderer.hudCanvas = $("hudCanvas");
 	var controler = new Controler4.MC(renderer,(pos)=>((pos.y>-0.5)?mcworld.hitTest(pos):true));
 	controler.gravity = true;
 	controler.onkeydown = keyDown.bind(controler);
 	Command.init();
 	var laTerre = new Planet4();
+	var initialTime = new Date().getTime();
 	var seed = terrain.seed*terrain.seed;
 	laTerre.location = {
 		WE: 60, //latitude parallel to south
@@ -48,7 +51,7 @@ function start(){
 	}
 	seed *= Math.PI;
 	laTerre.sun = {
-		southernTropic: (seed%12)+10,
+		southernTropic: 0,//(seed%12)+10,
 		northernTropic: ((seed*254.7)%12)+20,
 		WEPeriod: 365.4, //southern days in one year
 		MGPeriod: 123+((seed<<2)%13) //northern days in one year
@@ -61,18 +64,7 @@ function start(){
 	HUD.planet = laTerre;
 	HUD.controler = controler;
 	var time = 0;
-	laTerre.timeStep = 0.1;
-	if(false){
-		var gui = new dat.GUI();
-		controler.addGUI(gui);
-		laTerre.addGUI(gui);
-		gui.add(laTerre,"timeStep",1,20);
-		gui.add(camera.position,"x");
-		gui.add(camera.position,"y");
-		gui.add(camera.position,"z");
-		gui.add(camera.position,"t");
-		gui.add(MCWorld,"renderDistance", 3, 10);
-	}
+	laTerre.timeStep = 1e-6;
 	var focusPos = null;
 	document.addEventListener('mousedown',function(ev){
 		if(focusPos && !!document.pointerLockElement){
@@ -129,8 +121,8 @@ function start(){
 	function loop(){
 		laTerre.setTime(time);
 		laTerre.setSunAndRenderer(renderer,null,500);
-		time += Math.exp(-20+laTerre.timeStep);
-		
+		time += laTerre.timeStep*(new Date().getTime() - initialTime)/500;
+		initialTime = new Date().getTime();
 		if(count%8==0){
 			mcworld.generateGeom(camera.position.x,camera.position.z,camera.position.t,false);
 			renderer.writeChunk();
@@ -138,6 +130,7 @@ function start(){
 			renderer.chunkCenter.z = camera.position.z;
 			renderer.chunkCenter.t = camera.position.t;
 		}
+		
 		count++;
 		controler.update();
 		HUD.sunToward = renderer.light4.norm(false);

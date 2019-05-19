@@ -2,8 +2,8 @@ MCRTRenderer4ShaderRaycastMCCode = `
 void raycastMC(vec4 s, vec4 e){
 	// 终点方块坐标
 	vec4 semi = vec4(0.5000,0.5000,0.5000,0.5000);
-	vec4 start = s + semi;
-	vec4 end = e + semi;
+	vec4 start = s + semi + 0.001;
+	vec4 end = e + semi + 0.002;
 	
 	vec4 int2;
 	vec4 int1 = (floor(start));
@@ -17,19 +17,20 @@ void raycastMC(vec4 s, vec4 e){
 		// 起点(当前)方块和终点方块XYZ不同(向某方向选了候选方块)
 		vec4 changed = clamp(step(int1,int2-0.2) + step(int2,int1-0.2),0.0,1.0);
 		// 各方向候选方块坐标
-		vec4 new = int1 + step(int1,int2);
+		vec4 new = int1 + step(int1,int2+0.1);
 		vec4 d = end - start;
 		// 向X方向选了候选方块
 		vec4 Pt = (new - start)/d + (vec4(1.0,1.0,1.0,1.0)-changed)*1000.0;
 		// 最终选了哪个方向的候选方块
 		
-		float minCoord = min(min(Pt.x,Pt.y),min(Pt.z,Pt.w))+0.00000001;
+		float minCoord = min(min(Pt.x,Pt.y),min(Pt.z,Pt.w));
 		start += d*minCoord;
+		minCoord+=0.00000001;
 		// 选出候选方块中离起点(当前)最近的，更新起点、要检测的方块坐标
 		start = mix(new,start,step(minCoord,Pt));
 		vec4 who = vec4(1.0,1.0,1.0,1.0)-step(minCoord,Pt);
 		float direction = dot(
-			(vec4(5.0,1.0,3.0,7.0)-step(int1,int2)),
+			(vec4(5.0,1.0,3.0,7.0)-step(int1,int2+0.1)),
 			who
 		); 
 		int1 = (floor(start));
@@ -44,7 +45,8 @@ void raycastMC(vec4 s, vec4 e){
 		MC_ID = int(mix(float(MC_ID)+0.5,ID,firstFound));
 		MC_DIR = int(mix(float(MC_DIR)+0.5,direction+0.5,firstFound));
 		MC_UV = mix(MC_UV,start,firstFound);
-		end = mix(end,start - light*100.0,firstFound);
+		end = mix(end,start - light_Dir*100.0 + 0.002,firstFound);
+		start = mix(start+d*0.0001,start - light_Dir*0.0001 + 0.001,firstFound);
 	}
 	MC_SHADOW = step(found,1.5);
 }

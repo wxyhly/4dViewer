@@ -5,11 +5,12 @@ Controler4.MC = function(renderer,hitTest){
 	this.figure_height = 1.52; // used in hitTest
 	this.figure_width = 0.25; // used in hitTest
 	this.rotateMouseStep = 100;
-	this.moveStep = 0.2;
+	this.moveStep = 0.1;
 	this.jumpHeight = 1;
 	this.jumpStep = 1;
 	this.rotateKeyStep = 0.05;
 	this.wheelDeltaStep = 5;
+	this.prevTime = new Date().getTime();
 	this.keyConfig = Object.assign(this.keyConfig, {
 		
 		/* 8 move directions */
@@ -117,6 +118,10 @@ Controler4.MC.prototype._rotateHorizontal = function(x,y){
 	this.verticalRotation = yt.expQ();
 }
 Controler4.MC.prototype.beforeUpdate = function(){
+	//FPS同步
+	var dtime = (new Date().getTime() - this.prevTime)/(1000/60); //60fps
+	if(dtime>100)dtime = 1;//太卡了不会强制响应响应时间
+	this.prevTime = new Date().getTime();
 	var camera = this.camera4;
 	//camera4 tetrad:
 	var mat = this.planeRotation[0].toMatL().mul(this.planeRotation[1].toMatR());
@@ -125,7 +130,8 @@ Controler4.MC.prototype.beforeUpdate = function(){
 	this.z = mat.mul(new Vec4(0,0,1,0));
 	this.t = mat.mul(new Vec4(0,0,0,1));
 	//8 directions:
-	var step = this.moveStep;
+	var step = Math.min(this.moveStep*dtime,1);
+	var rotateKeyStep = this.rotateKeyStep*dtime;
 	if(this.enableKey){
 		if(this.keyPressed[this.keyConfig.left]){
 			this.tryMove(this.x.mul(-step,false));
@@ -147,19 +153,19 @@ Controler4.MC.prototype.beforeUpdate = function(){
 		}
 		//rotate (the same as mouse):
 		if(this.keyPressed[this.keyConfig.rotateleft]){
-			this._rotateHorizontal(-this.rotateKeyStep,0);
+			this._rotateHorizontal(-rotateKeyStep,0);
 			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotateright]){
-			this._rotateHorizontal(this.rotateKeyStep,0);
+			this._rotateHorizontal(rotateKeyStep,0);
 			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotatefront]){
-			this._rotateHorizontal(0,-this.rotateKeyStep);
+			this._rotateHorizontal(0,-rotateKeyStep);
 			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotateback]){
-			this._rotateHorizontal(0,this.rotateKeyStep);
+			this._rotateHorizontal(0,rotateKeyStep);
 			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotateup]){
@@ -176,14 +182,14 @@ Controler4.MC.prototype.beforeUpdate = function(){
 		}
 		//rotate 3d retina around y axis:
 		if(this.keyPressed[this.keyConfig.rotate3dm]){
-			var xz = this.x.cross(this.z).mul(this.rotateKeyStep);
+			var xz = this.x.cross(this.z).mul(rotateKeyStep);
 			var M = xz.expQ();
 			this.planeRotation[0] = M[0].mul(this.planeRotation[0]).norm();
 			this.planeRotation[1] = this.planeRotation[1].mul(M[1]).norm();
 			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotate3dp]){
-			var xz = this.x.cross(this.z).mul(-this.rotateKeyStep);
+			var xz = this.x.cross(this.z).mul(-rotateKeyStep);
 			var M = xz.expQ();
 			this.planeRotation[0] = M[0].mul(this.planeRotation[0]).norm();
 			this.planeRotation[1] = this.planeRotation[1].mul(M[1]).norm();

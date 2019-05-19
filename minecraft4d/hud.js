@@ -18,6 +18,7 @@ var HUD = {
 		HUD.infoQueue.push([str,new Date().getTime()]);
 		if(HUD.infoQueue>5)HUD.infoQueue.shift();
 	},
+	skipNight: null,
 	draw: function(){
 		var ctxt = ctxt$("hudCanvas");
 		var h = $("hudCanvas").height;
@@ -59,10 +60,10 @@ var HUD = {
 		fillText("z:"+trunc(HUD.position.z),w1,50);
 		fillText("t:"+trunc(HUD.position.t),w1,60);
 		
-		var angleSun = Math.asin(HUD.sunToward.y)/Math.PI*180;
+		var angleSun = -Math.asin(HUD.sunToward.y)/Math.PI*180;
 		fillText("Sun At:",w1,80);
-		fillText(dealToward(HUD.sunToward.sub()),w1,90);
-		fillText("Sun angle: "+trunc(-angleSun),w1,100);
+		fillText(dealToward(HUD.sunToward.clone().sub()),w1,90);
+		fillText("Sun angle: "+trunc(angleSun),w1,100);
 		fillText("time1: "+trunc(HUD.planet.time.southernTime),w1,110);
 		fillText("time2: "+trunc(HUD.planet.time.northernTime),w1,120);
 		
@@ -113,6 +114,13 @@ var HUD = {
 			fillText("z:"+HUD.focusPos.position.z,w3,50);
 			fillText("t:"+HUD.focusPos.position.t,w3,60);
 		
+		}
+		if(HUD.skipNight){
+			HUD.planet.timeStep = 1e-4;
+			if(angleSun>5){
+				HUD.planet.timeStep = HUD.skipNight;
+				HUD.skipNight = null;
+			}
 		}
 	}
 }
@@ -205,12 +213,12 @@ Command = {
 						HUD.blur2Game();
 						return 0;
 					}
-					HUD.info("Speed of day: "+(HUD.planet.timeStep*10));
+					HUD.info("Speed of day: "+(HUD.planet.timeStep*1e7));
 					HUD.blur2Game();
 					return 0;
 				}
 				var step = Number(result[1]);
-				HUD.planet.timeStep = step/10;
+				HUD.planet.timeStep = step*1e-7;
 				HUD.info("Speed of day set: "+(step));
 				break;
 			case "regen":
@@ -232,7 +240,17 @@ Command = {
 						HUD.controler.renderer.scene4.chunks = {};
 				}
 				break;
-				
+			case "skipnight":
+				var angle = Math.asin(-HUD.sunToward.y)/Math.PI*180;
+				if(angle>5){
+					HUD.info("You can only use /skipnight at night");
+					HUD.blur2Game();
+					return 0;
+				}
+				HUD.skipNight = HUD.planet.timeStep;
+				HUD.info("There time goes");
+				HUD.blur2Game();
+				break;
 			default:
 				if(command.length){
 					HUD.info("Syntax Error: Command inconnu \"/"+command+"\"");

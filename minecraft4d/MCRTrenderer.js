@@ -110,15 +110,16 @@ MCRTRenderer4.ShaderProgram = {
 		uniform float flow,ambientLight;
 		uniform mat4 mCamera3;
 		uniform vec3 Camera4Proj, chunkCenter, bgColor4,sunColor;
-		uniform vec4 vCam4,dx4,light, focusPos;
+		uniform vec4 vCam4,dx4,light_Dir, focusPos;
+		uniform float light_Density;
 		uniform mat4 mCam4;
 		uniform int displayMode;
-		uniform int renderDistance;
+		const int renderDistance = 9;
 		uniform sampler2D chunk, bloc;
 		float opacity(vec3 cc){
 			return 1.0;
 		}
-		int chunkSize = 32*4*4;
+		const int chunkSize = 32*4*4;
 		int MC_ID = -1;
 		int MC_DIR = -1;
 		float MC_SHADOW = 0.0;
@@ -182,10 +183,9 @@ MCRTRenderer4.ShaderProgram = {
 				vec4(0.0,0.0,0.0,-1.0);
 			
 			int1 -= N;
-			float angleCos = dot(N,light);
+			float angleCos = dot(N,light_Dir)*light_Density;
 			//环境光遮蔽：
 			float AO = 
-				//C:
 				mix(0.0,1.0,MC_UV.x)*step(getID(int1+vec4(1.0,0.0,0.0,0.0)),0.001) +
 				mix(1.0,0.0,MC_UV.x)*step(getID(int1-vec4(1.0,0.0,0.0,0.0)),0.001) +
 				mix(0.0,1.0,MC_UV.y)*step(getID(int1+vec4(0.0,1.0,0.0,0.0)),0.001) +
@@ -193,11 +193,11 @@ MCRTRenderer4.ShaderProgram = {
 				mix(0.0,1.0,MC_UV.z)*step(getID(int1+vec4(0.0,0.0,1.0,0.0)),0.001) +
 				mix(1.0,0.0,MC_UV.z)*step(getID(int1-vec4(0.0,0.0,1.0,0.0)),0.001) +
 				mix(0.0,1.0,MC_UV.w)*step(getID(int1+vec4(0.0,0.0,0.0,1.0)),0.001) +
-				mix(1.0,0.0,MC_UV.w)*step(getID(int1-vec4(0.0,0.0,0.0,1.0)),0.001) +
-				//F:
-			- 1.0;
-			//AO -= 1.0 : 重复算了本方块，一定非空气(0-7)
-			float SO = max(0.3,(2.5 + step(0.0, angleCos) * MC_SHADOW * mix(0.5,1.0,bgColor4.g))*0.35);
+				mix(1.0,0.0,MC_UV.w)*step(getID(int1-vec4(0.0,0.0,0.0,1.0)),0.001);
+			AO *= 1.0 - clamp(light_Dir.y*2.0,0.0,1.0)*(0.6+N.y*0.4);
+			float SO = MC_SHADOW * clamp(angleCos,0.0,1.0) * clamp(-light_Dir.y*2.0,0.0,1.0);
+			//float SO = max(0.3,(2.5 + step(0.0, angleCos) * MC_SHADOW * mix(0.5,1.0,bgColor4.g))*0.35);
+			
 			
 			vec3 uvw = (MC_DIR < 2?
 					MC_UV.xzw:
@@ -208,23 +208,30 @@ MCRTRenderer4.ShaderProgram = {
 					MC_UV.xyz 
 			)*8.0;
 			vec2 pixel = vec2(uvw.x + float(int(uvw.z)*8+MC_DIR*64), 8.0-uvw.y + float((MC_ID-1)*8))/512.0;
-			vec3 c = 
-				MC_ID!=0 ?
-					texture2D(bloc,pixel).rgb:
-				dot(direct,normalize(light))<-0.98?
-					sunColor:
-					bgColor4;
-			angleCos *= step(0.0, angleCos)*MC_SHADOW;
-			if(MC_ID==0){
-				angleCos = 1.0;
-				SO = 1.0;
-			}
+			
+			//angleCos *= step(0.0, angleCos)*MC_SHADOW;
+			//if(MC_ID==0){
+			//	angleCos = 1.0;
+				//SO = 1.0;
+			//}
 			vec4 delta = abs(int1 - focusPos + N);
 			vec3 flag = 1.0 - step(3.0,abs(uvw-vec3(4.0,4.0,4.0)));//abs(uvw+vec3(1.0,1.0,1.0)));
 			
-			c = mix(c*(max(0.0,SO*angleCos) + AO*0.1-0.1 + ambientLight*step(0.5,float(MC_ID))),vec3(1.0,0.0,0.0),(1.0-flag.x*flag.y*flag.z)
-			*step(delta.x+delta.y+delta.z+delta.w,0.4));
-			return c;	
+			vec3 c = mix(
+				texture2D(bloc,pixel).rgb*(SO + (AO-2.0)*0.1 + ambientLight),//贴图颜色*光照
+				//阳光 + 环境光遮蔽 + 环境光
+				vec3(1.0,0.0,0.0),
+				(1.0-flag.x*flag.y*flag.z)*step(delta.x+delta.y+delta.z+delta.w,0.4) //与外面红框混合
+			);
+			
+			c = 
+				MC_ID!=0 ?
+					c:
+				dot(direct,light_Dir)<-0.98?
+					sunColor:
+					bgColor4;
+			
+			return c;
 		}
 		void main(void) {
 			rdRange = renderDistance*2+1;
@@ -269,8 +276,9 @@ MCRTRenderer4.ShaderProgram = {
 			"float flow":{},//opacity per layer
 			"int renderDistance":{},//opacity per layer
 			"vec4 vCam4":{},"mat4 mCam4":{},//PMat5 Cam4
-			"vec4 light":{},
+			"vec4 light_Dir":{},
 			"vec4 dx4":{},
+			"float light_Density":{},
 			"float ambientLight":{},
 			"vec3 bgColor4":{},
 			"vec4 focusPos":{},
@@ -345,6 +353,7 @@ MCRTRenderer4.prototype.render = function(){
 	//3d Settings below:
 	var gl = this.gl;
 	this.clearColor(this.bgColor3);
+	document.bgColor = "#"+this.bgColor3.toString(16);
 	//prepare 3d viewport
 	this.viewport4 = Mesh3.cube(2/this.camera4.projectMat.ctg).embed(true).move(new Vec4(0,0,0,1));
 	//this.writeChunk();
@@ -383,8 +392,9 @@ MCRTRenderer4.prototype.render = function(){
 	this._setFboProgramUniform();
 	for(var i = 0; i <= 1; i += this.thickness);
 	while(i >= -1){
+		gl.fboProgram.uniform["float flow"].set(this.thickness * this.flow*(i+1));
 		this.renderCrossSection(new Vec4(0,0,1,mt*i),false,false);
-		i -= this.thickness;
+		i -= this.thickness*Math.round(Math.abs(i)+1);
 	}
 	var flow = this.flow;
 	this.flow = 0;
@@ -425,13 +435,14 @@ MCRTRenderer4.prototype._setFboProgramUniform = function(){
 	gl.fboProgram.uniform["int chunk"].set(1);
 	gl.fboProgram.uniform["int bloc"].set(0);
 	gl.fboProgram.uniform["mat4 mCam4"].set(this._matCamera.t(false).array);
-	gl.fboProgram.uniform["vec4 vCam4"].set([this.camera4.position.x,this.camera4.position.y-0.005,this.camera4.position.z,this.camera4.position.t]);
+	gl.fboProgram.uniform["vec4 vCam4"].set([this.camera4.position.x,this.camera4.position.y,this.camera4.position.z,this.camera4.position.t]);
 	gl.fboProgram.uniform["vec3 Camera4Proj"].set([matProject.ctg,matProject.mtt,matProject.mtw]);
 	gl.fboProgram.uniform["float flow"].set(this.thickness * this.flow);
 	gl.fboProgram.uniform["int renderDistance"].set(Math.floor(MCWorld.renderDistance));
 	gl.fboProgram.uniform["vec4 dx4"].set([0,0,0,0]);
 	gl.fboProgram.uniform["float ambientLight"].set(this.ambientLight);
-	gl.fboProgram.uniform["vec4 light"].set(this.light4.flat());
+	gl.fboProgram.uniform["float light_Density"].set(this.light4.len());
+	gl.fboProgram.uniform["vec4 light_Dir"].set(this.light4.norm(false).flat());
 	gl.fboProgram.uniform["vec3 chunkCenter"].set([this.chunkCenter.x,this.chunkCenter.z,this.chunkCenter.t]);
 	var c = this.bgColor4;
 	gl.fboProgram.uniform["vec3 bgColor4"].set([(c >> 16)/256,(c>> 8 & 0xFF)/256,(c & 0xFF)/256]);
