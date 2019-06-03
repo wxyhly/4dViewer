@@ -10,7 +10,7 @@ Controler4.MC = function(renderer,hitTest){
 	this.jumpStep = 1;
 	this.rotateKeyStep = 0.05;
 	this.wheelDeltaStep = 5;
-	this.prevTime = new Date().getTime();
+	this.needUpdate = true;//forvever
 	this.keyConfig = Object.assign(this.keyConfig, {
 		
 		/* 8 move directions */
@@ -48,7 +48,7 @@ Controler4.MC = function(renderer,hitTest){
 			var x = ev.movementX;
 			var y = ev.movementY;
 			_this._rotateHorizontal(x/_this.rotateMouseStep,y/_this.rotateMouseStep);
-			_this.needUpdate = true;
+			//_this.needUpdate = true;
 		}
 	});
 	document.addEventListener('mousewheel', function( ev ) {
@@ -57,13 +57,16 @@ Controler4.MC = function(renderer,hitTest){
 			_this.verticalDelta += ev.wheelDelta/120*step;
 			var yt = _this.y.cross(_this.t).mul(_this.verticalDelta);
 			_this.verticalRotation = yt.expQ();
-			_this.needUpdate = true;
+			//_this.needUpdate = true;
 		}
 	});
 	this.canvas.addEventListener('click', function( ev ) {
 		if(ev.button == 0){
 			document.body.requestPointerLock();
-			if(HUD) HUD.blur2Game();
+			if(HUD){ 
+				HUD.togglePause(false);
+				HUD.blur2Game();
+			}
 		}
 	});
 }
@@ -100,6 +103,23 @@ Controler4.MC.prototype.updateCamera = function(){
 	
 	this.verticalRotation = y.cross(t).mul(this.verticalDelta).expQ();
 }
+Controler4.MC.prototype.onkeydown = function(ev){
+	if(!this.enableKey)return 0;
+	if(ev.keyCode=="N".charCodeAt(0) && HUD.block>1){
+		HUD.block--;
+	}
+	if(ev.keyCode=="M".charCodeAt(0)){
+		HUD.block++;
+	}
+	if(ev.keyCode=="P".charCodeAt(0)){
+		HUD.togglePause();
+	}
+	//console.log(ev.keyCode)
+	if(ev.keyCode==191){//"/"
+		document.exitPointerLock();
+		HUD.focusCMD("/");
+	}
+}
 Controler4.MC.prototype.addGUI = function(gui){
 	Controler4.prototype.addGUI.call(this,gui);
 	var con = gui.addFolder("Control");
@@ -118,10 +138,8 @@ Controler4.MC.prototype._rotateHorizontal = function(x,y){
 	this.verticalRotation = yt.expQ();
 }
 Controler4.MC.prototype.beforeUpdate = function(){
-	//FPS同步
-	var dtime = (new Date().getTime() - this.prevTime)/(1000/60); //60fps
+	var dtime = (this.dTime)/(1000/60); //60fps
 	if(dtime>100)dtime = 1;//太卡了不会强制响应响应时间
-	this.prevTime = new Date().getTime();
 	var camera = this.camera4;
 	//camera4 tetrad:
 	var mat = this.planeRotation[0].toMatL().mul(this.planeRotation[1].toMatR());
@@ -154,31 +172,25 @@ Controler4.MC.prototype.beforeUpdate = function(){
 		//rotate (the same as mouse):
 		if(this.keyPressed[this.keyConfig.rotateleft]){
 			this._rotateHorizontal(-rotateKeyStep,0);
-			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotateright]){
 			this._rotateHorizontal(rotateKeyStep,0);
-			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotatefront]){
 			this._rotateHorizontal(0,-rotateKeyStep);
-			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotateback]){
 			this._rotateHorizontal(0,rotateKeyStep);
-			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotateup]){
 			this.verticalDelta += this.rotateKeyStep;
 			var yt = this.y.cross(this.t).mul(this.verticalDelta);
 			this.verticalRotation = yt.expQ();
-			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotatedown]){
 			this.verticalDelta -= this.rotateKeyStep;
 			var yt = this.y.cross(this.t).mul(this.verticalDelta);
 			this.verticalRotation = yt.expQ();
-			this.needUpdate = true;
 		}
 		//rotate 3d retina around y axis:
 		if(this.keyPressed[this.keyConfig.rotate3dm]){
@@ -186,14 +198,12 @@ Controler4.MC.prototype.beforeUpdate = function(){
 			var M = xz.expQ();
 			this.planeRotation[0] = M[0].mul(this.planeRotation[0]).norm();
 			this.planeRotation[1] = this.planeRotation[1].mul(M[1]).norm();
-			this.needUpdate = true;
 		}
 		if(this.keyPressed[this.keyConfig.rotate3dp]){
 			var xz = this.x.cross(this.z).mul(-rotateKeyStep);
 			var M = xz.expQ();
 			this.planeRotation[0] = M[0].mul(this.planeRotation[0]).norm();
 			this.planeRotation[1] = this.planeRotation[1].mul(M[1]).norm();
-			this.needUpdate = true;
 		}
 		if(this.renderer.hudCanvas && this.keyPressed[this.keyConfig.toggleHUD]){
 			this.renderer.hudCanvas.style.display = this.renderer.hudCanvas.style.display=="none"?"block":"none";
@@ -204,10 +214,10 @@ Controler4.MC.prototype.beforeUpdate = function(){
 	}else if(this.gravity || this.keyPressed[this.keyConfig.down]){//L shift
 		this.tryMove(this.y.mul(-step,false),false);
 	}
-	if(this.needUpdate){
+	//if(this.needUpdate){
 		camera.rotation[0] = this.verticalRotation[0].mul(this.planeRotation[0],false);
 		camera.rotation[1] = this.planeRotation[1].mul(this.verticalRotation[1],false);
-	}
+	//}
 }
 Controler4.MC.prototype.tryMove = function(movement,climb){
 	var eye = this.camera4.position.add(movement,false);
@@ -239,13 +249,11 @@ Controler4.MC.prototype.tryMove = function(movement,climb){
 	}
 	if(isUnstuck(eye)){
 		this.camera4.position.set(eye);
-		this.needUpdate = true;
 	}else if(climb !== false && !_this.hitTest(eye)){//确保头上没方块时可以自动上爬
 		var newE = eye.clone();
 		newE.y += this.jumpStep;
 		if(isUnstuck(newE)){
 			this.camera4.position.set(newE);
-			this.needUpdate = true;
 		}
 	}
 }

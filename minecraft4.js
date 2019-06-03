@@ -1,7 +1,8 @@
 var MCWorld = function(terrainGen,seed){
 	this.chunks = {};
 	if(terrainGen){
-		this.terrain = new terrainGen(this,seed);
+		this.terrain = terrainGen;
+		terrainGen.world = this;
 	}
 }
 MCWorld.prototype.addChunk = function(mcChunk){
@@ -43,16 +44,17 @@ MCWorld.prototype.generateGeom = function(cx,cz,ct,mesh){
 		}
 			
 		if(!c.updated){
-			if(mesh!==false)
+			if(mesh!==false){
 				c.generateGeom(this);
+			}
 			c.updated = true;
 		}
 		GeomList.push(c.geom);
 	}
+	//if(mesh===false) this.generateDistMap();
+		
 	return GeomList;
 }
-
-
 
 MCWorld.ColorTable = [//depreciated
 	null,	//air
@@ -93,6 +95,7 @@ MCWorld.prototype.getBlockId = function(x,y,z,t){
 	}
 }
 MCWorld.prototype.setBlockId = function(id,x,y,z,t){
+	if(y<0||y>31)return false;
 	var chunk = this._findChunk(x,y,z,t);
 	if(chunk){
 		chunk.modified = true;
@@ -101,6 +104,7 @@ MCWorld.prototype.setBlockId = function(id,x,y,z,t){
 		var dy = y;
 		var dz = ((z % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
 		var dt = ((t % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
+		if(chunk.bufferData[dx+4*dy+4*32*dz+4*32*4*dt]==id) return 0;
 		chunk.bufferData[dx+4*dy+4*32*dz+4*32*4*dt] = id;
 		if(dx == 0){
 			var nc = this._findChunk(x-1,y,z,t);
@@ -467,18 +471,25 @@ MCWorld.prototype.toSamplerBuffer = function(cx,cz,ct,buffer){
 	var pX = Math.floor(cx/MCChunk.SIZE);
 	var pZ = Math.floor(cz/MCChunk.SIZE);
 	var pT = Math.floor(ct/MCChunk.SIZE);
+	var LEN = 4*4*4*32;
 	for(var T=-d; T<=d; T++){
 	for(var Z=-d; Z<=d; Z++){
 	for(var X=-d; X<=d; X++){
 		var chunk = this.chunks[(pX+X)+","+(pZ+Z)+","+(pT+T)];
 		if(!chunk){
-			buffer[offset] = 0;
-			offset += 4*4*4*32;
-			continue;
-		}
-		for(var x=0; x<4*4*4*32; x++){
-			buffer[offset] = chunk.bufferData[x];
-			offset++;
+			//防止海市蜃楼
+			for(var x=0; x<LEN; x++){
+				buffer[offset] = 0;
+				offset++;
+			}
+			//offset += LEN;
+			//continue;
+		}else{
+			var data = chunk.bufferData;
+			for(var x=0; x<LEN; x++){
+				buffer[offset] = data[x];
+				offset++;
+			}
 		}
 	}
 	}
@@ -494,3 +505,4 @@ MCWorld.prototype.generateChunk = function(cx,cz,ct,empty){
 	}
 	this.addChunk(new MCChunk(cx,cz,ct,data));
 }
+

@@ -162,7 +162,7 @@ MCStruct.city1 = function(seed,terrain, data,bx,bz,bt,cx,cz,ct,list){
 MCStruct.building1 = function(px,pz,pt,seed,terrain, data, bx,bz,bt, cx,cz,ct,list){
 	//MCStruct.currentL = L;
 	var s = 6, h = 5;//size and height of room
-	var rnd = Math.floor(seed*Math.PI*234624);
+	var rnd = Math.floor(seed*Math.PI*2346241);
 	MCStruct.currentData = data;
 	function chambre(x00,z00,t00){
 		//console.log("chamber "+x+" "+z+" "+t+" of "+rx+" "+rz+" "+rt);
@@ -495,7 +495,7 @@ MCStruct.pyramid = function(seed,terrain,data,bx,bz,bt,cx,cz,ct,list){
 	);
 	if(Info.hill>2||Info.riverDistance<0.3)return 0;
 	var yc = Info.Terrain_Y;
-	var r = Math.min(MCChunk.SIZE_Y - yc,Math.abs(seed1<<2)%3+7);
+	var r = Math.min(MCChunk.SIZE_Y - yc,Math.abs(seed1<<2)%3+12);
 	var xc = (bx-cx)*MCChunk.SIZE+ox;
 	var zc = (bz-cz)*MCChunk.SIZE+oz;
 	var tc = (bt-ct)*MCChunk.SIZE+ot;
@@ -544,7 +544,7 @@ MCStruct.pyramid = function(seed,terrain,data,bx,bz,bt,cx,cz,ct,list){
 		case 5:                                            
 			MCStruct.repl((id)=>id==mat?255:id, xc,yc,zc,tc+r, xc,yc+1,zc,tc);break;
 	}
-	var head = Math.abs(29*seed+31*seed1)%5;
+	var head = Math.floor(Math.abs(29*seed+37*seed1+dir*31))%5;
 	switch(head){
 		case 0: //creeper
 			MCStruct.setBlock(16, xc,yc,zc,tc);
@@ -553,7 +553,7 @@ MCStruct.pyramid = function(seed,terrain,data,bx,bz,bt,cx,cz,ct,list){
 		case 1: //enderman
 			MCStruct.setBlock(21, xc,yc,zc,tc);
 			MCStruct.setBlock(24, xc,yc+1,zc,tc);
-			break;	
+			break;
 		case 2: //steve
 			MCStruct.setBlock(18, xc,yc,zc,tc);
 			MCStruct.setBlock(25, xc,yc+1,zc,tc);

@@ -10,6 +10,7 @@ var Controler4 = function(renderer){
 	this.fov = this.camera4.fov;
 	this.fovStep = 5;
 	this.enableKey = true;
+	this.prevTime = new Date().getTime();
 	//camera3 rotation euler angle:
 	this.rx3 = Math.PI/6;
 	this.ry3 = Math.PI/8;
@@ -36,7 +37,7 @@ var Controler4 = function(renderer){
 	document.addEventListener('keydown', function( ev ) {
 		//ev.preventDefault();
 		_this.keyPressed[ev.keyCode] = true;
-		if(_this.keyPressed[_this.keyConfig.wireFrame]){
+		if(_this.enableKey&&_this.keyPressed[_this.keyConfig.wireFrame]){
 			_this.renderer.wireFrameMode = !_this.renderer.wireFrameMode;
 			_this.needUpdate = true;
 		}
@@ -159,6 +160,9 @@ Controler4.prototype._dealRendererSettings = function(){
 	}
 }
 Controler4.prototype.update = function(callback){
+	//FPS同步
+	this.dTime = new Date().getTime() - this.prevTime;
+	this.prevTime = new Date().getTime();
 	this.beforeUpdate();
 	if(this.enableKey) this._dealRendererSettings();
 	if(this.needUpdate && callback) {
@@ -384,6 +388,8 @@ Controler4.KeepUp.prototype._rotateHorizontal = function(x,y){
 	this.verticalRotation = yt.expQ();
 }
 Controler4.KeepUp.prototype.beforeUpdate = function(){
+	var dtime = (this.dTime)/(1000/60); //60fps
+	if(dtime>100)dtime = 1;//太卡了不会强制响应响应时间
 	var camera = this.camera4;
 	//camera4 tetrad:
 	var mat = this.planeRotation[0].toMatL().mul(this.planeRotation[1].toMatR());
@@ -392,7 +398,7 @@ Controler4.KeepUp.prototype.beforeUpdate = function(){
 	this.z = mat.mul(new Vec4(0,0,1,0));
 	this.t = mat.mul(new Vec4(0,0,0,1));
 	//8 directions:
-	var step = this.moveStep;
+	var step = Math.min(this.moveStep*dtime,1);
 	if(this.keyPressed[this.keyConfig.left]){
 		this.tryMove(this.x.mul(-step,false));
 	}
@@ -496,7 +502,7 @@ Controler4.KeepUp.prototype.tryMove = function(movement,climb){
 		this.camera4.position.set(eye);
 		this.needUpdate = true;
 	}else if(climb !== false){
-		eye.y += this.moveStep*1.1;
+		eye.y += movement.len()*1.1;
 		if(test(eye)){
 			this.camera4.position.set(eye);
 			this.needUpdate = true;

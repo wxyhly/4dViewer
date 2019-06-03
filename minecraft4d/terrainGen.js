@@ -1,5 +1,5 @@
-var TerrainGen = function(world,seed){
-	this.seed = typeof seed=="number" ? seed : Math.floor(Math.random()*1000000);
+var TerrainGen = function(seed,world){
+	this.seed = seed;//typeof seed=="number" ? seed : Math.floor(Math.random()*1000000);
 	this.world = world;
 	this.initPerlins(this.seed);
 }
@@ -16,8 +16,25 @@ MCWorld.nameList = [
 	"smooth_stone",
 	"stone_slabs",
 	"stone_brick",
+	"planks",
+	"white_concrete",
+	"red_concrete",
+	"yellow_concrete",
+	"green_concrete",
+	"cyan_concrete",
+	"blue_concrete",
+	"purple_concrete",
+	"gray_concrete",
+	"black_concrete",
+	"catcus",
+	"creeper_head",
+	"enderman_head",
+	"steve_head"
 ];
-
+MCWorld.idList = {};
+for(var i in MCWorld.nameList){
+	MCWorld.idList[MCWorld.nameList[i]] = i;
+}
 //World generation:
 TerrainGen.currentChunkInfo = {
 	biome: null,
@@ -108,7 +125,7 @@ TerrainGen.prototype.generateTerrain = function(data,cx,cz,ct){
 }
 
 
-TerrainGen.prototype.getRiver = function(X,Z,T,Info){
+TerrainGen.prototype._getRiver = function(X,Z,T,Info){
 	var scaleRiver = 0.001;
 	var scaleRiver2 = 0.05;
 	var riverDistance = Math.abs(
@@ -123,6 +140,57 @@ TerrainGen.prototype.getRiver = function(X,Z,T,Info){
 	Info.riverDistance = riverDistance;
 	return river;
 }
+TerrainGen.prototype.getRiver = function(X,Z,T,Info){
+	var scaleRiver = 0.005;
+	var scaleRiver2 = 0.05;
+	
+	var riverDistance1 = Math.abs(
+		this.perlinRiver.value(
+			(X+this.seed)*scaleRiver,
+			(Z+this.seed%18)*scaleRiver,
+			(T+this.seed*5)*scaleRiver
+		)*0.8+this.perlinRiver2.value(X*scaleRiver2,Z*scaleRiver2,T*scaleRiver2)*0.04
+	);
+	
+	var riverDistance2 = Math.abs(
+		this.perlinRiver2.value(
+			(X+this.seed%18)*scaleRiver,
+			(Z+this.seed*0.71428)*scaleRiver,
+			(T+this.seed*1.41428)*scaleRiver
+		)*0.8+this.perlinRiver.value(X*scaleRiver2+this.seed*3.7,Z*scaleRiver2+this.seed*7.7,T*scaleRiver2+this.seed*5.7)*0.04
+	);
+	
+	var rd1 = Math.sqrt(riverDistance1*riverDistance1 + riverDistance2*riverDistance2);
+	var rr1 = Math.min(0.1,rd1)*6+0.2;
+	
+	
+	
+	riverDistance1 = Math.abs(
+		this.perlinRiver.value(
+			(X+this.seed*12.35307)*scaleRiver,
+			(Z+this.seed*15.35307)*scaleRiver,
+			(T+this.seed%18)*scaleRiver
+		)*0.8+this.perlinRiver2.value(X*scaleRiver2+0.5,Z*scaleRiver2+0.5,T*scaleRiver2+0.5)*0.04
+	);
+	
+	riverDistance2 = Math.abs(
+		this.perlinRiver2.value(
+			(X+this.seed%23)*scaleRiver,
+			(Z+this.seed%31)*scaleRiver,
+			(T+this.seed*4.41428)*scaleRiver
+		)*0.8+this.perlinRiver.value(X*scaleRiver2+this.seed*3.7,Z*scaleRiver2+this.seed*7.7,T*scaleRiver2+this.seed*5.7)*0.04
+	);
+	
+	var rd2 = Math.sqrt(riverDistance1*riverDistance1 + riverDistance2*riverDistance2);
+	var rr2 = Math.min(0.1,rd1)*6+0.2;
+	
+	
+	
+	Info = Info || TerrainGen.currentBlocInfo;
+	Info.riverDistance = Math.min(rd1,rd2);//Math.max(riverDistance1,riverDistance2);
+	return Math.min(rr1,rr2);//Math.max(river1,river2);
+}
+
 
 TerrainGen.prototype.getTerrain_Y = function(X,Z,T,dont){
 	var scale0 = TerrainGen.TerrainConfig.scale0;
@@ -170,7 +238,7 @@ TerrainGen.prototype.generateBuilding = function(data,cx,cz,ct){
 	var bx = Math.floor(cx/size)*size;
 	var bz = Math.floor(cz/size)*size;
 	var bt = Math.floor(ct/size)*size;
-	var seed = Math.abs(this.seed+bx+bz*45+(bt>>9));
+	var seed = Math.abs(this.seed+bx*132467+bz*45+(bt<<9));
 	var building = false;
 	if(seed%11<8){
 		MCStruct.generate(MCStruct.city1.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,MCStruct.list);
@@ -179,11 +247,11 @@ TerrainGen.prototype.generateBuilding = function(data,cx,cz,ct){
 	var bx = Math.floor(cx/size)*size;
 	var bz = Math.floor(cz/size)*size;
 	var bt = Math.floor(ct/size)*size;
-	seed = Math.abs(this.seed+bx+bz*45+(bt>>9));
+	seed = Math.abs(this.seed-bx*907301+bz*45+(bt<<9));
 	var Info = this.getTerrain_Y((bx+5)*4,(bz+5)*4,(bt+5)*4,false);
 	if(seed%50<Info.riverDistance*5+3){
 		MCStruct.generate(MCStruct.observatoir.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,null);
-	}else if(seed%30>22 && Info.sand>0.2){
+	}else if(seed%30>12 && Info.sand>0.2){
 		MCStruct.generate(MCStruct.pyramid.bind(null,seed,this),data, bx,bz,bt ,cx,cz,ct,null);
 	}else{
 		if(Math.abs(seed/(this.seed+17)*29)%33<Info.sand*25 + 25){
@@ -212,15 +280,16 @@ TerrainGen.prototype.getTree = function(cx,cz,ct){
 	var T = ct*MCChunk.SIZE+treeT;
 	var sand = this.perlinSand.value((X+this.seed)*scaleSand,Z*scaleSand,T*scaleSand);
 	var P = Math.sin(this.seed + forest*65)*893134;
+	var type = Math.floor(Math.abs(P)%3);//oak tree, sprunce tree, bald
 	if (forest>0 && P-Math.floor(P)<0.3 && sand<0 && this.getRiver(X,Z,T)>=0.5){
 		return [treeX,treeZ,treeT,
-			Math.floor(this.getTerrain_Y(cx*MCChunk.SIZE+treeX,cz*MCChunk.SIZE+treeZ,ct*MCChunk.SIZE+treeT))
+			Math.floor(this.getTerrain_Y(cx*MCChunk.SIZE+treeX,cz*MCChunk.SIZE+treeZ,ct*MCChunk.SIZE+treeT)),
+			type
 		];
 	}
 	return false; //no tree found in this chunk
 }
 TerrainGen.prototype.generateForest = function(data,cx,cz,ct){
-	var height = 8;
 	var Info = TerrainGen.currentBlocInfo;
 	//catus:
 	var catcus = this.seed+cx*241+cz*28+ct*14734;
@@ -239,6 +308,11 @@ TerrainGen.prototype.generateForest = function(data,cx,cz,ct){
 			var Z = cz*MCChunk.SIZE+treeZ;
 			var T = ct*MCChunk.SIZE+treeT;
 			var posY = this.getTerrain_Y(X,Z,T);
+			var occupe = false;
+			for(var y = posY; y <= Math.min(posY+treeX%3+1,MCChunk.SIZE_Y); y++){
+				if(data[treeX+4*(y+32*(treeZ+4*treeT))] != 0) {occupe = true; break;}
+			}
+			if(occupe)continue;
 			for(var y = posY; y <= Math.min(posY+treeX%3+1,MCChunk.SIZE_Y); y++){
 				data[treeX+4*(y+32*(treeZ+4*treeT))] = 22;
 			}
@@ -251,6 +325,7 @@ TerrainGen.prototype.generateForest = function(data,cx,cz,ct){
 		var pos = this.getTree(x,z,t);
 		if(pos){
 			var posY = pos[3];
+			var height = pos[4]==0?8:pos[4]==1?12:1;
 			if(x == cx && z == cz && t == ct){//if in current chunk, generate log
 				for(var y = posY; y<Math.min(posY+height,MCChunk.SIZE_Y); y++){
 					data[pos[0]+4*y+32*4*pos[1]+32*4*4*pos[2]] = 4;
@@ -261,21 +336,43 @@ TerrainGen.prototype.generateForest = function(data,cx,cz,ct){
 			pos[0] -= (cx - x)*MCChunk.SIZE;
 			pos[1] -= (cz - z)*MCChunk.SIZE;
 			pos[2] -= (ct - t)*MCChunk.SIZE;
-			for(var py = posY + height - 3; py <= posY + height; py++){
-				var restHeight = py - (posY + height);
-                var xztSize = Math.floor(1 - restHeight / 2);
-			for(var px = Math.max(0,pos[0] - xztSize); px <= Math.min(pos[0] + xztSize,MCChunk.SIZE-1); px++){
-				var xOffset = px - pos[0];
-			for(var pz = Math.max(0,pos[1] - xztSize); pz <= Math.min(pos[1] + xztSize,MCChunk.SIZE-1); pz++){
-				var zOffset = pz - pos[1];
-			for(var pt = Math.max(0,pos[2] - xztSize); pt <= Math.min(pos[2] + xztSize,MCChunk.SIZE-1); pt++){
-				var tOffset = pt - pos[2];
-				if(Math.abs(xOffset) != xztSize || Math.abs(zOffset) != xztSize || Math.abs(tOffset) != xztSize && restHeight !=0 && data[px+4*py+4*32*pz+4*4*32*pt] == 0){
-					data[px+4*py+4*32*pz+4*4*32*pt] = 5;//leave
-				}
-			}
-			}
-			}
+			switch(pos[4]){
+				case 0:
+					for(var py = posY + 5; py <= posY + height; py++){
+						var restHeight = py - (posY + height);
+						var xztSize = Math.floor(1 - restHeight / 2);
+					for(var px = Math.max(0,pos[0] - xztSize); px <= Math.min(pos[0] + xztSize,MCChunk.SIZE-1); px++){
+						var xOffset = px - pos[0];
+					for(var pz = Math.max(0,pos[1] - xztSize); pz <= Math.min(pos[1] + xztSize,MCChunk.SIZE-1); pz++){
+						var zOffset = pz - pos[1];
+					for(var pt = Math.max(0,pos[2] - xztSize); pt <= Math.min(pos[2] + xztSize,MCChunk.SIZE-1); pt++){
+						var tOffset = pt - pos[2];
+						if(Math.abs(xOffset) != xztSize || Math.abs(zOffset) != xztSize || Math.abs(tOffset) != xztSize && restHeight !=0 && data[px+4*py+4*32*pz+4*4*32*pt] == 0){
+							data[px+4*py+4*32*pz+4*4*32*pt] = 5;//leave
+						}
+					}
+					}
+					}
+					}
+					break;
+				case 1:
+					for(var py = posY + 3; py <= posY + height; py++){
+						var restHeight = py - (posY + height);
+						var xztSize = [0,1,2,1,2,3,1,2,3,1,0,0,0,0,0,0,0][-restHeight];
+					for(var px = Math.max(0,pos[0] - xztSize); px <= Math.min(pos[0] + xztSize,MCChunk.SIZE-1); px++){
+						var xOffset = px - pos[0];
+					for(var pz = Math.max(0,pos[1] - xztSize); pz <= Math.min(pos[1] + xztSize,MCChunk.SIZE-1); pz++){
+						var zOffset = pz - pos[1];
+					for(var pt = Math.max(0,pos[2] - xztSize); pt <= Math.min(pos[2] + xztSize,MCChunk.SIZE-1); pt++){
+						var tOffset = pt - pos[2];
+						if((Math.abs(xOffset) != xztSize || Math.abs(zOffset) != xztSize || Math.abs(tOffset) != xztSize) && restHeight !=0 && data[px+4*py+4*32*pz+4*4*32*pt] == 0){
+							data[px+4*py+4*32*pz+4*4*32*pt] = 5;//leave
+						}
+					}
+					}
+					}
+					}
+					break;
 			}
 		}
 	}

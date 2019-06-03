@@ -1,0 +1,31 @@
+<canvas id="can1" width="64" height="8"></canvas>
+<canvas id="can2" width="64" height="8"></canvas>
+<script>
+var ctxt$ = function (obj){
+	return document.getElementById(obj).getContext("2d");
+}
+var $ = function (obj){
+	return document.getElementById(obj);
+}
+var img = new Image();
+img.onload = function(){
+	ctxt$("can1").drawImage(img,0,0,64,8);
+	var data = ctxt$("can1").getImageData(0,0,64,8).data;
+	var imgdata = ctxt$("can2").createImageData(64,8);
+	var array = imgdata.data;
+	for(var x=0;x<8;x++){
+	for(var y=0;y<8;y++){
+	for(var z=0;z<8;z++){
+		var i = x + 8*y + 64*z;
+		var j = y + 8*x + 64*z;
+		array[j*4] = data[i*4];
+		array[j*4+1] = data[i*4+1];
+		array[j*4+2] = data[i*4+2];
+		array[j*4+3] = data[i*4+3];
+	}
+	}
+	}
+	ctxt$("can2").putImageData(imgdata,0,0);
+}
+img.src = "test.bmp";
+</script>

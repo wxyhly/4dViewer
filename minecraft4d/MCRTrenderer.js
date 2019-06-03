@@ -59,7 +59,7 @@ var MCRTRenderer4 = function(ctxt,scene4,camera4,light4,camera3){
 	this.scene4 = scene4;
 	this.camera4 = camera4;
 	this.camera3 = camera3 || new Camera3(15,1,20);//don't use position infomation, it's decided par eyeDistanceF/H;
-	this.camera3.rotation = new Vec3(1,0,0).expQ(Math.PI/8).mul(new Vec3(0,1,0).expQ(Math.PI/6));
+	this.camera3.rotation = new Vec3(1,0,0).expQ(Math.PI/12).mul(new Vec3(0,1,0).expQ(Math.PI/16));
 	this.bgColor4 = 0x66FFFF;//sky
 	this.bgColor3 = 0xFFFFFF;//background
 	this.ambientLight = 0.3;
@@ -70,8 +70,8 @@ var MCRTRenderer4 = function(ctxt,scene4,camera4,light4,camera3){
 		this.light4 = light4 || new Vec4(2,1,0.3,-5).norm();
 	}
 	this.eyeDistanceF = 10;
-	this.eyeDistanceH = 0.5;
-	this.eyeDistance4 = 0.15;
+	this.eyeDistanceH = 1;
+	this.eyeDistance4 = 0.2;
 	this.thickness = 0.08;
 	this.thumbSize = 3;
 	this.flow = 1.0;
@@ -103,149 +103,7 @@ var MCRTRenderer4 = function(ctxt,scene4,camera4,light4,camera3){
 }
 MCRTRenderer4.ShaderProgram = {
 	fbo4D: {
-		F: `
-		precision highp float;
-		varying vec4 coord;
-		varying vec4 coord4;
-		uniform float flow,ambientLight;
-		uniform mat4 mCamera3;
-		uniform vec3 Camera4Proj, chunkCenter, bgColor4,sunColor;
-		uniform vec4 vCam4,dx4,light_Dir, focusPos;
-		uniform float light_Density;
-		uniform mat4 mCam4;
-		uniform int displayMode;
-		const int renderDistance = 9;
-		uniform sampler2D chunk, bloc;
-		float opacity(vec3 cc){
-			return 1.0;
-		}
-		const int chunkSize = 32*4*4;
-		int MC_ID = -1;
-		int MC_DIR = -1;
-		float MC_SHADOW = 0.0;
-		vec4 MC_UV;
-		int rdRange, rdRange2;
-		float getID(vec4 pos){
-			
-			vec4 p = pos - floor(vec4(chunkCenter.x,0.0,chunkCenter.yz)/4.0)*4.0;
-			float chx = mod(pos.x,4.0);
-			float chz = mod(pos.z,4.0);
-			float cht = mod(pos.w,4.0);
-			float chunkOffset = p.y + 32.0*chz + 128.0*cht;
-			
-			chunkOffset += float(chunkSize*(int(floor(p.x/4.0))+renderDistance + rdRange*(int(floor(p.z/4.0))+renderDistance) + rdRange2*(int(floor(p.w/4.0))+renderDistance)));
-			
-			vec2 offset = vec2(mod(chunkOffset, 2048.0),floor(chunkOffset/2048.0))/2048.0;
-			
-			return step(abs(floor(p.x/4.0)),float(renderDistance)+0.5)*
-				step(abs(floor(p.z/4.0)),float(renderDistance)+0.5)*
-				step(abs(floor(p.w/4.0)),float(renderDistance)+0.5)*
-				step(pos.y , 31.5)*dot(
-					vec4(
-						step(-0.1,chx)*step(chx,0.1),
-						step(0.9,chx)*step(chx,1.1) ,
-						step(1.9,chx)*step(chx,2.1) ,
-						step(2.9,chx)*step(chx,3.1)
-					),texture2D(chunk, offset)
-			);
-		}
-		`+MCRTRenderer4ShaderRaycastMCCode+`
-		vec3 raytracing(vec4 coord4){
-			vec4 direct = normalize(coord4);
-			MC_ID = 0;
-			MC_DIR = -1;
-			raycastMC(vCam4+dx4,direct*100.0+vCam4+dx4);
-			vec4 int1 = floor(MC_UV);
-			MC_UV = MC_UV - int1;
-			
-			//sre bloc pos int1: (lup ambientlight sre)
-			float direction = float(MC_DIR);
-			int1.x -= step(4.9,direction)*step(direction,5.1);
-			int1.y -= step(0.9,direction)*step(direction,1.1);
-			int1.z -= step(2.9,direction)*step(direction,3.1);
-			int1.w -= step(6.9,direction)*step(direction,7.1);
-			
-			vec4 N = 
-				MC_DIR == 0?
-					vec4(0.0,1.0,0.0,0.0):
-				MC_DIR == 1?
-					vec4(0.0,-1.0,0.0,0.0):
-				MC_DIR == 2?
-					vec4(0.0,0.0,1.0,0.0):
-				MC_DIR == 3?
-					vec4(0.0,0.0,-1.0,0.0):
-				MC_DIR == 4?
-					vec4(1.0,0.0,0.0,0.0):
-				MC_DIR == 5?
-					vec4(-1.0,0.0,0.0,0.0):
-				MC_DIR == 6?
-					vec4(0.0,0.0,0.0,1.0):
-				vec4(0.0,0.0,0.0,-1.0);
-			
-			int1 -= N;
-			float angleCos = dot(N,light_Dir)*light_Density;
-			//环境光遮蔽：
-			float AO = 
-				mix(0.0,1.0,MC_UV.x)*step(getID(int1+vec4(1.0,0.0,0.0,0.0)),0.001) +
-				mix(1.0,0.0,MC_UV.x)*step(getID(int1-vec4(1.0,0.0,0.0,0.0)),0.001) +
-				mix(0.0,1.0,MC_UV.y)*step(getID(int1+vec4(0.0,1.0,0.0,0.0)),0.001) +
-				mix(1.0,0.0,MC_UV.y)*step(getID(int1-vec4(0.0,1.0,0.0,0.0)),0.001) +
-				mix(0.0,1.0,MC_UV.z)*step(getID(int1+vec4(0.0,0.0,1.0,0.0)),0.001) +
-				mix(1.0,0.0,MC_UV.z)*step(getID(int1-vec4(0.0,0.0,1.0,0.0)),0.001) +
-				mix(0.0,1.0,MC_UV.w)*step(getID(int1+vec4(0.0,0.0,0.0,1.0)),0.001) +
-				mix(1.0,0.0,MC_UV.w)*step(getID(int1-vec4(0.0,0.0,0.0,1.0)),0.001);
-			AO *= 1.0 - clamp(light_Dir.y*2.0,0.0,1.0)*(0.6+N.y*0.4);
-			float SO = MC_SHADOW * clamp(angleCos,0.0,1.0) * clamp(-light_Dir.y*2.0,0.0,1.0);
-			//float SO = max(0.3,(2.5 + step(0.0, angleCos) * MC_SHADOW * mix(0.5,1.0,bgColor4.g))*0.35);
-			
-			
-			vec3 uvw = (MC_DIR < 2?
-					MC_UV.xzw:
-				MC_DIR < 4?
-					MC_UV.xyw:
-				MC_DIR < 6?
-					MC_UV.zyw:
-					MC_UV.xyz 
-			)*8.0;
-			vec2 pixel = vec2(uvw.x + float(int(uvw.z)*8+MC_DIR*64), 8.0-uvw.y + float((MC_ID-1)*8))/512.0;
-			
-			//angleCos *= step(0.0, angleCos)*MC_SHADOW;
-			//if(MC_ID==0){
-			//	angleCos = 1.0;
-				//SO = 1.0;
-			//}
-			vec4 delta = abs(int1 - focusPos + N);
-			vec3 flag = 1.0 - step(3.0,abs(uvw-vec3(4.0,4.0,4.0)));//abs(uvw+vec3(1.0,1.0,1.0)));
-			
-			vec3 c = mix(
-				texture2D(bloc,pixel).rgb*(SO + (AO-2.0)*0.1 + ambientLight),//贴图颜色*光照
-				//阳光 + 环境光遮蔽 + 环境光
-				vec3(1.0,0.0,0.0),
-				(1.0-flag.x*flag.y*flag.z)*step(delta.x+delta.y+delta.z+delta.w,0.4) //与外面红框混合
-			);
-			
-			c = 
-				MC_ID!=0 ?
-					c:
-				dot(direct,light_Dir)<-0.98?
-					sunColor:
-					bgColor4;
-			
-			return c;
-		}
-		void main(void) {
-			rdRange = renderDistance*2+1;
-			rdRange2 = rdRange*rdRange;
-			vec3 color1 = raytracing(coord4);
-			
-			if((abs(coord.x)<0.08 || abs(coord.y)<0.08 || abs(coord.z)<0.08)&&(abs(coord.x)<0.5 && abs(coord.y)<0.5)){
-				gl_FragColor=vec4(vec3(1.0,1.0,1.0)-color1.rgb,1.0);
-			}else{
-				gl_FragColor=vec4(color1.rgb,clamp(flow*opacity(color1.rgb),0.0,1.0));
-			}
-			
-		}
-		`,
+		F: MCRTRenderer_FragmentShader,
 		V: `
 		attribute vec4 V;
 		varying vec4 coord;
@@ -375,14 +233,6 @@ MCRTRenderer4.prototype.render = function(){
 	_setEyeMatrix(this.eyeL,new Vec3(-this.eyeDistanceH,0,-this.eyeDistanceF),r);
 	_setEyeMatrix(this.eyeR,new Vec3(this.eyeDistanceH,0,-this.eyeDistanceF),r);
 	
-	var oc = this.opaqueColors;
-	this._opaqueColor = [
-		[(oc[0].color>> 16)/256,(oc[0].color>>8 & 0xFF)/256,(oc[0].color & 0xFF)/256, oc[0].tolerance||1e10],
-		[(oc[1].color>> 16)/256,(oc[1].color>>8 & 0xFF)/256,(oc[1].color & 0xFF)/256, oc[1].tolerance||1e10],
-		[(oc[2].color>> 16)/256,(oc[2].color>>8 & 0xFF)/256,(oc[2].color & 0xFF)/256, oc[2].tolerance||1e10],
-		[(oc[3].color>> 16)/256,(oc[3].color>>8 & 0xFF)/256,(oc[3].color & 0xFF)/256, oc[3].tolerance||1e10]
-	];
-	
 	//CrossSection Rendering below:
 	this._matProject = this.camera4.projectMat;
 	this._matCamera = this.camera4.coordMat();
@@ -396,23 +246,6 @@ MCRTRenderer4.prototype.render = function(){
 		this.renderCrossSection(new Vec4(0,0,1,mt*i),false,false);
 		i -= this.thickness*Math.round(Math.abs(i)+1);
 	}
-	var flow = this.flow;
-	this.flow = 0;
-	if(this.wireFrameMode){
-		this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
-		for(var i = 0; i <= 1; i += this.thickness);
-		while(i >= -1){
-			this.renderCrossSection(new Vec4(0,1,0,mt*i),false,false);
-			i -= this.thickness;
-		}
-		this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
-		for(var i = 0; i <= 1; i += this.thickness);
-		while(i >= -1){
-			this.renderCrossSection(new Vec4(1,0,0,-mt*i),false,false);
-			i -= this.thickness;
-		}
-	}
-	this.flow = flow;
 	function renderThumbnail(vec3,angle,crossSection,viewport){
 		var r = vec3.expQ(angle).toMatLR().array;
 		_setEyeMatrix(_this.eyeL,new Vec3(-_this.eyeDistanceH,0,-_this.eyeDistanceF),r);
@@ -422,6 +255,7 @@ MCRTRenderer4.prototype.render = function(){
 	}
 	this.wireFrameMode = false;
 	if(this.enableThumbnail){
+		gl.fboProgram.uniform["int displayMode"].set(0);
 		renderThumbnail(new Vec3(0,0,1),0,new Vec4(0,0,1,0),this.LEFT_BOTTOM);
 		renderThumbnail(new Vec3(1,0,0),Math.PI/2,new Vec4(0,1,0,0),this.RIGHT_UP);
 		renderThumbnail(new Vec3(0,1,0),Math.PI/2,new Vec4(1,0,0,0),this.RIGHT_BOTTOM);
@@ -458,9 +292,7 @@ MCRTRenderer4.prototype._setFboProgramUniform = function(){
 MCRTRenderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 	var _this = this;
 	this._viewportSection = this.viewport4.crossSection(0,frustum).flat();
-	this._renderMeshbuffer(mode3d,thumbnail);
-}
-MCRTRenderer4.prototype._renderMeshbuffer = function(mode3d,thumbnail){
+
 	var gl = this.gl;
 	var viewport4 = this._viewportSection;
 	var dx4, eye4 = this.eyeDistance4;
@@ -469,11 +301,9 @@ MCRTRenderer4.prototype._renderMeshbuffer = function(mode3d,thumbnail){
 		case this.LEFT_BOTTOM:
 		case this.RIGHT_UP:
 			dx4 = new Vec4(m[0],m[4],m[8],m[12]).mul(eye4);
-			//dx4 = new Vec4(m[0],m[1],m[2],m[3]).mul(eye4);
 			break;
 		case this.RIGHT_BOTTOM:
 			dx4 = new Vec4(m[2],m[6],m[10],m[14]).mul(eye4);
-			//dx4 = new Vec4(m[8],m[9],m[10],m[11]).mul(eye4);
 			break;
 	}
 	gl.fboProgram.attribute["vec4 V"].bind(gl.VfboBuffer);
