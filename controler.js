@@ -22,14 +22,14 @@ var Controler4 = function(renderer){
 		flowp: 221,//]
 		thumbm: 186,//;
 		thumbp: 222,//'
-		layerm: 189,
-		layerp: 187,
-		retinaleft: 37,
-		retinaright: 39,
+		layerm: 189,//-
+		layerp: 187,//+
+		retinaleft: 37,//<-
+		retinaright: 39,//->
 		retinaup: 38,
 		retinadown: 40,
-		fovm:57,
-		fovp:48
+		fovm:57,//9
+		fovp:48//0
 	}
 	this.needUpdate = true;
 	this.keyPressed = {};
@@ -85,6 +85,7 @@ Controler4.prototype._dealTransparentColor = function(ev){
 }
 Controler4.prototype._dealRendererSettings = function(){
 	//render layer number settings:
+	if(this.keyPressed[16] || this.keyPressed[17] || this.keyPressed[18])return 0;
 	if(this.keyPressed[this.keyConfig.layerm]){//moin
 		if(this.renderer.thickness<1)
 			this.renderer.thickness *= 1+this.thicknessStep;
@@ -111,7 +112,7 @@ Controler4.prototype._dealRendererSettings = function(){
 		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.thumbm]){//plus
-		if(this.renderer.thumbSize<20)
+		if(this.renderer.thumbSize<40)
 			this.renderer.thumbSize *= 1+this.flowStep;
 		this.needUpdate = true;
 	}

@@ -62,6 +62,7 @@ var MCRTRenderer4 = function(ctxt,scene4,camera4,light4,camera3){
 	this.camera3.rotation = new Vec3(1,0,0).expQ(Math.PI/12).mul(new Vec3(0,1,0).expQ(Math.PI/16));
 	this.bgColor4 = 0x66FFFF;//sky
 	this.bgColor3 = 0xFFFFFF;//background
+	this.resolution = 1.0;
 	this.ambientLight = 0.3;
 	this.enableThumbnail = true;
 	if(!light4){
@@ -77,8 +78,9 @@ var MCRTRenderer4 = function(ctxt,scene4,camera4,light4,camera3){
 	this.flow = 1.0;
 	this.wireFrameMode = false;
 	this.focusPos = new Vec4();
-	this.width = this.gl.canvas.width>>1;
-	this.height = this.gl.canvas.height;
+	//clientW/H: 看上去的大小，W/H实际渲染的大小 
+	this.clientWidth = this.width = Math.round(this.gl.canvas.width/2);
+	this.clientHeight = this.height = this.gl.canvas.height;
 	this.aspect = this.width/this.height;
 	this.center = new Vec2(this.width/2,this.height/2);
 	//this._initGL(this.gl); 由于加载贴图，放在loop前了
@@ -179,6 +181,25 @@ MCRTRenderer4.prototype._initGL = function(gl){
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 	//gl.bindTexture(gl.TEXTURE_2D, null);
+}
+MCRTRenderer4.prototype.resize = function(cW,cH){
+	this.clientWidth = Math.round(cW/2);
+	this.clientHeight = Math.round(cH||(cW/2));
+	this.width = this.clientWidth*this.resolution;
+	this.height = cH*this.resolution;
+	this.center = new Vec2(this.width/2,this.height/2);
+	this.gl.canvas.width = this.width*2;
+	this.gl.canvas.height = this.height;
+}
+MCRTRenderer4.prototype.setResolution = function(res){
+	var w = this.clientWidth;//2 for zoom
+	this.resolution = res;
+	this.width = this.clientWidth*res;
+	this.height = this.clientHeight*res;
+	this.center = new Vec2(this.width/2,this.height/2);
+	this.gl.canvas.style.zoom = 1/res;
+	this.gl.canvas.width = this.width*2;
+	this.gl.canvas.height = this.height;
 }
 MCRTRenderer4.prototype.writeChunk = function(){
 	var gl = this.gl;
