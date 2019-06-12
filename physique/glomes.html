@@ -1,0 +1,96 @@
+<html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../render.js"></script>
+<script src="../controler.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
+<script src="phy4d.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+
+function start(){
+	var scene = new Scene();
+	var glomes = [];
+	var planeWidth = 5;
+	//ground
+	var groundM = Mesh3.cube(planeWidth).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
+	scene.add(new Geom4(groundM,null,null,0x00FF00));
+	//wall
+	var wall = groundM.clone();
+	wall.C.pop();
+	wall = wall.extrude(new Vec4(0,planeWidth,0,0));
+	scene.add(new Geom4(wall,null,null,0xEEEEEE));
+
+	var camera = new Camera4(120,0.01,30);
+	camera.position = new Vec4(0,2,0,0);
+	
+	var renderer = new Renderer4(gl$("glCanvas"),scene,camera);
+	
+	var controler = new Controler4.KeepUp(renderer);
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	controler.moveStep = 0.01;
+	var physicsEngine = new Phy4d();
+	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
+	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),5);
+	physicsEngine.addObj(cameraP);
+	physicsEngine.addObj(groundP);
+	//wall
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4(-1,0,0,0),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0, 1,0),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,-1,0),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
+	
+	function addGlome(){
+		var gP = new Phy4d.Obj(new Phy4d.Glome(
+			new Vec4((Math.random()-0.5)*planeWidth,Math.random()*planeWidth+1,(Math.random()-0.5)*planeWidth,(Math.random()-0.5)*planeWidth),
+			1
+		),1);
+		
+		var g = new Geom4(
+			Mesh4.glome(gP.phyGeom.r,8,8,8), //shape
+			null,//position
+			null,
+			Math.floor(Math.random()*(0xFFFFFF+1))//color
+		)
+		g.boundingPhy4dObj = gP;
+		glomes.push(g);
+		scene.add(g);
+		physicsEngine.addObj(gP);
+	}
+	var cameraPrevP = camera.position.clone();
+	var count = 0;
+	var maxCount = 20;
+	function loop(){
+		if(count++<maxCount){
+			addGlome();
+		}
+		controler.update();
+		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1);
+		cameraP.v = camera.position.sub(cameraPrevP,false).div(physicsEngine.dt);
+		physicsEngine.next();
+		cameraPrevP = camera.position.clone();
+		//Update position for display:
+		for(var g of glomes){
+			g.position = g.boundingPhy4dObj.getPosition();
+		}
+		renderer.render();
+		window.requestAnimationFrame(loop);
+	}
+	loop();
+	
+	document.addEventListener("keydown",function(e){
+		if(e.keyCode == 17)addGlome();
+	});
+}
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>
