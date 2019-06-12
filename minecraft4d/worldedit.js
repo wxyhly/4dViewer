@@ -667,6 +667,51 @@ MCWorld.Schema.decode = function(){
 }
 
 
+MCWorld.Schema.prototype.flip = function(dir){
+	dir = dir[0];//projective
+	var data = new Uint8Array(this.sizeX*this.sizeY*this.sizeZ*this.sizeT);
+	var X,Y,Z,T;
+	var offset = 0;
+	for(var x = 0; x<this.sizeX; x++){
+		X = dir=='x'? this.sizeX - x - 1 : x;
+		for(var y = 0; y<this.sizeY; y++){
+			Y = dir=='y'? this.sizeY - y - 1 : y;
+			for(var z = 0; z<this.sizeZ; z++){
+				Z = dir=='z'? this.sizeZ - z - 1 : z;
+				for(var t = 0; t<this.sizeT; t++){
+					T = dir=='t'? this.sizeT - t - 1 : t;
+					data[offset++] = this.data[T+this.sizeT*(Z+this.sizeZ*(Y+this.sizeY*X))];
+				}
+			}
+		}
+	}
+	this.data = data;
+	this.ox = dir=='x'? this.sizeX - this.ox - 1 : this.ox;
+	this.oy = dir=='y'? this.sizeY - this.oy - 1 : this.oy;
+	this.oz = dir=='z'? this.sizeZ - this.oz - 1 : this.oz;
+	this.ot = dir=='t'? this.sizeT - this.ot - 1 : this.ot;
+}
+MCWorld.Schema.prototype.rotate = function(dir){
+	var data = new Uint8Array(this.sizeX*this.sizeY*this.sizeZ*this.sizeT);
+	var X,Y,Z,T;
+	var offset = 0;
+	for(var x = 0; x<this.sizeX; x++){
+		for(var y = 0; y<this.sizeY; y++){
+			for(var z = 0; z<this.sizeZ; z++){
+				for(var t = 0; t<this.sizeT; t++){
+					data[offset++] = this.data[T+this.sizeT*(Z+this.sizeZ*(Y+this.sizeY*X))];
+				}
+			}
+		}
+	}
+	this.data = data;
+	this.ox = dir=='x'? this.sizeX - this.ox - 1 : this.ox;
+	this.oy = dir=='y'? this.sizeY - this.oy - 1 : this.oy;
+	this.oz = dir=='z'? this.sizeZ - this.oz - 1 : this.oz;
+	this.ot = dir=='t'? this.sizeT - this.ot - 1 : this.ot;
+}
+
+
 MCWorld.prototype.loadSchema = function(schema,x0,y0,z0,t0){
 	var xp = schema.sizeX;
 	var yp = schema.sizeY;

@@ -100,10 +100,10 @@ var HUD = {
 				HUD.infoQueue.shift();
 			}
 			ctxt.fillStyle="rgba(0,0,0,0.5)";
-			ctxt.fillRect(w1,450+(-1-HUD.infoQueue.length)*10-2,h*2,HUD.infoQueue.length*10+4);
+			ctxt.fillRect(w1,(HUD.controler.canvas.height-50)+(-1-HUD.infoQueue.length)*10-2,h*2,HUD.infoQueue.length*10+4);
 			ctxt.fillStyle="#FFF";
 			for(var i=0; i<HUD.infoQueue.length; i++){
-				fillText(HUD.infoQueue[i][0],w1,450+(i-HUD.infoQueue.length)*10);
+				fillText(HUD.infoQueue[i][0],w1,(HUD.controler.canvas.height-50)+(i-HUD.infoQueue.length)*10);
 			}
 		}
 		if(HUD.focusPos){

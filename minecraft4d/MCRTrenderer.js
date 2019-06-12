@@ -64,6 +64,7 @@ var MCRTRenderer4 = function(ctxt,scene4,camera4,light4,camera3){
 	this.bgColor3 = 0xFFFFFF;//background
 	this.resolution = 1.0;
 	this.ambientLight = 0.3;
+	this.lineWidth = 0.1;//wireFrameMode
 	this.enableThumbnail = true;
 	if(!light4){
 		this.light4 = new Vec4(2,1,0.3,-5).norm()
@@ -139,6 +140,7 @@ MCRTRenderer4.ShaderProgram = {
 			"vec4 light_Dir":{},
 			"vec4 dx4":{},
 			"float light_Density":{},
+			"float lineWidth":{},
 			"float ambientLight":{},
 			"vec3 bgColor4":{},
 			"vec4 focusPos":{},
@@ -297,6 +299,7 @@ MCRTRenderer4.prototype._setFboProgramUniform = function(){
 	gl.fboProgram.uniform["vec4 dx4"].set([0,0,0,0]);
 	gl.fboProgram.uniform["float ambientLight"].set(this.ambientLight);
 	gl.fboProgram.uniform["float light_Density"].set(this.light4.len());
+	gl.fboProgram.uniform["float lineWidth"].set(this.lineWidth);
 	gl.fboProgram.uniform["vec4 light_Dir"].set(this.light4.norm(false).flat());
 	gl.fboProgram.uniform["vec3 chunkCenter"].set([this.chunkCenter.x,this.chunkCenter.z,this.chunkCenter.t]);
 	var c = this.bgColor4;

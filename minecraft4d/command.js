@@ -152,7 +152,7 @@ Command = {
 				//防下陷：
 				HUD.controler.renderer.scene4.generateGeom(p.x,p.z,p.t,false);
 				break;
-			case "skipnight":
+			case "skipnight":case "skip":
 				var angle = Math.asin(-HUD.sunToward.y)/Math.PI*180;
 				if(angle>5){
 					HUD.info("You can only use /skipnight at night");
@@ -513,7 +513,27 @@ Command = {
 					Math.round(p.x),Math.round(p.y),Math.round(p.z),Math.round(p.t)
 				);
 				HUD.info("Region pasted");
-				break;	
+				break;
+			case "flip":
+				var result = str.match(/flip(\s+([^\s]+))?\s*$/);
+				if(!result){
+					HUD.info("Syntax Error: flip [dir]");
+					HUD.blur2Game();
+					return 0;
+				}
+				if(!Command.schemaClipboard){
+					HUD.info("Error: Empty clipboard");
+					HUD.blur2Game();
+					return 0;
+				}
+				if(result[2].length==1 && result[2]!=f){
+					result[2] += "+";
+				}
+				var dir = Command.parseDir(result[2],HUD.faceToward);
+				if(!dir) return 0;
+				Command.schemaClipboard.flip(dir);
+				HUD.info("Region flipped");
+				break;
 			case "save":
 				var result = str.match(/save(\s+(clipboard|clip|sel|selection))?\s*$/);
 				HUD.pause = true;
@@ -605,7 +625,7 @@ Command = {
 			dir = DIR;
 			dir = dir=="u"?"y+":dir=="d"?"y-":dir;
 		}
-		if(!dir.match(/^[xyzt][\+\-]$/)){
+		if(!dir||!dir.match(/^[xyzt][\+\-]$/)){
 			HUD.info("Error: direction must be [xyzt]+, [xyzt]-, u(y+), d(y-) or f(front)");
 			HUD.blur2Game();
 			return null;
@@ -638,7 +658,7 @@ Command = {
 		}else{
 			dir = DIR;
 		}
-		if(!dir.match(/^x[yzt]$/)){
+		if(!dir||!dir.match(/^x[yzt]$/)){
 			HUD.info("Error: direction must be xy, xz or xt");
 			HUD.blur2Game();
 			return null;

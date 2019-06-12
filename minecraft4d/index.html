@@ -54,6 +54,7 @@ function start(){
 	renderer.flow = 2;
 	renderer.thumbSize = 3.5;
 	renderer.thickness = 0.2;
+	renderer.setResolution(0.333);
 	renderer.hudCanvas = $("hudCanvas");
 	var controler = new Controler4.MC(renderer,(pos)=>((pos.y>-0.5)?mcworld.hitTest(pos):true));
 	controler.gravity = true;
@@ -127,7 +128,6 @@ function start(){
 		laTerre.setTime(mcworld.time);
 		
 		laTerre.setSunAndRenderer(renderer,null,500);
-		mcworld.time += laTerre.timeStep*(new Date().getTime() - controler.prevTime)/500;
 		//initialTime = new Date().getTime();
 		if(count%8==0){
 			mcworld.generateGeom(camera.position.x,camera.position.z,camera.position.t,false);
@@ -139,6 +139,7 @@ function start(){
 		
 		count++;
 		controler.update();
+		mcworld.time += laTerre.timeStep*(controler.dTime>100?100:controler.dTime)/500;
 		HUD.sunToward = renderer.light4.norm(false);
 		HUD.faceToward = camera.rotation[0].mul(new Vec4(0,0,0,5),false).mul(camera.rotation[1]);
 		HUD.leftToward = camera.rotation[0].mul(new Vec4(-5,0,0,0),false).mul(camera.rotation[1]);
@@ -216,6 +217,7 @@ function initSun(laTerre,seed){
 	top: 500px;
 	left: 0px;
 	width:1024px;
+	font-size: 25px;
 	z-index:10;
 }
 body{

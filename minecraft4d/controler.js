@@ -38,6 +38,24 @@ Controler4.MC = function(renderer,hitTest){
 		
 		toggleHUD: "H".charCodeAt(0)
 	});
+	this.rendererPresets = [
+		{
+			thumbSize : 3.5,
+			thickness : 0.15,
+			resolution: 0.333
+		},
+		{
+			thumbSize : 20,
+			thickness : 0.025,
+			resolution: 0.12
+		},
+		{
+			thumbSize : 2,
+			thickness : 1.08,
+			resolution: 1
+		},
+	];
+	
 	//camera4 rotation quanternions:
 	this.updateCamera();
 	//and vertical angle:
@@ -83,6 +101,8 @@ Controler4.MC.prototype.onresize = function(){
 
 	this.canvas.width = Math.round(w/2);
 	this.canvas.height = Math.round(w/4);
+	$("CMD").style.top = this.canvas.height*2 - 25;
+	$("CMD").style.width = this.canvas.width*2;
 	//
 	this.renderer.resize(Math.round(w),Math.round(w/2));
 }
@@ -229,9 +249,9 @@ Controler4.MC.prototype.beforeUpdate = function(){
 	}else if(this.gravity || this.keyPressed[this.keyConfig.down]){//L shift
 		this.tryMove(this.y.mul(-step,false),false);
 	}
-	if((this.keyPressed[16]||this.keyPressed[17])&&this.enableKey){//Ctrl or shift
+	if((this.keyPressed[16]||this.keyPressed[17]||this.keyPressed[18])&&this.enableKey){//Ctrl or shift or Alt
+		var preset = -1;
 		if(this.keyPressed[188]){//,
-			console.log("hkm")
 			this.renderer.resolution /= this.resStep;
 			this.renderer.setResolution(this.renderer.resolution);
 		}else if(this.keyPressed[190]){//.
@@ -239,7 +259,28 @@ Controler4.MC.prototype.beforeUpdate = function(){
 			if(this.renderer.resolution>1)this.renderer.resolution = 1;
 			this.renderer.setResolution(this.renderer.resolution);
 		}
+		if(this.keyPressed[219]){//[
+			this.renderer.lineWidth /= 1.02;
+			if(this.renderer.lineWidth<0.02)this.renderer.lineWidth = 0.02;
+		}else if(this.keyPressed[221]){//]
+			this.renderer.lineWidth *= 1.02;
+			if(this.renderer.lineWidth>0.5)this.renderer.lineWidth = 0.5;
+		}
+		if(this.keyPressed[49]){//1
+			preset = 0;
+		}else if(this.keyPressed[50]){//1
+			preset = 1;
+		}else if(this.keyPressed[51]){//1
+			preset = 2;
+		}
+		if(preset>=0){
+			var p = this.rendererPresets[preset];
+			this.renderer.thumbSize = p.thumbSize;
+			this.renderer.thickness = p.thickness;
+			this.renderer.setResolution(p.resolution);
+		}
 	}
+	
 	camera.rotation[0] = this.verticalRotation[0].mul(this.planeRotation[0],false);
 	camera.rotation[1] = this.planeRotation[1].mul(this.verticalRotation[1],false);
 

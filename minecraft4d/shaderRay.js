@@ -6,7 +6,7 @@ uniform float flow,ambientLight;
 uniform mat4 mCamera3;
 uniform vec3 Camera4Proj, chunkCenter, bgColor4,sunColor;
 uniform vec4 vCam4,dx4,light_Dir, focusPos;
-uniform float light_Density;
+uniform float light_Density, lineWidth;
 uniform mat4 mCam4;
 uniform int displayMode;
 const int renderDistance = 9;
@@ -181,24 +181,24 @@ vec3 raytracing(vec4 coord4){
 			MC_UV.xyz 
 	);
 	//访问下层相邻方块（用于线框边界检测）
-	float dUp = step(0.001,getID(int1+uU));
-	float dUm = step(0.001,getID(int1-uU));
-	float dVp = step(0.001,getID(int1+uV));
-	float dVm = step(0.001,getID(int1-uV));
-	float dWp = step(0.001,getID(int1+uW));
-	float dWm = step(0.001,getID(int1-uW));
-	float dUpVp = step(0.001,getID(int1+uU+uV));
-	float dUpVm = step(0.001,getID(int1+uU-uV));
-	float dUmVm = step(0.001,getID(int1-uU-uV));
-	float dUmVp = step(0.001,getID(int1-uU+uV));
-	float dUpWp = step(0.001,getID(int1+uU+uW));
-	float dUpWm = step(0.001,getID(int1+uU-uW));
-	float dUmWm = step(0.001,getID(int1-uU-uW));
-	float dUmWp = step(0.001,getID(int1-uU+uW));
-	float dVpWp = step(0.001,getID(int1+uV+uW));
-	float dVpWm = step(0.001,getID(int1+uV-uW));
-	float dVmWm = step(0.001,getID(int1-uV-uW));
-	float dVmWp = step(0.001,getID(int1-uV+uW));
+	bool dUp = getID(int1+uU)>0.001;
+	bool dUm = getID(int1-uU)>0.001;
+	bool dVp = getID(int1+uV)>0.001;
+	bool dVm = getID(int1-uV)>0.001;
+	bool dWp = getID(int1+uW)>0.001;
+	bool dWm = getID(int1-uW)>0.001;
+	bool dUpVp = getID(int1+uU+uV)>0.001;
+	bool dUpVm = getID(int1+uU-uV)>0.001;
+	bool dUmVm = getID(int1-uU-uV)>0.001;
+	bool dUmVp = getID(int1-uU+uV)>0.001;
+	bool dUpWp = getID(int1+uU+uW)>0.001;
+	bool dUpWm = getID(int1+uU-uW)>0.001;
+	bool dUmWm = getID(int1-uU-uW)>0.001;
+	bool dUmWp = getID(int1-uU+uW)>0.001;
+	bool dVpWp = getID(int1+uV+uW)>0.001;
+	bool dVpWm = getID(int1+uV-uW)>0.001;
+	bool dVmWm = getID(int1-uV-uW)>0.001;
+	bool dVmWp = getID(int1-uV+uW)>0.001;
 	
 	
 	//访问上层相邻方块（用于线框边界检测和AO）	
@@ -232,31 +232,47 @@ vec3 raytracing(vec4 coord4){
 	
 	//线框模式：
 	
-	float uUp = step(0.001,Up);
-	float uUm = step(0.001,Um);
-	float uVp = step(0.001,Vp);
-	float uVm = step(0.001,Vm);
-	float uWp = step(0.001,Wp);
-	float uWm = step(0.001,Wm);
-	float uUpVp = step(0.001,UpVp);
-	float uUpVm = step(0.001,UpVm);
-	float uUmVm = step(0.001,UmVm);
-	float uUmVp = step(0.001,UmVp);
-	float uUpWp = step(0.001,UpWp);
-	float uUpWm = step(0.001,UpWm);
-	float uUmWm = step(0.001,UmWm);
-	float uUmWp = step(0.001,UmWp);
-	float uVpWp = step(0.001,VpWp);
-	float uVpWm = step(0.001,VpWm);
-	float uVmWm = step(0.001,VmWm);
-	float uVmWp = step(0.001,VmWp);
-	
-	#define AAA 0.8
-	#define BBB 0.2
+	bool uUp = Up>0.001;
+	bool uUm = Um>0.001;
+	bool uVp = Vp>0.001;
+	bool uVm = Vm>0.001;
+	bool uWp = Wp>0.001;
+	bool uWm = Wm>0.001;
+	bool uUpVp = UpVp>0.001;
+	bool uUpVm = UpVm>0.001;
+	bool uUmVm = UmVm>0.001;
+	bool uUmVp = UmVp>0.001;
+	bool uUpWp = UpWp>0.001;
+	bool uUpWm = UpWm>0.001;
+	bool uUmWm = UmWm>0.001;
+	bool uUmWp = UmWp>0.001;
+	bool uVpWp = VpWp>0.001;
+	bool uVpWm = VpWm>0.001;
+	bool uVmWm = VmWm>0.001;
+	bool uVmWp = VmWp>0.001;
+	//define AAA 0.9
+	//define BBB 0.1
 	
 	if(displayMode == 1){
+		float AAA = 1. - lineWidth;
+		float BBB = lineWidth;
 		wireFrame = 
-			step(AAA,uvw.x)*step(AAA,uvw.y)*mix(dUpVp+uUp+uUpVp+uVp+(1.-dUpVp)*(1.-dUp)*(1.-dVp), 1.-clamp((1.-uUp)*(1.-uUpVp)*(1.-uVp)+uUpVp*(uUp*(1.-uVp)+uVp*(1.-uUp)),0.,1.), dUp*dUpVp*dVp)+
+			//step(AAA,uvw.x)*step(AAA,uvw.y)*float((!(dUpVp^^dVp)&&dUp&&(!uUpVp^^uVp)&&!uUp)||(dVp&&(!dUp^^dUpVp)&&!uVp&&!(uUp^^uUpVp)))+
+			step(AAA,uvw.x)*step(AAA,uvw.y)*float(!(((!(dUpVp^^dVp)&&(!uUpVp^^uVp)||(uUpVp&&uVp))&&dUp&&!uUp) || (((!dUp^^dUpVp)&&!(uUp^^uUpVp)||(uUp&&uUpVp))&&dVp&&!uVp)))+
+			step(AAA,uvw.x)*step(uvw.y,BBB)*float(!(((!(dUpVm^^dVm)&&(!uUpVm^^uVm)||(uUpVm&&uVm))&&dUp&&!uUp) || (((!dUp^^dUpVm)&&!(uUp^^uUpVm)||(uUp&&uUpVm))&&dVm&&!uVm)))+
+			step(uvw.x,BBB)*step(uvw.y,BBB)*float(!(((!(dUmVm^^dVm)&&(!uUmVm^^uVm)||(uUmVm&&uVm))&&dUm&&!uUm) || (((!dUm^^dUmVm)&&!(uUm^^uUmVm)||(uUm&&uUmVm))&&dVm&&!uVm)))+
+			step(uvw.x,BBB)*step(AAA,uvw.y)*float(!(((!(dUmVp^^dVp)&&(!uUmVp^^uVp)||(uUmVp&&uVp))&&dUm&&!uUm) || (((!dUm^^dUmVp)&&!(uUm^^uUmVp)||(uUm&&uUmVp))&&dVp&&!uVp)))+
+			step(AAA,uvw.x)*step(AAA,uvw.z)*float(!(((!(dUpWp^^dWp)&&(!uUpWp^^uWp)||(uUpWp&&uWp))&&dUp&&!uUp) || (((!dUp^^dUpWp)&&!(uUp^^uUpWp)||(uUp&&uUpWp))&&dWp&&!uWp)))+
+			step(AAA,uvw.x)*step(uvw.z,BBB)*float(!(((!(dUpWm^^dWm)&&(!uUpWm^^uWm)||(uUpWm&&uWm))&&dUp&&!uUp) || (((!dUp^^dUpWm)&&!(uUp^^uUpWm)||(uUp&&uUpWm))&&dWm&&!uWm)))+
+			step(uvw.x,BBB)*step(uvw.z,BBB)*float(!(((!(dUmWm^^dWm)&&(!uUmWm^^uWm)||(uUmWm&&uWm))&&dUm&&!uUm) || (((!dUm^^dUmWm)&&!(uUm^^uUmWm)||(uUm&&uUmWm))&&dWm&&!uWm)))+
+			step(uvw.x,BBB)*step(AAA,uvw.z)*float(!(((!(dUmWp^^dWp)&&(!uUmWp^^uWp)||(uUmWp&&uWp))&&dUm&&!uUm) || (((!dUm^^dUmWp)&&!(uUm^^uUmWp)||(uUm&&uUmWp))&&dWp&&!uWp)))+
+			step(AAA,uvw.y)*step(AAA,uvw.z)*float(!(((!(dVpWp^^dWp)&&(!uVpWp^^uWp)||(uVpWp&&uWp))&&dVp&&!uVp) || (((!dVp^^dVpWp)&&!(uVp^^uVpWp)||(uVp&&uVpWp))&&dWp&&!uWp)))+
+			step(AAA,uvw.y)*step(uvw.z,BBB)*float(!(((!(dVpWm^^dWm)&&(!uVpWm^^uWm)||(uVpWm&&uWm))&&dVp&&!uVp) || (((!dVp^^dVpWm)&&!(uVp^^uVpWm)||(uVp&&uVpWm))&&dWm&&!uWm)))+
+			step(uvw.y,BBB)*step(uvw.z,BBB)*float(!(((!(dVmWm^^dWm)&&(!uVmWm^^uWm)||(uVmWm&&uWm))&&dVm&&!uVm) || (((!dVm^^dVmWm)&&!(uVm^^uVmWm)||(uVm&&uVmWm))&&dWm&&!uWm)))+
+			step(uvw.y,BBB)*step(AAA,uvw.z)*float(!(((!(dVmWp^^dWp)&&(!uVmWp^^uWp)||(uVmWp&&uWp))&&dVm&&!uVm) || (((!dVm^^dVmWp)&&!(uVm^^uVmWp)||(uVm&&uVmWp))&&dWp&&!uWp)));
+			
+			
+			/*step(AAA,uvw.x)*step(AAA,uvw.y)*mix(dUpVp+uUp+uUpVp+uVp+(1.-dUpVp)*(1.-dUp)*(1.-dVp), 1.-clamp((1.-uUp)*(1.-uUpVp)*(1.-uVp)+uUpVp*(uUp*(1.-uVp)+uVp*(1.-uUp)),0.,1.), dUp*dUpVp*dVp)+
 			step(AAA,uvw.x)*step(uvw.y,BBB)*mix(dUpVm+uUp+uUpVm+uVm+(1.-dUpVm)*(1.-dUp)*(1.-dVm), 1.-clamp((1.-uUp)*(1.-uUpVm)*(1.-uVm)+uUpVm*(uUp*(1.-uVm)+uVm*(1.-uUp)),0.,1.), dUp*dUpVm*dVm)+
 			step(uvw.x,BBB)*step(uvw.y,BBB)*mix(dUmVm+uUm+uUmVm+uVm+(1.-dUmVm)*(1.-dUm)*(1.-dVm), 1.-clamp((1.-uUm)*(1.-uUmVm)*(1.-uVm)+uUmVm*(uUm*(1.-uVm)+uVm*(1.-uUm)),0.,1.), dUm*dUmVm*dVm)+
 			step(uvw.x,BBB)*step(AAA,uvw.y)*mix(dUmVp+uUm+uUmVp+uVp+(1.-dUmVp)*(1.-dUm)*(1.-dVp), 1.-clamp((1.-uUm)*(1.-uUmVp)*(1.-uVp)+uUmVp*(uUm*(1.-uVp)+uVp*(1.-uUm)),0.,1.), dUm*dUmVp*dVp)+
@@ -267,7 +283,7 @@ vec3 raytracing(vec4 coord4){
 			step(AAA,uvw.y)*step(AAA,uvw.z)*mix(dVpWp+uVp+uVpWp+uWp+(1.-dVpWp)*(1.-dVp)*(1.-dWp), 1.-clamp((1.-uVp)*(1.-uVpWp)*(1.-uWp)+uVpWp*(uVp*(1.-uWp)+uWp*(1.-uVp)),0.,1.), dVp*dVpWp*dWp)+
 			step(AAA,uvw.y)*step(uvw.z,BBB)*mix(dVpWm+uVp+uVpWm+uWm+(1.-dVpWm)*(1.-dVp)*(1.-dWm), 1.-clamp((1.-uVp)*(1.-uVpWm)*(1.-uWm)+uVpWm*(uVp*(1.-uWm)+uWm*(1.-uVp)),0.,1.), dVp*dVpWm*dWm)+
 			step(uvw.y,BBB)*step(uvw.z,BBB)*mix(dVmWm+uVm+uVmWm+uWm+(1.-dVmWm)*(1.-dVm)*(1.-dWm), 1.-clamp((1.-uVm)*(1.-uVmWm)*(1.-uWm)+uVmWm*(uVm*(1.-uWm)+uWm*(1.-uVm)),0.,1.), dVm*dVmWm*dWm)+
-			step(uvw.y,BBB)*step(AAA,uvw.z)*mix(dVmWp+uVm+uVmWp+uWp+(1.-dVmWp)*(1.-dVm)*(1.-dWp), 1.-clamp((1.-uVm)*(1.-uVmWp)*(1.-uWp)+uVmWp*(uVm*(1.-uWp)+uWp*(1.-uVm)),0.,1.), dVm*dVmWp*dWp);
+			step(uvw.y,BBB)*step(AAA,uvw.z)*mix(dVmWp+uVm+uVmWp+uWp+(1.-dVmWp)*(1.-dVm)*(1.-dWp), 1.-clamp((1.-uVm)*(1.-uVmWp)*(1.-uWp)+uVmWp*(uVm*(1.-uWp)+uWp*(1.-uVm)),0.,1.), dVm*dVmWp*dWp);*/
 	}
 	
 	//环境光遮蔽：
@@ -334,7 +350,7 @@ void main(void) {
 		gl_FragColor=vec4(
 			color1.rgb,
 			clamp(
-				flow*(opacity(color1.rgb)+5.0*(1.-smoothstep(20.0,100.0,DISTANCE))*clamp(wireFrame*float(MC_ID),0.,1.))
+				flow*(opacity(color1.rgb)+5.0*(1.-smoothstep(500.0*lineWidth,400.0,DISTANCE))*clamp(wireFrame*float(MC_ID),0.,1.))
 				,0.0
 				,1.0
 			)

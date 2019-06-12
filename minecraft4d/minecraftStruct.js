@@ -430,7 +430,7 @@ MCStruct.observatoir = function(seed,terrain,data,bx,bz,bt,cx,cz,ct,list){
 			bt*MCChunk.SIZE+ot,
 			false //临时的info
 		);
-		if(Info.hill>2||Info.riverDistance<0.3)return 0;
+		if(Info.hill>2||Info.riverDistance<0.1)return 0;
 		var yc = Info.Terrain_Y;
 		var r = Math.min(MCChunk.SIZE_Y - yc,Math.abs(seed1<<2)%5+5);
 		var xc = (bx-cx)*MCChunk.SIZE+x0;
