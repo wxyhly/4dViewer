@@ -10,7 +10,7 @@ Controler4.MC = function(renderer,hitTest){
 	this.jumpStep = 1;
 	this.rotateKeyStep = 0.05;
 	this.wheelDeltaStep = 5;
-	this.resStep = 1.05;
+	this.maxLineWidth = 0.5;
 	this.needUpdate = true;//forvever
 	this.keyConfig = Object.assign(this.keyConfig, {
 		
@@ -88,23 +88,16 @@ Controler4.MC = function(renderer,hitTest){
 			}
 		}
 	});
-	window.addEventListener("resize", this.onresize.bind(this), false);
 	this.canvas.style.zoom = 2;
-	this.onresize();//init Size
 }
 
 Controler4.MC.prototype = Object.create(Controler4.prototype);
 
-Controler4.MC.prototype.onresize = function(){
-	var w = Math.min(document.body.clientWidth, document.body.clientHeight*2);
-	var res = this.renderer.resolution || 1;
-
+Controler4.MC.prototype.onresize = function(w){
 	this.canvas.width = Math.round(w/2);
 	this.canvas.height = Math.round(w/4);
 	$("CMD").style.top = this.canvas.height*2 - 25;
 	$("CMD").style.width = this.canvas.width*2;
-	//
-	this.renderer.resize(Math.round(w),Math.round(w/2));
 }
 Controler4.MC.prototype.updateCamera = function(){
 	var mat = this.camera4.coordMat();
@@ -251,21 +244,7 @@ Controler4.MC.prototype.beforeUpdate = function(){
 	}
 	if((this.keyPressed[16]||this.keyPressed[17]||this.keyPressed[18])&&this.enableKey){//Ctrl or shift or Alt
 		var preset = -1;
-		if(this.keyPressed[188]){//,
-			this.renderer.resolution /= this.resStep;
-			this.renderer.setResolution(this.renderer.resolution);
-		}else if(this.keyPressed[190]){//.
-			this.renderer.resolution *= this.resStep;
-			if(this.renderer.resolution>1)this.renderer.resolution = 1;
-			this.renderer.setResolution(this.renderer.resolution);
-		}
-		if(this.keyPressed[219]){//[
-			this.renderer.lineWidth /= 1.02;
-			if(this.renderer.lineWidth<0.02)this.renderer.lineWidth = 0.02;
-		}else if(this.keyPressed[221]){//]
-			this.renderer.lineWidth *= 1.02;
-			if(this.renderer.lineWidth>0.5)this.renderer.lineWidth = 0.5;
-		}
+		
 		if(this.keyPressed[49]){//1
 			preset = 0;
 		}else if(this.keyPressed[50]){//1

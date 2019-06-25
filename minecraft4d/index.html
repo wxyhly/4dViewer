@@ -7,6 +7,7 @@
 <script src="../sun.js"></script>
 <script src="../minecraft4.js"></script>
 <script src="../controler.js"></script>
+<script src="../renderer.js"></script>
 
 <script src="mcsaver.js"></script>
 <script src="mcloader.js"></script>
@@ -17,7 +18,7 @@
 <script src="command.js"></script>
 
 <script src="shaderRay.js"></script>
-<script src="MCRTrenderer.js"></script>
+<script src="MCRenderer.js"></script>
 
 <script src="terrainGen.js"></script>
 <script src="terrainFlat.js"></script>
@@ -50,7 +51,7 @@ function start(){
 	var camera = new Camera4(90,0.01,550);
 	MCWorld.renderDistance = 9;
 	camera.position = new Vec4(0.01,terrain.getTerrain_Y(0,0,0, 0,0,0)+2,0,0);
-	var renderer = new MCRTRenderer4(gl$("glCanvas"),mcworld,camera);
+	var renderer = new MCRenderer4(gl$("glCanvas"),mcworld,camera);
 	renderer.flow = 2;
 	renderer.thumbSize = 3.5;
 	renderer.thickness = 0.2;
@@ -166,7 +167,7 @@ function start(){
 	blocTxtImg.onload = function(){
 		HUD.drawLoadingInfo("Loading Renderer..");
 		renderer.blocTxtImg = blocTxtImg;
-		renderer._initGL(renderer.gl);
+		renderer.initGL(renderer.gl);
 		loop();
 	}
 	blocTxtImg.src = "texture3d.bmp";

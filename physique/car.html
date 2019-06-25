@@ -1,0 +1,223 @@
+<html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../renderer.js"></script>
+<script src="../controler.js"></script>
+<script src="../polychora.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
+<script src="phy4d.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var physicsEngine,dropGlome,car,motor;
+function start(){
+	var scene = new Scene();
+	var wheelR = 0.8;
+	var wheelW = 0.8;
+	var wheelColor = 0xFF0000;
+	var carLength = 2.5;
+	var carWidth = 2;
+	
+	//Meshs
+	
+	var groundM = Mesh3.cube(100).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1)).move(new Vec4(0,-0.01,0,0));
+	
+	//var blocM = Mesh4.tesseract(5);//Mesh3.cube(3).embed(true).rotate(new Bivec(0,0,0,0,Math.PI/2,0));
+	var path = new Spline(
+		[new Vec4(0,0,0,-10), new Vec4(0,0,0,20), new Vec4(30,0,0,50),new Vec4(60,0,20,60),new Vec4(70,0,40,70)],
+		[new Vec4(0,0,0,20),new Vec4(5,0,0,20),new Vec4(20,0,0,0),new Vec4(20,0,20,0),new Vec4(0,0,20,0)]
+	);
+	//var path2 = new Spline(
+	//	[new Vec4(0,0,0,-10), new Vec4(0,0,0,-30), new Vec4(0,0,40,-30),new Vec4(70,0,40,-30)],
+	//	[new Vec4(),new Vec4(),new Vec4(),new Vec4(),new Vec4()]
+	//);
+	var tunel = new Geom4(path.loft(20,Mesh3.cube(10).move(new Vec3(0,5,0)).embed()),null,null,0xCCCCCC);
+	var line = new Geom4(path.loft(20,Mesh2.rectangle(1,1).embed(3,true).rotate(new Vec3(Math.PI/2,0,0)).move(new Vec4(0,0.01,0,0)).embed()),null,null,0xFFFF00);
+	line.flow = 10;
+	scene.add(line);
+	scene.add(tunel);
+	tunel.flow = 0.5;
+	
+	
+	var carBodyM = Mesh4.cuboid(2,0.3,2,2);
+	var carwheelM = Mesh4.duocylinder(wheelR,wheelW,32,16).rotate(new Bivec(0,0,Math.PI/2,0,0,0));
+	var glomeM = Mesh4.glome(1,8,8,8);
+	for(var c of carwheelM.C){
+		if(!c.info) c.info = {};
+		c.info.color = Math.floor(Math.random()*(0xFFFFFF+1));
+	}
+	
+	//Geom4s
+	
+	var carBody = new Geom4(carBodyM,null,null,0x0000FF);
+
+	var carwheels = [
+		//front
+		new Geom4(carwheelM,new Vec4(carWidth/2,wheelR,carWidth/2,carLength/2),null,wheelColor),
+		new Geom4(carwheelM,new Vec4(-carWidth/2,wheelR,carWidth/2,carLength/2),null,wheelColor),
+		new Geom4(carwheelM,new Vec4(carWidth/2,wheelR,-carWidth/2,carLength/2),null,wheelColor),
+		new Geom4(carwheelM,new Vec4(-carWidth/2,wheelR,-carWidth/2,carLength/2),null,wheelColor),
+		//back
+		new Geom4(carwheelM,new Vec4(carWidth/2,wheelR,carWidth/2,-carLength/2),null,wheelColor),
+		new Geom4(carwheelM,new Vec4(-carWidth/2,wheelR,carWidth/2,-carLength/2),null,wheelColor),
+		new Geom4(carwheelM,new Vec4(carWidth/2,wheelR,-carWidth/2,-carLength/2),null,wheelColor),
+		new Geom4(carwheelM,new Vec4(-carWidth/2,wheelR,-carWidth/2,-carLength/2),null,wheelColor)
+	];
+	var ground = new Geom4(groundM,null,null,0x00FF00);
+	scene.add(ground);
+	scene.add(carBody);
+	scene.add(carwheels);
+	
+	//camera, controller and renderer
+	
+	var camera = new Camera4(120,0.01,30);
+	camera.position = new Vec4(0,1,0,-4);
+	
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera, new Vec4(0.3,-1,0.4,0.5));
+	
+	var controler = new Controler4(renderer)//.KeepUp(renderer);
+	controler.beforeUpdate = function(){};
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	
+	
+	//phy4d:
+	
+	var physicsEngine = new Phy4d();
+	physicsEngine.iterations = 1;
+	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
+	physicsEngine.addObj(groundP);
+	
+	carBody.phy4Obj = new Phy4d.Obj(new Phy4d.Convex(carBodyM,new Vec4(0,2,0,0)),2);
+	physicsEngine.addObj(carBody.phy4Obj);
+	motor = new Bivec(0,0,0,0,0,0);
+	gui.add(motor,"yt",-2,2);
+	
+	var verticalOffset = new Vec4(0,-wheelR*2.1,0,0);
+	for(var o of carwheels){
+		o.phy4Obj = new Phy4d.Obj(new Phy4d.Convex(carwheelM, o.position.clone()),0.3);
+		o.phy4Obj.restitution = 0.2;
+		o.phy4Obj.friction = 0.7;
+		o.relPos = o.position.clone();
+		o.front = o.relPos.t > 0;
+		physicsEngine.addObj(o.phy4Obj);
+		
+		physicsEngine.addConstrain(new Phy4d.PointConstrain(o.phy4Obj,new Vec4(), carBody.phy4Obj,o.position.add(verticalOffset,false)));
+
+		if(!o.front) physicsEngine.addForce(new Phy4d.Motor(o.phy4Obj,motor,0.2,carBody.phy4Obj));//后驱
+		
+		o.offsetP = o.position.add(verticalOffset,false);
+		var axisX = o.offsetP.add(new Vec4(10,0,0,0),false);
+		var axisZ = o.offsetP.add(new Vec4(0,0,10,0),false);
+		o.wheelConstrainX = new Phy4d.Spring(
+				o.phy4Obj,new Vec4(10,0,0,0),
+				carBody.phy4Obj,axisX,
+				0.04,0.02
+			);
+		o.wheelConstrainZ = new Phy4d.Spring(
+				o.phy4Obj,new Vec4(0,0,10,0),
+				carBody.phy4Obj,axisZ,
+				0.04,0.02
+			)
+		physicsEngine.addForce(o.wheelConstrainX);
+		physicsEngine.addForce(o.wheelConstrainZ);
+		
+	}
+	
+	//Car control
+	
+	//debug: car 
+	car = carBody.phy4Obj;
+	var angleTurn = 20;
+	var TurnXc = new Vec4(10,0,0,0);
+	var TurnXn = new Vec4(Math.cos(angleTurn/180*Math.PI),0,0,Math.sin(angleTurn/180*Math.PI)).mul(10);
+	var TurnXp = new Vec4(Math.cos(angleTurn/180*Math.PI),0,0,-Math.sin(angleTurn/180*Math.PI)).mul(10);
+	var TurnZc = new Vec4(0,0,10,0);
+	var TurnZn = new Vec4(0,0,Math.cos(angleTurn/180*Math.PI),Math.sin(angleTurn/180*Math.PI)).mul(10);
+	var TurnZp = new Vec4(0,0,Math.cos(angleTurn/180*Math.PI),-Math.sin(angleTurn/180*Math.PI)).mul(10);
+	var TurnX,TurnZ;
+	var cameraPos = new Vec4(0,1,0,0.3);
+	document.addEventListener("keydown",function (e){
+		switch(e.keyCode){
+			case 87://W
+				motor.yt = -2;
+				break;
+			case 83://S
+				motor.yt = 2;
+				break;
+			case 49://1
+				cameraPos = new Vec4(0,1,0,0.3);
+				break;
+			case 50://2
+				cameraPos = new Vec4(0,-1,0,-0.3);
+				break;	
+			case 51://3
+				cameraPos = new Vec4(0,1,0,-2.3);
+				break;	
+			case 52://4
+				cameraPos = new Vec4(0,-1,0,-2.3);
+				break;	
+		}
+	});
+	document.addEventListener("keyup",function (e){
+		switch(e.keyCode){
+			case 87://W
+			case 83://S
+				motor.yt = 0;
+				break;
+		}
+	});
+	
+	function loop(){
+		controler.update();
+		
+		TurnX = controler.keyPressed[74] ? TurnXn : controler.keyPressed[76] ? TurnXp : TurnXc;//JL
+		TurnZ = controler.keyPressed[73] ? TurnZn : controler.keyPressed[75] ? TurnZp : TurnZc;//IK
+		
+		for(var o of carwheels){
+			if(controler.keyPressed[85]){//U
+				o.wheelConstrainX.point2.set(o.offsetP.add((o.relPos.z>0 ? TurnXp : TurnXn).mul(1,false),false));
+				o.wheelConstrainZ.point2.set(o.offsetP.add((o.relPos.x>0 ? TurnZn : TurnZp).mul(1,false),false));
+				
+			}else if(controler.keyPressed[79]){//O
+				o.wheelConstrainX.point2.set(o.offsetP.add((o.relPos.z<0 ? TurnXp : TurnXn).mul(1,false),false));
+				o.wheelConstrainZ.point2.set(o.offsetP.add((o.relPos.x<0 ? TurnZn : TurnZp).mul(1,false),false));
+			}else if(o.front){
+				o.wheelConstrainX.point2.set(o.offsetP.add(TurnX,false));
+				o.wheelConstrainZ.point2.set(o.offsetP.add(TurnZ,false));
+			}else{
+				o.wheelConstrainX.point2.set(o.offsetP.add(TurnXc,false));
+				o.wheelConstrainZ.point2.set(o.offsetP.add(TurnZc,false));
+			}
+		}
+		var step = 10;
+		physicsEngine.iterations = 100;
+		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
+		if(physicsEngine.pause!==true){
+			while(step--)
+				physicsEngine.next();
+		}
+		//Update position for display:
+		ground.position = new Vec4(camera.position.x,0,camera.position.z,camera.position.t);
+		carBody.rotation = carBody.phy4Obj.getRotation();
+		carBody.position = carBody.phy4Obj.getPosition();
+		for(var o of carwheels){
+			o.rotation = o.phy4Obj.getRotation();
+			o.position = o.phy4Obj.getPosition();
+		}
+		
+		camera.position = carBody.coord(cameraPos.clone());
+		camera.rotation = carBody.rotation;
+		renderer.render();
+		window.requestAnimationFrame(loop);
+	}
+	loop();
+}
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>

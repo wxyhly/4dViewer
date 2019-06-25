@@ -7,6 +7,9 @@ var Controler4 = function(renderer){
 	this.brightnessStep = 0.1;
 	this.brightness = 1;
 	this.retinaStep = 0.05;
+	this.resStep = 1.05;
+	this.maxLineWidth = 50;
+	this.lineWidthStep = 1.05;
 	this.fov = this.camera4.fov;
 	this.fovStep = 5;
 	this.enableKey = true;
@@ -58,6 +61,15 @@ var Controler4 = function(renderer){
 		}
 		if(_this.onmousedown) _this.onmousedown(ev);
 	});
+	window.addEventListener("resize", this._onresize.bind(this), false);
+	this._onresize();
+}
+Controler4.prototype._onresize = function(){
+	var w = Math.min(document.body.clientWidth, document.body.clientHeight*2);
+	var res = this.renderer.resolution || 1;
+	this.renderer.resize(Math.round(w),Math.round(w/2));
+	this.needUpdate = true;
+	if(this.onresize) this.onresize(w);
 }
 Controler4.prototype._dealTransparentColor = function(ev){
 	var gl = this.renderer.gl;
@@ -85,7 +97,28 @@ Controler4.prototype._dealTransparentColor = function(ev){
 }
 Controler4.prototype._dealRendererSettings = function(){
 	//render layer number settings:
-	if(this.keyPressed[16] || this.keyPressed[17] || this.keyPressed[18])return 0;
+	if(this.keyPressed[16] || this.keyPressed[17] || this.keyPressed[18]){
+		if(this.keyPressed[188]){//,
+			this.renderer.resolution /= this.resStep;
+			this.renderer.setResolution(this.renderer.resolution);
+			this.needUpdate = true;
+		}else if(this.keyPressed[190]){//.
+			this.renderer.resolution *= this.resStep;
+			if(this.renderer.resolution>1)this.renderer.resolution = 1;
+			this.renderer.setResolution(this.renderer.resolution);
+			this.needUpdate = true;
+		}
+		if(this.keyPressed[219]){//[
+			this.renderer.lineWidth /= this.lineWidthStep;
+			if(this.renderer.lineWidth<0.02)this.renderer.lineWidth = 0.02;
+			this.needUpdate = true;
+		}else if(this.keyPressed[221]){//]
+			this.renderer.lineWidth *= this.lineWidthStep;
+			if(this.renderer.lineWidth>this.maxLineWidth)this.renderer.lineWidth = this.maxLineWidth;
+			this.needUpdate = true;
+		}
+		return 0;
+	}
 	if(this.keyPressed[this.keyConfig.layerm]){//moin
 		if(this.renderer.thickness<1)
 			this.renderer.thickness *= 1+this.thicknessStep;
@@ -181,6 +214,7 @@ Controler4.prototype.addGUI = function(gui){
 	var renderer = this.renderer;
 	var rend = gui.addFolder('Renderer');
 	var trans = rend.addFolder('Transparency');
+	trans.add(renderer,"bgColor4Flow",0,1).onChange(change);
 	trans.addColor(renderer.opaqueColors[0],"color").onChange(change);
 	trans.add(renderer.opaqueColors[0],"tolerance").onChange(change);
 	trans.addColor(renderer.opaqueColors[1],"color").onChange(change);

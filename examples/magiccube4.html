@@ -2,7 +2,7 @@
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
-<script src="../render.js"></script>
+<script src="../renderer.js"></script>
 <script src="../controler.js"></script>
 <script src="../lib/dat.gui.min.js"></script>
 <script>
@@ -117,7 +117,7 @@ function start(){
 	window.M = magicCube;
 	var camera = new Camera4(100,0.01,30);
 	camera.position = new Vec4(0,0,0,-0.3);
-	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(0.4,0.2,0.1,0.5));
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(0.4,0.2,0.1,0.5));
 	renderer.ambientLight = 0.7;
 	renderer.thickness = 0.02;
 	renderer.flow = 6;

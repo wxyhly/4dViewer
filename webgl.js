@@ -180,6 +180,40 @@ var Webgl = function(gl){
 			txt:txt
 		});
 	};
+	gl.setFBO = function(FBO, width,height,floatFlag){
+		var num = FBO.id;
+		var framebuffer = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+		if(floatFlag !== true){
+			var renderbuffer = gl.createRenderbuffer();
+			gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+			gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+			gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+			gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+		}
+		var txt = gl.createTexture();
+		gl.activeTexture(gl.TEXTURE0+num);
+		gl.bindTexture(gl.TEXTURE_2D, txt);
+		
+		if(floatFlag === true){// no depth, used for calculation
+			gl.texImage2D(
+				gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, null
+			);
+		}else{
+			gl.texImage2D(
+				gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null
+			);
+		}
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, txt, 0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		FBO.fbo = framebuffer;
+		FBO.txt = txt;
+	};
 	gl.addFBOLink = function(program,inputNumber){
 		var IN = [];
 		for(var i=0;i<inputNumber;i++){

@@ -2,7 +2,7 @@
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
-<script src="../render.js"></script>
+<script src="../renderer.js"></script>
 <script src="../controler.js"></script>
 <script src="../minecraft4.js"></script>
 <script src="../lib/dat.gui.min.js"></script>
@@ -115,7 +115,7 @@ function start(){
 	scene.add(geoms);
 	var camera = new Camera4(120,0.01,30);
 	camera.position = new Vec4(0,0,0,-20);
-	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	var controler = new Controler4.Trackball(renderer);
 	var gui = new dat.GUI();
 	controler.addGUI(gui);

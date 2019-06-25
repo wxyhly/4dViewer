@@ -1,4 +1,4 @@
-var MCRTRenderer_FragmentShader = `
+var MCRenderer_FragmentShader = `
 precision highp float;
 varying vec4 coord;
 varying vec4 coord4;

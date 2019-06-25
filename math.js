@@ -814,14 +814,14 @@ Vec4.prototype.cross = function (V,flag) {
 			this.z*V.t - this.t*V.z
 		);
 	} if(V instanceof Bivec){
-		if(flag === false){
+		//if(flag === false){
 			return V.cross(this);
-		}
-		this.x = -V.yz*this.t - V.zt*this.y + V.yt*this.z;
+		//}
+		/*this.x = -V.yz*this.t - V.zt*this.y + V.yt*this.z;
 		this.y = V.xz*this.t + V.zt*this.x - V.xt*this.z;
 		this.z = -V.xy*this.t - V.yt*this.x + V.xt*this.y;
 		this.t = V.xy*this.z + V.yz*this.x - V.xz*this.y;
-		return this;
+		return this;*/
 	}
 }
 Mat2.prototype.add = Mat3.prototype.add = Mat4.prototype.add = function(m,flag){
@@ -1205,4 +1205,163 @@ PMat5Q.prototype.lookAt = function(pos,up){
 		this.lookAt(pos.add(rayon,false), false);
 	}
 	return this;
+}
+
+var MatBivec = function(m){
+	this.array = m || [
+		[1,0,0,0,0,0],
+		[0,1,0,0,0,0],
+		[0,0,1,0,0,0],
+		[0,0,0,1,0,0],
+		[0,0,0,0,1,0],
+		[0,0,0,0,0,1]
+	];
+	this._LUDecomp = null;
+}
+
+Mat4.prototype.toMatBivec = function(){
+	var a = this.array;
+	var ax = a[0],  bx = a[1],  cx = a[2],  dx = a[3],
+		ay = a[4],  by = a[5],  cy = a[6],  dy = a[7],
+		az = a[8],  bz = a[9],  cz = a[10], dz = a[11],
+		at = a[12], bt = a[13], ct = a[14], dt = a[15];
+	var b = [
+		[-ay*bx + ax*by, -az*bx + ax*bz, ax*bt - at*bx, -az*by + ay*bz, ay*bt - at*by, az*bt - at*bz],
+		[-ay*cx + ax*cy, -az*cx + ax*cz, ax*ct - at*cx, -az*cy + ay*cz, ay*ct - at*cy, az*ct - at*cz],
+		[-ay*dx + ax*dy, -az*dx + ax*dz, ax*dt - at*dx, -az*dy + ay*dz, ay*dt - at*dy, az*dt - at*dz],
+		[-by*cx + bx*cy, -bz*cx + bx*cz, bx*ct - bt*cx, -bz*cy + by*cz, by*ct - bt*cy, bz*ct - bt*cz],
+		[-by*dx + bx*dy, -bz*dx + bx*dz, bx*dt - bt*dx, -bz*dy + by*dz, by*dt - bt*dy, bz*dt - bt*dz],
+		[-cy*dx + cx*dy, -cz*dx + cx*dz, cx*dt - ct*dx, -cz*dy + cy*dz, cy*dt - ct*dy, cz*dt - ct*dz]
+	];
+	return new MatBivec(b);
+}
+
+MatBivec.prototype.t = function(flag){
+	var a = this.array;
+	var temp;
+	if(flag === false){
+		var mb = new MatBivec();
+		var b = mb.array;
+		for(var i = 0; i < 6; i++){
+			for(var j = 0; j < 6; j++){
+				b[j][i] = a[i][j];
+			}
+		}
+		return mb;
+	}
+	for(var i = 0; i < 6; i++){
+		for(var j = 0; j < i; j++){
+			temp = a[i][j]; a[i][j] = a[j][i]; a[j][i] = temp;
+		}
+	}
+	this._LUDecomp = null;
+	return this;
+}
+MatBivec.prototype.mul = function(b,flag){
+	var a = this.array;
+	if(typeof b == "number"){
+		if(flag === false){
+			var mb = new MatBivec();
+			var c = mb.array;
+			for(var i in c){
+				for(var j in c[i]){
+					c[i][j] = a[i][j]*b;
+				}
+			}
+			return mb;
+		}
+		for(var i in a){
+			for(var j in a[i]){
+				a[i][j] *= b;
+			}
+		}
+	}
+	if(b instanceof Bivec){
+		return new Bivec(
+			a[0][0]*b.xy + a[0][1]*b.xz + a[0][2]*b.xt + a[0][3]*b.yz + a[0][4]*b.yt + a[0][5]*b.zt,
+			a[1][0]*b.xy + a[1][1]*b.xz + a[1][2]*b.xt + a[1][3]*b.yz + a[1][4]*b.yt + a[1][5]*b.zt,
+			a[2][0]*b.xy + a[2][1]*b.xz + a[2][2]*b.xt + a[2][3]*b.yz + a[2][4]*b.yt + a[2][5]*b.zt,
+			a[3][0]*b.xy + a[3][1]*b.xz + a[3][2]*b.xt + a[3][3]*b.yz + a[3][4]*b.yt + a[3][5]*b.zt,
+			a[4][0]*b.xy + a[4][1]*b.xz + a[4][2]*b.xt + a[4][3]*b.yz + a[4][4]*b.yt + a[4][5]*b.zt,
+			a[5][0]*b.xy + a[5][1]*b.xz + a[5][2]*b.xt + a[5][3]*b.yz + a[5][4]*b.yt + a[5][5]*b.zt		
+		);
+	}
+	if(b instanceof MatBivec){
+		var mb = new MatBivec();
+		b = b.array;
+		var c = mb.array;
+		for(var i = 0; i < 6; i++){
+			for(var j = 0; j < 6; j++){
+				c[i][j] = 0;
+				for(var k = 0; k < 6; k++){
+					c[i][j] += a[i][k]*b[k][j];
+				}
+			}
+		}
+		return mb;
+	}
+}
+
+MatBivec.prototype.LUDecomp = function(){
+	let A = this.array;
+	let n = 6;
+    let lu = [
+		[0,0,0,0,0,0],
+		[0,0,0,0,0,0],
+		[0,0,0,0,0,0],
+		[0,0,0,0,0,0],
+		[0,0,0,0,0,0],
+		[0,0,0,0,0,0]
+	];
+    for (let i = 0; i < n; i++) {
+        lu[0][i] = A[0][i];
+    }
+    for (let i = 1; i < n; i++) {
+        lu[i][0] = A[i][0] / lu[0][0];
+    }
+    //
+    for (let i = 1; i < n; i++) {
+        for (let j = i; j < n; j++) {
+            let sum1 = 0.0;
+            for (let k = 0; k < i; k++) {
+                sum1 += lu[i][k] * lu[k][j];
+            }
+            lu[i][j] = A[i][j] - sum1;
+        }
+        if(i !== n) {
+            for (let r = i+1; r < n; r++) {
+                let sum2 = 0.0;
+                for (let k = 0; k < i; k++) {
+                    sum2 += lu[r][k] * lu[k][i];
+                }
+                lu[r][i] = (A[r][i] - sum2) / lu[i][i];
+            }
+        }
+    }
+	this._LUDecomp = lu;//return lu;
+}
+MatBivec.prototype.invMul = function(b) {
+	if(!this._LUDecomp) this.LUDecomp();//no repetive calculation
+	let lu = this._LUDecomp;
+	let n = 6;
+    let y = [0,0,0,0,0,0];
+	b = [b.xy,b.xz,b.xt,b.yz,b.yt,b.zt];
+    y[0] = b[0];
+    for (let m = 0; m < n; m++) {
+        let sum3 = 0.0;
+        for (let k = 0; k < m; k++) {
+            sum3 += lu[m][k] * y[k];
+            y[m] = b[m] - sum3;
+        }
+    }
+    let x = [0,0,0,0,0,0];
+    x[n-1] = y[n-1] / lu[n-1][n-1];
+    for (let j = n - 2; j >= 0; j--) {
+        let sum4 = 0.0;
+        for (let k = j + 1; k < n; k++) {
+            sum4 += lu[j][k] * x[k];
+            x[j] = (y[j] - sum4) / lu[j][j];
+        }
+    }
+    return new Bivec(x[0],x[1],x[2],x[3],x[4],x[5]);
 }

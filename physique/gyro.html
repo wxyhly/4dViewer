@@ -19,26 +19,30 @@ function start(){
 	var planeWidth = 15;
 	//ground
 	var groundM = Mesh3.cube(planeWidth).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
-	scene.add(new Geom4(groundM,null,null,0xFFFFAA));
+	scene.add(new Geom4(groundM,null,null,0xAAFFAA));
 	//wall
 	var wall = groundM.clone();
 	wall.C.pop();
 	wall = wall.extrude(new Vec4(0,planeWidth,0,0));
 	scene.add(new Geom4(wall,null,null,0xEEEEEE));
-	var diceM = Mesh4.polychoron(24);
+	
+	
+	var diceM = Mesh4.dicone(2,16,2,2).rotate(new Bivec(0,0,0,0,-Math.PI/2,0)).rotate(new Bivec(0,0,0,-Math.PI/4,0,0));
+	
+	
+	//Mesh4.sphone(2,32,32,2).rotate(new Bivec(0,0,0,0,-Math.PI/2,0));
 	for(var c in diceM.C){
 		if(!diceM.C[c].info) diceM.C[c].info = {};
 		diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
 	}
 	
 	var dice = new Geom4(diceM,null,null,0x3333FF);
-	dice.flow = 4;
 	scene.add(dice);
 
 	var camera = new Camera4(80,0.01,50);
-	camera.position = new Vec4(0,1,0,-5);
+	camera.position = new Vec4(0,2,0,-5);
 	
-	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera);
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(0.2,-1,0.3,0.5));
 	
 	var controler = new Controler4.KeepUp(renderer);
 	controler.moveStep = 0.1;
@@ -46,15 +50,18 @@ function start(){
 	controler.addGUI(gui);
 	
 	physicsEngine = new Phy4d();
+	//physicsEngine.gravity = new Vec4();
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
-	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.3),Infinity);
-	diceP = new Phy4d.Obj(new Phy4d.Convex(diceM,new Vec4(0,4,0,0)),0.2);
-	diceP.w.xy = -Math.random();
-	diceP.w.yt = -Math.random();
+	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),2);
+	diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+	diceP.w.xt = 10;
+	//diceP.w.yt = -Math.random();
 	diceP.restitution = 0.9;
-	physicsEngine.addObj(cameraP);
+	diceP.friction = 0.9;
+	//physicsEngine.addObj(cameraP);
 	physicsEngine.addObj(groundP);
 	physicsEngine.addObj(diceP);
+	//physicsEngine.addObj(dice2P);
 	//wall
 	
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
@@ -67,10 +74,11 @@ function start(){
 		var gP = new Phy4d.Obj(
 			new Phy4d.Glome(
 				new Vec4(x,y,z,t),
-				0.4
+				0.3
 			),
-		0.8);
-		
+		1);
+		gP.restitution = 0.9;
+		gP.friction = 0.9;
 		var g = new Geom4(
 			Mesh4.glome(gP.phyGeom.R,8,8,8), //shape
 			null,//position
@@ -78,24 +86,18 @@ function start(){
 			Math.floor(0xFF0000)//color
 		);
 		g.boundingPhy4dObj = gP;
-		g.flow = 4;
 		scene.add(g);
 		glomes.push(g);
 		physicsEngine.addObj(gP);
 	}
 	glomes = [];
-	addGlome(0.5,0.2,0.5,0.5);
-	addGlome(0.5,0.2,-0.5,0.5);
-	addGlome(-0.5,0.2,0.5,0.5);
-	addGlome(-0.5,0.2,-0.5,0.5);
-	addGlome(0.5,0.2,0.5,-0.5);
-	addGlome(0.5,0.2,-0.5,-0.5);
-	addGlome(-0.5,0.2,0.5,-0.5);
-	addGlome(-0.5,0.2,-0.5,-0.5);
-	
-	//addGlome(0,1,0,0);
+	var t=1;
 	function loop(){
 		controler.update();
+		t++;
+		if(t%(50*2)==0&&t<10000){
+			addGlome(0.5+dice.position.x,5,0.5+dice.position.z,0.1+dice.position.t);
+		}
 		var step = 5;
 		physicsEngine.iterations = 10;
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
@@ -108,7 +110,6 @@ function start(){
 		dice.rotation = diceP.getRotation();
 		for(var g of glomes){
 			g.position = g.boundingPhy4dObj.getPosition();
-			g.rotation = g.boundingPhy4dObj.getRotation();
 		}
 		renderer.render();
 		window.requestAnimationFrame(loop);

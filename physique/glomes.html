@@ -2,7 +2,7 @@
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
-<script src="../render.js"></script>
+<script src="../renderer.js"></script>
 <script src="../controler.js"></script>
 <script src="../lib/dat.gui.min.js"></script>
 <script src="phy4d.js"></script>
@@ -28,7 +28,7 @@ function start(){
 	var camera = new Camera4(120,0.01,30);
 	camera.position = new Vec4(0,2,0,0);
 	
-	var renderer = new Renderer4(gl$("glCanvas"),scene,camera);
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera);
 	
 	var controler = new Controler4.KeepUp(renderer);
 	var gui = new dat.GUI();
@@ -54,11 +54,12 @@ function start(){
 		),1);
 		
 		var g = new Geom4(
-			Mesh4.glome(gP.phyGeom.r,8,8,8), //shape
+			Mesh4.glome(gP.phyGeom.R,8,8,8), //shape
 			null,//position
 			null,
 			Math.floor(Math.random()*(0xFFFFFF+1))//color
 		)
+		g.flow = 4;
 		g.boundingPhy4dObj = gP;
 		glomes.push(g);
 		scene.add(g);
@@ -66,19 +67,22 @@ function start(){
 	}
 	var cameraPrevP = camera.position.clone();
 	var count = 0;
-	var maxCount = 20;
+	var maxCount = 15;
 	function loop(){
 		if(count++<maxCount){
 			addGlome();
 		}
 		controler.update();
-		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1);
+		physicsEngine.iterations = 15*14;
+		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/2;
 		cameraP.v = camera.position.sub(cameraPrevP,false).div(physicsEngine.dt);
+		physicsEngine.next();
 		physicsEngine.next();
 		cameraPrevP = camera.position.clone();
 		//Update position for display:
 		for(var g of glomes){
 			g.position = g.boundingPhy4dObj.getPosition();
+			g.rotation = g.boundingPhy4dObj.getRotation();
 		}
 		renderer.render();
 		window.requestAnimationFrame(loop);

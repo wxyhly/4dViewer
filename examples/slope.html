@@ -2,7 +2,7 @@
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
-<script src="../render.js"></script>
+<script src="../renderer.js"></script>
 <script src="../sun.js"></script>
 <script src="../minecraft4.js"></script>
 
@@ -51,7 +51,7 @@ function start(){
 	
 	var camera = new Camera4(90,0.01,550);
 	camera.position = new Vec4(2,2,2,2);
-	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	
 	var controler = new Controler4.KeepUp(renderer,(pos)=>((pos.y>0.5)?world.hitTest(pos):true));
 	controler.gravity = true;

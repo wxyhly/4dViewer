@@ -2,7 +2,7 @@
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
-<script src="../render.js"></script>
+<script src="../renderer.js"></script>
 
 <script src="../lib/dat.gui.min.js"></script>
 <script src="../controler.js"></script>
@@ -27,7 +27,7 @@ function start(){
 	scene.add(lineMarker2);
 	var camera = new Camera4(120,0.01,30);
 	camera.position = new Vec4(0,0,0,-1.9);
-	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
 	var cameraControler = new Controler4(renderer);
 	cameraControler.speed = 0.01;
 	var t = 0;

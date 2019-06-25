@@ -2,7 +2,7 @@
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
-<script src="../render.js"></script>
+<script src="../renderer.js"></script>
 <script src="../controler.js"></script>
 <script src="../lib/dat.gui.min.js"></script>
 <script>
@@ -13,7 +13,9 @@ var gl$ = function (obj){
 function start(){
 	var scene = new Scene();
 	var r = 2;
-	scene.add(new Geom4(Mesh4.tesseract(2*r),null,null,0xFFFFFF));
+	var cube = new Geom4(Mesh4.tesseract(2*r),null,null,0xFFFFFF);
+	scene.add(cube);
+	cube.flow = 0.5;
 	var cyl = Mesh4.spherinder(1,16,16,0.001);
 	scene.add(new Geom4(cyl,new Vec4(0,0,0,r),false,0xFF0000));
 	scene.add(new Geom4(cyl,new Vec4(0,0,0,-r),false,0xFFAA00));
@@ -25,7 +27,7 @@ function start(){
 	scene.add(new Geom4(cyl,new Vec4(-r,0,0,0),false,0xAAFF00).lookAt(new Vec4(1,0,0,0)));
 	var camera = new Camera4(120,0.01,30);
 	camera.position = new Vec4(0,0,0,-1.9);
-	var renderer = new Renderer4(gl$("glCanvas"),scene,camera,new Vec4(0.4,1,0.1,0.7));
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(0.4,1,0.1,0.7));
 	renderer.ambientLight = 0.5;
 	var controler = new Controler4.Trackball(renderer);
 	var gui = new dat.GUI();

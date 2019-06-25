@@ -48,14 +48,15 @@ Mesh: (Mesh2 || Mesh3 || Mesh4)
 		Mesh2.rectangle(Number w, Number h);
 		
 		Mesh3.cube(Number r);
-		Mesh3.cuboid(Number a,Number b,Number c);
+		Mesh3.cuboid(Number a, Number b, Number c);
 		Mesh3.cylinder(Number r, int n,h);
 		Mesh3.cone(Number r, int n, Number h);
 		Mesh3.sphere(Number r, int u, int v);
 		Mesh3.torus(Number r, Number R, int u, int v);
 		Mesh3.grid(int m, n[, Function f(int x,y):Vec3]);
 		
-		Mesh4.tesseract(Number r);		Mesh4.glome(Number r, int u, int v, int w);		Mesh4.spherinder(Number r, int u, int v, Number h);		Mesh4.sphone(Number r, int u, int v, Number h);		Mesh4.duocylinder(Number R1, Number R2, int u, int v);		Mesh4.cubinder(Number r, int n, Number h1, Number h2);		Mesh4.cylindrone(Number r, int n, Number h, Number hc);		Mesh4.dicone(Number r, int n, Number h1, Number h2);		Mesh4.duocone(Number R1, Number R2, int u, int v);		Mesh4.coninder(Number r, int n, Number h, Number hc);		Mesh4.torinder(Number r, Number R, int u, int v, Number h);		Mesh4.spheritorus(Number r, Number R, int u, int v, int w);		Mesh4.torisphere(Number r, Number R, int u, int v, int w);		Mesh4.ditorus(Number r, Number Rr, Number R, int u, int v, int w);		Mesh4.tiger(Number r, Number R1, Number R2, int u, int v, int w);
+		Mesh4.tesseract(Number r);
+		Mesh4.cuboid(Number a,N umber b, Number c, Number d);		Mesh4.glome(Number r, int u, int v, int w);		Mesh4.spherinder(Number r, int u, int v, Number h);		Mesh4.sphone(Number r, int u, int v, Number h);		Mesh4.duocylinder(Number R1, Number R2, int u, int v);		Mesh4.cubinder(Number r, int n, Number h1, Number h2);		Mesh4.cylindrone(Number r, int n, Number h, Number hc);		Mesh4.dicone(Number r, int n, Number h1, Number h2);		Mesh4.duocone(Number R1, Number R2, int u, int v);		Mesh4.coninder(Number r, int n, Number h, Number hc);		Mesh4.torinder(Number r, Number R, int u, int v, Number h);		Mesh4.spheritorus(Number r, Number R, int u, int v, int w);		Mesh4.torisphere(Number r, Number R, int u, int v, int w);		Mesh4.ditorus(Number r, Number Rr, Number R, int u, int v, int w);		Mesh4.tiger(Number r, Number R1, Number R2, int u, int v, int w);
 		Mesh4.grid(int m, n, o[, Function f(int x,y,z):Vec4]);
 		//todo: polytopes and polytwisters
 	
@@ -138,7 +139,7 @@ Obj3.prototype.coord = function(p){
 	return p;
 }
 Obj4.prototype.coord = function(p){
-	p.set(this.rotation[0].mul(p).mul(this.rotation[1]).add(this.position));
+	p.set(this.rotation[0].mul(p,false).mul(this.rotation[1]).add(this.position));
 	return p;
 }
 Obj2.prototype.coordMat = function(){//affine mat
@@ -1239,7 +1240,7 @@ Mesh4.cylindrone = function(r,n,h,hc){
 	return Mesh3.cylinder(r,n,h).embed(true).pyramid(new Vec4(0,0,0,hc)).move(new Vec4(0,0,0,-hc/2));
 }
 Mesh4.dicone = function(r,n,h1,h2){
-	return Mesh3.cone(r,n,h1).embed(true).pyramid(new Vec4(0,0,0,h2)).move(new Vec4(0,0,0,-h2/2));
+	return Mesh3.cone(r,n,h1).move(new Vec3(0,0,h1/2)).embed(true).pyramid(new Vec4(0,0,0,h2)).move(new Vec4(0,0,-h1/3,-h2/3));
 }
 Mesh4.duocone = function(R1,R2,u,v){
 	return Mesh2.polygon(R1,u).embed(4).duopyramid(Mesh2.polygon(R2,v).embed(4,false,new Vec4(0,0,1,0),new Vec4(0,0,0,1)));
@@ -1248,22 +1249,22 @@ Mesh4.coninder = function(r,n,h,hc){
 	return Mesh3.cone(r,n,h).embed(true).extrude(new Vec4(0,0,0,hc)).move(new Vec4(0,0,0,-hc/2));
 }
 Mesh4.torinder = function(r,R,u,v,h){
-	return Mesh3.cylinder(r,u,h).move(new Vec3(R,0,0)).embed().turning(bivec(0,0,1,0,0,0),v);
+	return Mesh3.cylinder(r,u,h).move(new Vec3(R,0,0)).embed().turning(new Bivec(0,0,1,0,0,0),v);
 }
 Mesh4.spheritorus = function(r,R,u,v,w){
-	return Mesh3.sphere(r,u,v).move(new Vec3(R,0,0)).embed(false).turning(bivec(0,0,1,0,0,0),w);//.weld();
+	return Mesh3.sphere(r,u,v).move(new Vec3(R,0,0)).embed(false).turning(new Bivec(0,0,1,0,0,0),w);//.weld();
 }
 Mesh4.torisphere = function(r,R,u,v,w){
-	return Mesh3.torus(r,R,u,v).embed(false,new Vec4(1,0,0,0),new Vec4(0,1,0,0),new Vec4(0,0,0,1)).turning(bivec(0,1,0,0,0,0),w,false).weld();
+	return Mesh3.torus(r,R,u,v).embed(false,new Vec4(1,0,0,0),new Vec4(0,1,0,0),new Vec4(0,0,0,1)).turning(new Bivec(0,1,0,0,0,0),w,false).weld();
 }
 Mesh4.ditorus = function(r,R,RR,u,v,w){
-	return Mesh3.torus(r,R,u,v).embed(false,new Vec4(0,1,0,0),new Vec4(0,0,0,1),new Vec4(0,0,1,0)).move(new Vec4(0,RR,0,0)).turning(bivec(1,0,0,0,0,0),w);
+	return Mesh3.torus(r,R,u,v).embed(false,new Vec4(0,1,0,0),new Vec4(0,0,0,1),new Vec4(0,0,1,0)).move(new Vec4(0,RR,0,0)).turning(new Bivec(1,0,0,0,0,0),w);
 }
 Mesh4.tiger = function(r,R1,R2,u,v,w){
-	return Mesh4.torus(r,R1,u,v).move(new Vec4(0,0,R2,0)).turning(bivec(0,0,0,0,0,1),w);
+	return Mesh4.torus(r,R1,u,v).move(new Vec4(0,0,R2,0)).turning(new Bivec(0,0,0,0,0,1),w);
 }
 Mesh4.torus = function(r,R,u,v){
-	return Mesh2.polygon(r,u).move(new Vec2(R,0)).embed(4,true,new Vec4(1,0,0,0),new Vec4(0,0,1,0)).turning(bivec(1,0,0,0,0,0),v);
+	return Mesh2.polygon(r,u).move(new Vec2(R,0)).embed(4,true,new Vec4(1,0,0,0),new Vec4(0,0,1,0)).turning(new Bivec(1,0,0,0,0,0),v);
 }
 Mesh4.grid = function(m,n,o,f){
 	var lf = function(i,p){
@@ -1432,4 +1433,109 @@ Perlin3.prototype.value = function(x,y,z){
 		_grad(p[BA + 1], x - 1, y, z - 1)),
 		_lerp(u, _grad(p[AB + 1], x, y - 1, z - 1),
 		_grad(p[BB + 1], x - 1, y - 1, z - 1))));
+}
+
+//useful tools for Mesh4
+
+Mesh4.prototype.update = function(){
+	this.getNormal();
+	this.getBoundingObjs();
+	return this;
+}
+Mesh4.prototype.intersectBoundingObj = function(plane){
+	var min, max;
+	var box = this.boundingBox;
+	if ( plane.n.x > 0 ) {
+		min = plane.n.x * box.min.x;
+		max = plane.n.x * box.max.x;
+	} else {
+		min = plane.n.x * box.max.x;
+		max = plane.n.x * box.min.x;
+	}
+	if ( plane.n.y > 0 ) {
+		min += plane.n.y * box.min.y;
+		max += plane.n.y * box.max.y;
+	} else {
+		min += plane.n.y * box.max.y;
+		max += plane.n.y * box.min.y;
+	}
+	if ( plane.n.z > 0 ) {
+		min += plane.n.z * box.min.z;
+		max += plane.n.z * box.max.z;
+	} else {
+		min += plane.n.z * box.max.z;
+		max += plane.n.z * box.min.z;
+	}
+	if ( plane.n.t > 0 ) {
+		min += plane.n.t * box.min.t;
+		max += plane.n.t * box.max.t;
+	} else {
+		min += plane.n.t * box.max.t;
+		max += plane.n.t * box.min.t;
+	}
+	if ( min <= plane.t && max >= plane.t ){
+		return 0;
+	}
+	if ( min <= plane.t && max <= plane.t ){
+		return -1;
+	}
+	if ( min >= plane.t && max >= plane.t ){
+		return 1;
+	}
+}
+Mesh4.prototype.getNormal = function(){
+	for(var e of this.E){
+		e._center2 = this.V[e[0]].add(this.V[e[1]],false);
+	}
+	for(var f of this.F){
+		var sum = f.length;
+		var O = new Vec4(0,0,0,0);
+		for(var i=0; i<sum; i++){
+			var e = this.E[f[i]];
+			O.add(e._center2);
+		}
+		f.center = O.div(sum<<1);//before edge center is mul by 2
+	}
+	for(var c of this.C){
+		c.info = c.info || {};
+		if(c.info.glow){ c.info.normal = new Vec4(0,0,0,0); continue;}//frag shader will recognise null vec as glow obj
+		var sum = 0;
+		var O = new Vec4(0,0,0,0);
+		var centers = [];
+		for(var i=0; i<c.length; i++){
+			var f = this.F[c[i]];
+			O.add(f.center);
+			centers.push(f.center);
+		}
+		var cn = Mesh4._util.calNorm4FromPoints(centers);
+		if(!cn){
+			continue;
+		}
+		c.info.normal = cn;
+	}
+	return this;
+}
+Mesh4.prototype.getBoundingObjs = function(){
+	var min = new Vec4(Infinity,Infinity,Infinity,Infinity);
+	var max = new Vec4(-Infinity,-Infinity,-Infinity,-Infinity);
+	var O = new Vec4();
+	for(var v of this.V){
+		min.x = Math.min(min.x,v.x);
+		min.y = Math.min(min.y,v.y);
+		min.z = Math.min(min.z,v.z);
+		min.t = Math.min(min.t,v.t);
+		max.x = Math.max(max.x,v.x);
+		max.y = Math.max(max.y,v.y);
+		max.z = Math.max(max.z,v.z);
+		max.t = Math.max(max.t,v.t);
+		O.add(v);
+	}
+	O.div(this.V.length);
+	var r = 0;
+	for(var v of this.V){
+		r = Math.max(r,v.sub(O,false).len(false));
+	}
+	this.boundingBox = {min:min, max:max};
+	this.boundingSphere = {center:O, radius:r};
+	return this;
 }

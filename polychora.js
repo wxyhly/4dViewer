@@ -485,7 +485,8 @@ Mesh4.ToddCoxeter.prototype = {
     }
 }
 
-Mesh4.regularPolychoron = function(n){
+Mesh4.regularPolychoron = Mesh4.polychoron = function(n,R){
+	R = R || 1;
 	var rg, gb, ba;
 	switch(n){
 		case 5: rg = gb = ba = 3;
@@ -539,6 +540,11 @@ Mesh4.regularPolychoron = function(n){
 			case "a":
 				V[i].z = -V[i].z;
 			break;
+		}
+	}
+	if(R!=1){
+		for(var v of V){
+			v.mul(R);
 		}
 	}
 	return new Mesh4({
