@@ -1257,6 +1257,65 @@ MatBivec.prototype.t = function(flag){
 	this._LUDecomp = null;
 	return this;
 }
+MatBivec.prototype.clone = function(){
+	var a = this.array;
+	var mb = new MatBivec();
+	var c = mb.array;
+	for(var i in c){
+		for(var j in c[i]){
+			c[i][j] = a[i][j];
+		}
+	}
+	return mb;
+}
+MatBivec.prototype.add = function(M,flag){
+	var a = this.array;
+	var b = M.array;
+	if(flag === false){
+		var mb = new MatBivec();
+		var c = mb.array;
+		for(var i in c){
+			for(var j in c[i]){
+				c[i][j] = a[i][j]+b[i][j];
+			}
+		}
+		return mb;
+	}
+	for(var i in a){
+		for(var j in a[i]){
+			a[i][j] += b[i][j];
+		}
+	}
+	return this;
+}
+MatBivec.prototype.sub = function(M,flag){
+	var a = this.array;
+	if(!M){
+		for(var i in a){
+			for(var j in a[i]){
+				a[i][j] = -a[i][j];
+			}
+		}
+		return this;
+	}
+	var b = M.array;
+	if(flag === false){
+		var mb = new MatBivec();
+		var c = mb.array;
+		for(var i in c){
+			for(var j in c[i]){
+				c[i][j] = a[i][j]-b[i][j];
+			}
+		}
+		return mb;
+	}
+	for(var i in a){
+		for(var j in a[i]){
+			a[i][j] -= b[i][j];
+		}
+	}
+	return this;
+}
 MatBivec.prototype.mul = function(b,flag){
 	var a = this.array;
 	if(typeof b == "number"){

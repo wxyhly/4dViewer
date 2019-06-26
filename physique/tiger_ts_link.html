@@ -16,8 +16,8 @@ var diceP,physicsEngine,addGlome;
 function start(){
 	var scene = new Scene();
 	var glomes = [];
-	var planeWidth = 15;
-	var R0 = 1, R1 = 1, R2 = 2;
+	var planeWidth = 25;
+	var R0 = 0.3, R1 = 2.5, R2 = 1.5, R3 = 1.9;
 	//ground
 	var groundM = Mesh3.cube(planeWidth).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
 	scene.add(new Geom4(groundM,null,null,0xFFFFAA));
@@ -31,27 +31,33 @@ function start(){
 	var dir = new Vec4(1,1,0,1).norm().cross(new Vec4(0,1));
 	var s = Math.asin(dir.len());
 	
-	var diceM = Mesh4.glome(R0,16,8,16).move(new Vec4(R0,R0));
-	var diceM2 = Mesh4.glome(R0,16,8,16).move(new Vec4(-R0,-R0));//.join(Mesh4.tesseract(1).move(new Vec4(R2,0,0,0)));
+	var diceM = Mesh4.torisphere(R0,R1,8,16,16);
+	var diceM2 = Mesh4.tiger(R0,R2,R3,8,16,16);
 	
-	/*for(var c in diceM.C){
+	for(var c in diceM.C){
 		if(!diceM.C[c].info) diceM.C[c].info = {};
 		diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0xFF0000;
 	}
 	for(var c in diceM2.C){
 		if(!diceM2.C[c].info) diceM2.C[c].info = {};
 		diceM2.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFF00FF:0x00FF00;
-	}*/
+	}
 	//R-E-U  B-F-B
-	var dice = new Geom4(diceM.join(diceM2),null,null,0xFF0000);
-	var dice2 = new Geom4(diceM2,null,null,0xFFFF00);
+	var dice = new Geom4(diceM);
+	var dice2 = new Geom4(diceM2);
 	var dice3 = new Geom4(diceM2);
+	var dice4 = new Geom4(diceM);
+	dice.flow = 4;
+	dice2.flow = 4;
+	dice3.flow = 4;
+	dice4.flow = 4;
 	scene.add(dice);
 	scene.add(dice2);
-	//scene.add(dice3);
+	scene.add(dice3);
+	scene.add(dice4);
 
 	var camera = new Camera4(80,0.01,50);
-	camera.position = new Vec4(0,4,0,-5);
+	camera.position = new Vec4(0,6,0,-9);
 	
 	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera);
 	
@@ -61,27 +67,29 @@ function start(){
 	controler.addGUI(gui);
 	
 	physicsEngine = new Phy4d();
-	physicsEngine.gravity = new Vec4(0,0);
+	//physicsEngine.gravity = new Vec4(0,0);
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
-	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),2);
-	diceP = new Phy4d.Obj(new Phy4d.Union(
-		[
-			new Phy4d.Glome(new Vec4(R0,R0,0,0),R0),
-			new Phy4d.Glome(new Vec4(-R0,-R0,0,0),R0),
-		],
-		new Vec4(0,R0+2,0,0))
-	,[1,1]);
-	
-	/*diceP.w.xy = -Math.random();
-	diceP.w.yt = -Math.random();
-	diceP.w.yz = -Math.random();
-	diceP.w.zt = -Math.random();*/
-	//var dice2P = new Phy4d.Obj(new Phy4d.Convex(diceM2,new Vec4(0,1,0.1,0)),1);
-	//diceP.restitution = 0.0;
-	diceP.friction = 1.0;
-	//physicsEngine.addObj(cameraP);
+	groundP.restitution = 0.2;
+	diceP = new Phy4d.Obj(new Phy4d.Torisphere(new Vec4(0,8,0,0),R0,R1),1);
+	var dice2P = new Phy4d.Obj(new Phy4d.Tiger(new Vec4(R3+1,8,0.01,0),R0,R2,R3),1);
+	var dice3P = new Phy4d.Obj(new Phy4d.Tiger(new Vec4(-R3-1,8,-0.01,0),R0,R2,R3),Infinity);
+	var dice4P = new Phy4d.Obj(new Phy4d.Torisphere(new Vec4(2*(R3+1),8,0,0),R0,R1),1);
+	var RQ = new Bivec(0,0,0,0,0,Math.PI/2).expQ();
+	var RQ2 = new Bivec(0,0,Math.PI/2,0,0,0).expQ();
+	diceP.getRotation()[0] = RQ[0];
+	diceP.getRotation()[1] = RQ[1];
+	dice4P.getRotation()[0] = RQ[0].clone();
+	dice4P.getRotation()[1] = RQ[1].clone();
+	dice2P.getRotation()[0] = RQ2[0];
+	dice2P.getRotation()[1] = RQ2[1];
+	dice3P.getRotation()[0] = RQ2[0].clone();
+	dice3P.getRotation()[1] = RQ2[1].clone();
+
 	physicsEngine.addObj(groundP);
 	physicsEngine.addObj(diceP);
+	physicsEngine.addObj(dice2P);
+	physicsEngine.addObj(dice3P);
+	physicsEngine.addObj(dice4P);
 	//wall
 	
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
@@ -90,30 +98,11 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,-1,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
-	addGlome = function (x,y,z,t){
-		var gP = new Phy4d.Obj(
-			new Phy4d.Glome(
-				new Vec4(x,y,z,t),
-				0.6
-			),
-		0.2);
-		
-		var g = new Geom4(
-			Mesh4.glome(gP.phyGeom.R,8,8,8), //shape
-			null,//position
-			null,
-			Math.floor(0xFF0000)//color
-		);
-		g.boundingPhy4dObj = gP;
-		scene.add(g);
-		glomes.push(g);
-		physicsEngine.addObj(gP);
-	}
-	glomes = [];
+
 	function loop(){
 		controler.update();
-		var step = 10;
-		physicsEngine.iterations = 5;
+		var step = 30;
+		physicsEngine.iterations = 30;
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
 		if(physicsEngine.pause!==true){
 			while(step--)
@@ -122,20 +111,16 @@ function start(){
 		//Update position for display:
 		dice.position = diceP.getPosition();
 		dice.rotation = diceP.getRotation();
-		for(var g of glomes){
-			g.position = g.boundingPhy4dObj.getPosition();
-			g.rotation = g.boundingPhy4dObj.getRotation();
-		}
+		dice2.position = dice2P.getPosition();
+		dice2.rotation = dice2P.getRotation();
+		dice3.position = dice3P.getPosition();
+		dice3.rotation = dice3P.getRotation();
+		dice4.position = dice4P.getPosition();
+		dice4.rotation = dice4P.getRotation();
 		renderer.render();
 		window.requestAnimationFrame(loop);
 	}
 	loop();
-	addGlome(1,8,0,0);
-	
-	/*addContactHelper = function (contact){
-		scene.add(new Geom4(Mesh4.glome(0.2,8,8,8),contact.p,null,0xFF0000));
-		scene.add(new Geom4(Mesh4.spherinder(0.1,16,16,-contact.Vsep),contact.p,null,0xFF0000).lookAt(contact.p.add(contact.n,false)));
-	}*/
 	
 }
 </script>
