@@ -73,7 +73,7 @@ function start(){
 			addGlome();
 		}
 		controler.update();
-		physicsEngine.iterations = 15*14;
+		physicsEngine.iterations = 15*7;
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/2;
 		cameraP.v = camera.position.sub(cameraPrevP,false).div(physicsEngine.dt);
 		physicsEngine.next();
