@@ -96,7 +96,7 @@ function start(){
 	motor = new Bivec(0,0,0,0,0,0);
 	gui.add(motor,"yt",-2,2);
 	
-	var verticalOffset = new Vec4(0,-wheelR*2.1,0,0);
+	var verticalOffset = new Vec4(0,-wheelR*2.2-0.2,0,0);
 	for(var o of carwheels){
 		o.phy4Obj = new Phy4d.Obj(new Phy4d.Convex(carwheelM, o.position.clone()),0.3);
 		o.phy4Obj.restitution = 0.2;
@@ -170,7 +170,7 @@ function start(){
 				break;
 		}
 	});
-	
+	physicsEngine.detectCollision_Convex_Convex = ()=>(0);
 	function loop(){
 		controler.update();
 		

@@ -125,7 +125,7 @@ var Obj3 = function(pos,rot){
 }
 var Obj4 = function(pos,rot){
 	this.position = pos||new Vec4(0,0,0,0);
-	this.rotation = [new Vec4(1,0,0,0),new Vec4(1,0,0,0)];//quanternion[L,R]
+	this.rotation = rot||[new Vec4(1,0,0,0),new Vec4(1,0,0,0)];//quanternion[L,R]
 }
 
 Obj2.prototype.coord = function(p){
@@ -620,7 +620,7 @@ Mesh4.prototype.loft = function(fn,n,flag){
 	}
 	return M;
 }
-Mesh4.prototype.directProduct = function(M4){
+Mesh4.prototype.directProduct = function(M4,color){
 	//this and M4: 2d new Mesh4
 	var M = new Mesh4();
 	var face = M4.F.length;
@@ -678,7 +678,9 @@ Mesh4.prototype.directProduct = function(M4){
 				var l = M4.F[m][n];
 				c.push(fall+j+l*this.E.length);
 			}
-			c.info = {color: 0xFFFFFF};
+			if(color){
+				c.info = {color: color};
+			}
 			M.C.push(c);
 		}
 	}
@@ -1230,8 +1232,8 @@ Mesh4.spherinder = function(r,u,v,h){
 Mesh4.sphone = function(r,u,v,h){
 	return Mesh3.sphere(r,u,v).embed(true).pyramid(new Vec4(0,0,0,h)).move(new Vec4(0,0,0,-h/2));
 }
-Mesh4.duocylinder = function(R1,R2,u,v){
-	return Mesh2.polygon(R1,u).embed(4,true).directProduct(Mesh2.polygon(R2,v).embed(4,true,new Vec4(0,0,1,0),new Vec4(0,0,0,1)));
+Mesh4.duocylinder = function(R1,R2,u,v,color){
+	return Mesh2.polygon(R1,u).embed(4,true).directProduct(Mesh2.polygon(R2,v).embed(4,true,new Vec4(0,0,1,0),new Vec4(0,0,0,1)),color);
 }
 Mesh4.cubinder = function(R,n,h1,h2){
 	return Mesh2.polygon(R,n).embed(4,true).directProduct(Mesh2.rectangle(h1,h2).embed(4,true,new Vec4(0,0,1,0),new Vec4(0,0,0,1)));

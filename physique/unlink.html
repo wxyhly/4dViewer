@@ -17,7 +17,7 @@ function start(){
 	var scene = new Scene();
 	var glomes = [];
 	var planeWidth = 15;
-	var R1 = 0.5, R2 = 1.5;
+	var R1 = 0.4, R2 = 1.8;
 	//ground
 	var groundM = Mesh3.cube(planeWidth).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
 	scene.add(new Geom4(groundM,null,null,0xFFFFAA));
@@ -42,11 +42,13 @@ function start(){
 	//R-E-U  B-F-B
 	var dice = new Geom4(diceM);
 	var dice2 = new Geom4(diceM2);
+	var dice3 = new Geom4(diceM);
 	scene.add(dice);
 	scene.add(dice2);
+	scene.add(dice3);
 
 	var camera = new Camera4(80,0.01,50);
-	camera.position = new Vec4(0,1,0,-5);
+	camera.position = new Vec4(-1,3,0,-6);
 	
 	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera);
 	
@@ -58,19 +60,20 @@ function start(){
 	physicsEngine = new Phy4d();
 	//physicsEngine.gravity = new Vec4(0,-0.1);
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
-	diceP = new Phy4d.Obj(new Phy4d.Spheritorus(new Vec4(R2/2,R1+R2+3,0,0),R1,R2),0.4);
+	diceP = new Phy4d.Obj(new Phy4d.Spheritorus(new Vec4(R2/2,R1+R2+3,0,0),R1,R2),Infinity);
+	//var dice2P = new Phy4d.Obj(new Phy4d.Convex(diceM,new Vec4(-R2/2,R1+R2+3,0,0),0,R1,R2),0.4);
 	var dice2P = new Phy4d.Obj(new Phy4d.Spheritorus(new Vec4(-R2/2,R1+R2+3,0,0),R1,R2),0.4);
-	var RQ = new Bivec(0,0,0,0,Math.PI/3,0,0).expQ();
+	var dice3P = new Phy4d.Obj(new Phy4d.Spheritorus(new Vec4(-R2*3/2,R1+R2+2.1,0.001,0),R1,R2),0.4);
+	var RQ = new Bivec(0,0,0,0,Math.PI/4,0,0).expQ();
 	dice2P.getRotation()[0] = RQ[0];
 	dice2P.getRotation()[1] = RQ[1];
-	diceP.friction = 0.0;
-	dice2P.friction = 0.0;
+	diceP.restitution = 0;
+	dice2P.restitution = 0;
+	dice3P.restitution = 0;
 	physicsEngine.addObj(groundP);
 	physicsEngine.addObj(diceP);
 	physicsEngine.addObj(dice2P);
-	//physicsEngine.addForce(new Phy4d.Spring(diceP, new Vec4(), null, new Vec4(-10,R1/2,0,0), 0.001));
-	//physicsEngine.addForce(new Phy4d.Spring(dice2P, new Vec4(), null, new Vec4(10,R1/2,0.0001,0), 0.001));
-	//wall
+	physicsEngine.addObj(dice3P);
 	
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4(-1,0,0,0),-planeWidth/2),Infinity));
@@ -79,6 +82,7 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
 	physicsEngine.iterations = 5;
+	
 	function loop(){
 		controler.update();
 		var step = 30;
@@ -92,6 +96,8 @@ function start(){
 		dice.rotation = diceP.getRotation();
 		dice2.position = dice2P.getPosition();
 		dice2.rotation = dice2P.getRotation();
+		dice3.position = dice3P.getPosition();
+		dice3.rotation = dice3P.getRotation();
 		renderer.render();
 		window.requestAnimationFrame(loop);
 	}

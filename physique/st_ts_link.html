@@ -65,7 +65,7 @@ function start(){
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
 	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),2);
 	diceP = new Phy4d.Obj(new Phy4d.Torisphere(new Vec4(-R2/2,R1+R2+5,0,0),R1,R2),Infinity);
-	var dice2P = new Phy4d.Obj(new Phy4d.Spheritorus(new Vec4(R2/2,R1+R2+5,-0.2,0),R1,R2),0.4);
+	var dice2P = new Phy4d.Obj(new Phy4d.Spheritorus(new Vec4(R2/2,R1+R2+5.2,-0.2,0),R1,R2),0.4);
 	var dice3P = new Phy4d.Obj(new Phy4d.Torisphere(new Vec4(R2*3/2,R1+R2+5,0.2,0),R1,R2),0.4);
 	var dice4P = new Phy4d.Obj(new Phy4d.Spheritorus(new Vec4(R2*5/2,R1+R2+5,-0.2,0),R1,R2),0.4);
 	
@@ -97,7 +97,7 @@ function start(){
 		//diceP.w = new Bivec(0,0,Math.sin(t*0.05)*5,0,0,0,0);
 		var step = 10;
 		physicsEngine.iterations = 5;
-		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step/5;
+		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
 		if(physicsEngine.pause!==true){
 			while(step--)
 				physicsEngine.next();
