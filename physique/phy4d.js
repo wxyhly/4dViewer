@@ -180,6 +180,7 @@ Phy4d.Obj.prototype.getlinearVelocity = function(worldP){
 	return this.w.dual(false).cross(localP).sub().add(this.v);
 }
 Phy4d.Obj.prototype.setMass = function(mass){
+	if(mass === 0)mass = Infinity;
 	if(mass.length && this.phyGeom.constructor == Phy4d.Union){
 		
 		var Is = [];
@@ -446,7 +447,11 @@ Phy4d.prototype._detectCollision = function(obj1,obj2){
 		var list = [];
 		for(var o of obj1.phyGeom.objs){
 			var c = this._detectCollision(obj1.phyGeom.toWorld(o),obj2);
-			if(c) list.push(c);
+			if(c){
+				if(c.length){
+					for(var C of c) list.push(C);
+				}else list.push(c);
+			}
 		}
 		if (list.length) return list;
 	}
@@ -454,7 +459,11 @@ Phy4d.prototype._detectCollision = function(obj1,obj2){
 		var list = [];
 		for(var o of obj2.phyGeom.objs){
 			var c = this._detectCollision(obj2.phyGeom.toWorld(o),obj1);
-			if(c) list.push(c);
+			if(c){
+				if(c.length){
+					for(var C of c) list.push(C);
+				}else list.push(c);
+			}
 		}
 		if (list.length) return list;
 	}
@@ -463,7 +472,11 @@ Phy4d.prototype._detectCollision = function(obj1,obj2){
 		for(var o1 of obj1.phyGeom.objs){
 			for(var o2 of obj2.phyGeom.objs){
 				var c = this._detectCollision(obj1.phyGeom.toWorld(o1),obj2.phyGeom.toWorld(o2));
-				if(c) list.push(c);
+				if(c){
+					if(c.length){
+						for(var C of c) list.push(C);
+					}else list.push(c);
+				}
 			}
 		}
 		if (list.length) return list;
@@ -818,19 +831,21 @@ Phy4d.prototype.detectCollision_Glome_Convex = function(glomeO, convexO){
 	
 }
 Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
-	return 0;
 	var c1 = c1O.phyGeom;
 	var c2 = c2O.phyGeom;
 	var list = [];
 	//c1.V vs c2.C: convert c1.v into c2's local coordinate to reduce sre
 	var c2V1 = [];//后面还要用c1.V在c2下的坐标，所以先存起
+	var worldv1 = [];
+	var minD = Infinity;
 	for(var v1 of c1.mesh.V){
-		var worldv1 = c1.r[0].mul(v1,false).mul(c1.r[1]).add(c1.o);
-		var c2v1 = c2.r[0].conj(false).mul(worldv1.sub(c2.o,false),false).mul(c2.r[1].conj(false));
+		var wV = c1.r[0].mul(v1,false).mul(c1.r[1]).add(c1.o);
+		worldv1.push(wV);
+		var c2v1 = c2.r[0].conj(false).mul(wV.sub(c2.o,false),false).mul(c2.r[1].conj(false));
 		c2V1.push(c2v1);
 		
 		var faceContacted = null;
-		var minD = Infinity;
+		
 		for(var c2c of c2.mesh.C){
 			var d = -(c2v1.dot(c2c.info.normal) - c2c.info.t);
 			if(d < 0) {
@@ -845,18 +860,20 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 		if(faceContacted){//找到了与给定顶点相交距离深度最浅的面，结束！
 			var n = c2.r[0].mul(faceContacted.info.normal,false).mul(c2.r[1]).norm().sub();
 			list.push(
-				new Phy4d.Collision(this,c1O, c2O, n, minD, worldv1.sub(n.mul(d/2,false),false))
+				new Phy4d.Collision(this,c1O, c2O, n, minD, wV.sub(n.mul(d/2,false),false))
 			);
 		}
 	}
 	//c2.V vs c1.C: convert c1.v into c2's local coordinate to reduce sre
 	var c1V2 = [];//后面还要用，所以先存起
+	var worldv2 = [];
 	for(var v2 of c2.mesh.V){
-		var worldv2 = c2.r[0].mul(v2,false).mul(c2.r[1]).add(c2.o);
-		var c1v2 = c1.r[0].conj(false).mul(worldv2.sub(c1.o,false),false).mul(c1.r[1].conj(false));
+		var wV = c2.r[0].mul(v2,false).mul(c2.r[1]).add(c2.o);
+		worldv2.push(wV);
+		var c1v2 = c1.r[0].conj(false).mul(wV.sub(c1.o,false),false).mul(c1.r[1].conj(false));
 		c1V2.push(c1v2);
 		var faceContacted = null;
-		var minD = Infinity;
+		//var minD = Infinity;
 		for(var c1c of c1.mesh.C){
 			var d = -(c1v2.dot(c1c.info.normal) - c1c.info.t);
 			if(d < 0) {
@@ -871,111 +888,119 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 		if(faceContacted){
 			var n = c1.r[0].mul(faceContacted.info.normal,false).mul(c1.r[1]).norm().sub();
 			list.push(
-				new Phy4d.Collision(this,c2O, c1O, n, minD, worldv2.sub(n.mul(d/2,false),false))
+				new Phy4d.Collision(this,c2O, c1O, n, minD, wV.sub(n.mul(d/2,false),false))
 			);
 		}
 	}
-	//c1.E vs c2.F: convert c1.e into c2's local coordinate to reduce sre
-	for(var ee of c1.mesh.E){
-		var P1 = c2V1[ee[0]];
-		var P2 = c2V1[ee[1]];
-		var P1P2 = P2.sub(P1,false);
-		var minD = Infinity;
-		var faceContacted = null;
-		//c1.E: P1P2,  c2.F: ABC, projection on c1: Q1, projection on c2: Q2
-		//todo: c1.E与c2.F在c2坐标系下做AABB
-		for(var c2f of c2.mesh.F){
-			var e1 = c2.mesh.E[c2f[0]];
-			var e2 = c2.mesh.E[c2f[1]];
-			
-			var A = c2.mesh.V[e1[0]];
-			var B = c2.mesh.V[e1[1]];
-			var C = (e2[0] != e1[0] && e2[0] != e1[1])?c2.mesh.V[e2[0]]:c2.mesh.V[e2[1]];
-			
-			var P1A = A.sub(P1,false);
-			var AB = B.sub(A,false);
-			var AC = C.sub(A,false);
-			
-			//Q1Q2 = P1A + u AB + v AC - s P1P2;
-			//P1P2.(P1A + u AB + v AC - s P1P2)==0
-			//AB  .(P1A + u AB + v AC - s P1P2)==0
-			//AC  .(P1A + u AB + v AC - s P1P2)==0
-			
-			var _a1 = P1P2.dot(P1A), _b1 = P1P2.dot(AB), _c1 = P1P2.dot(AC), _d1 = P1P2.dot(P1P2);
-			var _a2 =   AB.dot(P1A), _b2 =   AB.dot(AB), _c2 =   AB.dot(AC), _d2 =   _b1;
-			var _a3 =   AC.dot(P1A), _b3 =   _c2       , _c3 =   AC.dot(AC), _d3 =   _c1;
-
-			var det = _b3*_c2*_d1 - _b2*_c3*_d1 - _b3*_c1*_d2 + _b1*_c3*_d2 + _b2*_c1*_d3 - _b1*_c2*_d3;
-			if(Math.abs(det)<0.001) continue;//共胞的情况不管，可reduce
-			var detInv = 1/det;
-
-			var s = (_a3*_b2*_c1 - _a2*_b3*_c1 - _a3*_b1*_c2 + _a1*_b3*_c2 + _a2*_b1*_c3 - _a1*_b2*_c3)*detInv;
-			if(s<0||s>1)continue;//Q1必须在AB上
-			var u = -(_a3*_c2*_d1 - _a2*_c3*_d1 - _a3*_c1*_d2 + _a1*_c3*_d2 + _a2*_c1*_d3 - _a1*_c2*_d3)*detInv;
-			var v = -(-_a3*_b2*_d1 + _a2*_b3*_d1 + _a3*_b1*_d2 - _a1*_b3*_d2 - _a2*_b1*_d3 + _a1*_b2*_d3)*detInv;
-			
-			var Q1 = P1.add(P1P2.mul(s,false),false);
-			var Q2 = A.add(AB.mul(u,false),false).add(AC.mul(v,false));
-			var QQ = Q1.add(Q2,false).div(2);
-			var isClip = true;
-			var minDepth = Infinity;
-			//看交点陷入2没有
-			for(var cell of c2.mesh.C){
-				var depth = - (Q1.dot(cell.info.normal) - cell.info.t);
-				if(depth < 0) {
-					isClip = false;
-					break;
-				}
-				minDepth = Math.min(minDepth,depth);
-			}
-			if(!isClip) continue;
-			
-			//看F上投影点是否在F中：
-			var N = AB.cross(AC).dual();
-			isClip = true;
-			for(var ef of c2f){
-				var eA = c2.mesh.V[c2.mesh.E[ef][0]];
-				var eB = c2.mesh.V[c2.mesh.E[ef][1]];
-				var eAB = eB.sub(eA,false);
-				var eN = eAB.cross(N);
-				var eOA = eA.sub(c2f.center,false);
-				if(eN.dot(eOA)<0){
-					eN.sub();
-				}
-				var et = eA.dot(eN);
-				var depth = - (Q2.dot(eN) - et);
-				if(depth < 0) {
-					isClip = false;
-					break;
-				}
-			}
-			if(!isClip) continue;
-			
-			var Q1Q2 = Q1.sub(Q2,false);
-			var AA = Q1Q2.dot(AB);
-			var BB = Q1Q2.dot(AC);
-			var CC = Q1Q2.dot(P1P2);
-			var d = Q1Q2.len();
-			if(d>minDepth*5) continue;
-			if(d < minD){
-				var P = Q1.add(Q2,false).div(2);
-				var n = c2.r[0].mul(Q1Q2.div(d),false).mul(c2.r[1]);
-				minD = d;
-				faceContacted = new Phy4d.Collision(this,c2O, c1O, n, d, c2.r[0].mul(P,false).mul(c2.r[1]).add(c2.o),false);
-				
-			}
-			continue;
+	minD = Infinity;
+	for(var c1c of c1.mesh.C){
+		var n = c1c.info.normal.sub(false);
+		var mA = this._projectConvex(c1.mesh.V,n);
+		var mB = this._projectConvex(c1V2,n);
+		var d = mA[1] - mB[0];
+		if(d<0) return 0;
+		if(d<minD){
+			minD = d;
 		}
-		if(faceContacted) list.push(faceContacted);
 	}
-	
-	
+	for(var c2c of c2.mesh.C){
+		var n = c2c.info.normal;
+		var mA = this._projectConvex(c2.mesh.V,n);
+		var mB = this._projectConvex(c2V1,n);
+		var d = mA[1] - mB[0];
+		if(d<0) return 0;
+		if(d<minD){
+			minD = d;
+		}
+	}
+	//c1.E vs c2.F: convert c1.e into c2's local coordinate to reduce sre
+	for(var i=0; i<2; i++){
+		if(i){
+			var tempc = c1O;
+			c1O = c2O;
+			c2O = tempc;
+			c1 = c1O.phyGeom;
+			c2 = c2O.phyGeom;
+			tempc = c1V2;
+			c1V2 = c2V1;
+			c2V1 = tempc;
+			tempc = worldv1;
+			worldv1 = worldv2;
+			worldv1 = tempc;
+		}
+		
+		for(var ee of c1.mesh.E){
+			var P1 = c2V1[ee[0]];
+			var P2 = c2V1[ee[1]];
+			var P1P2 = P2.sub(P1,false);
+			//var minD = Infinity;
+			var faceContacted = null;
+			//c1.E: P1P2,  c2.F: ABC, projection on c1: Q1, projection on c2: Q2
+			//todo: c1.E与c2.F在c2坐标系下做AABB
+			for(var c2f of c2.mesh.F){
+				var e1 = c2.mesh.E[c2f[0]];
+				var e2 = c2.mesh.E[c2f[1]];
+				
+				var A = c2.mesh.V[e1[0]];
+				var B = c2.mesh.V[e1[1]];
+				var C = (e2[0] != e1[0] && e2[0] != e1[1])?c2.mesh.V[e2[0]]:c2.mesh.V[e2[1]];
+				
+				var P1A = A.sub(P1,false);
+				var AB = B.sub(A,false);
+				var AC = C.sub(A,false);
+				
+				//Q1Q2 = P1A + u AB + v AC - s P1P2;
+				//P1P2.(P1A + u AB + v AC - s P1P2)==0
+				//AB  .(P1A + u AB + v AC - s P1P2)==0
+				//AC  .(P1A + u AB + v AC - s P1P2)==0
+				
+				var _a1 = P1P2.dot(P1A), _b1 = P1P2.dot(AB), _c1 = P1P2.dot(AC), _d1 = P1P2.dot(P1P2);
+				var _a2 =   AB.dot(P1A), _b2 =   AB.dot(AB), _c2 =   AB.dot(AC), _d2 =   _b1;
+				var _a3 =   AC.dot(P1A), _b3 =   _c2       , _c3 =   AC.dot(AC), _d3 =   _c1;
+
+				var det = _b3*_c2*_d1 - _b2*_c3*_d1 - _b3*_c1*_d2 + _b1*_c3*_d2 + _b2*_c1*_d3 - _b1*_c2*_d3;
+				if(Math.abs(det)<0.001) continue;//共胞的情况不管，可reduce
+				var detInv = 1/det;
+
+				var s = (_a3*_b2*_c1 - _a2*_b3*_c1 - _a3*_b1*_c2 + _a1*_b3*_c2 + _a2*_b1*_c3 - _a1*_b2*_c3)*detInv;
+				if(s<0||s>1)continue;//Q1必须在AB上
+				var u = -(_a3*_c2*_d1 - _a2*_c3*_d1 - _a3*_c1*_d2 + _a1*_c3*_d2 + _a2*_c1*_d3 - _a1*_c2*_d3)*detInv;
+				var v = -(-_a3*_b2*_d1 + _a2*_b3*_d1 + _a3*_b1*_d2 - _a1*_b3*_d2 - _a2*_b1*_d3 + _a1*_b2*_d3)*detInv;
+				
+				var Q1 = P1.add(P1P2.mul(s,false),false);
+				var Q2 = A.add(AB.mul(u,false),false).add(AC.mul(v,false));
+				var QQ = Q1.add(Q2,false).div(2);
+				var isClip = true;
+				var Q1Q2 = Q2.sub(Q1,false);
+				//var d = Q1Q2.len();
+				//看交点陷入2没有
+				//if(d < minD){
+				
+				var n = c2.r[0].mul(Q1Q2.norm(),false).mul(c2.r[1]);
+				var mA = this._projectConvex(worldv1,n);
+				var mB = this._projectConvex(worldv2,n);
+				var d = mA[1] - mB[0];
+				if(d<0) return 0;
+				if(d<minD){
+					minD = d;
+					var P = Q1.add(Q2,false).div(2);
+					faceContacted = new Phy4d.Collision(this,c1O, c2O, n, d, c2.r[0].mul(P,false).mul(c2.r[1]).add(c2.o),false);
+					
+				}
+				continue;
+			}
+			if(faceContacted) {
+				list.push(faceContacted);
+			}
+		}
+	}
+	/*
 	//c2.E vs c1.F: convert c2.e into c1's local coordinate to reduce sre
 	for(var ee of c2.mesh.E){
 		var P1 = c1V2[ee[0]];
 		var P2 = c1V2[ee[1]];
 		var P1P2 = P2.sub(P1,false);
-		var minD = Infinity;
+		//var minD = Infinity;
 		var faceContacted = null;
 		//c2.E: P1P2,  c1.F: ABC, projection on c2: Q1, projection on c1: Q2
 		for(var c1f of c1.mesh.F){
@@ -1013,7 +1038,7 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 			var QQ = Q1.add(Q2,false).div(2);
 			var isClip = true;
 			//看交点陷入1没有
-			var minDepth = Infinity;
+			var minDepth = minD;
 			for(var cell of c1.mesh.C){
 				var depth = - (Q1.dot(cell.info.normal) - cell.info.t);
 				if(depth < 0) {
@@ -1059,9 +1084,14 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 			}
 			continue;
 		}
-		if(faceContacted) list.push(faceContacted);
+		
+		if(faceContacted) {
+			faceContacted.n = gjk.n.sub(false); 
+			faceContacted.d = Math.min(gjk.t,faceContacted.d);
+			list.push(faceContacted);
+		}
 	}
-	
+	*/
 	if(list.length) {
 		return list;
 	}
@@ -1846,6 +1876,17 @@ Phy4d.prototype.detectCollision_Torisphere_Torisphere = function(t1O, t2O){
 	return (new Phy4d.Collision(this, coord==t2?t1O:t2O, coord==t1?t1O:t2O, n, d, coord.r[0].mul(Rc,false).mul(coord.r[1]).add(coord.o).sub(n.mul(coord.R1-d/2,false),false)));
 }
 	
+Phy4d.prototype._projectConvex = function(cOwV,axis){
+	var min = Infinity;
+	var max = -Infinity;
+	
+	for(var v of cOwV){
+		var d = v.dot(axis);
+		if(d<min) min = d;
+		if(d>max) max = d;
+	}
+	return [min,max];
+}
 Phy4d.PointConstrain = function(obj1, point1, obj2, point2, maxDistance ,breakable){
 	this.obj1 = obj1;
 	this.point1 = point1;

@@ -239,6 +239,9 @@ Vec3.prototype.sub = function (v3,flag){
 	}
 }
 Vec4.prototype.sub = function (v4,flag){
+	if(v4===false){
+		return new Vec4(-this.x,-this.y,-this.z,-this.t);
+	}
 	if(!v4){
 		this.x = -this.x;
 		this.y = -this.y;
@@ -575,6 +578,9 @@ Bivec.prototype.add = function (bv,flag){
 	}
 }
 Bivec.prototype.sub = function (bv,flag){
+	if(bv===false){
+		return new Bivec(-this.xy,-this.xz,-this.xt,-this.yz,-this.yt,-this.zt);
+	}
 	if(!bv){
 		this.xy = -this.xy;
 		this.xz = -this.xz;
@@ -845,6 +851,13 @@ Mat2.prototype.clone = Mat3.prototype.clone = Mat4.prototype.clone = function(){
 	return x;
 }
 Mat2.prototype.sub = Mat3.prototype.sub = Mat4.prototype.sub = function(m,flag){
+	if(m===false){
+		var x = new this.constructor();
+		for(var i =0; i< this.array.length; i++){
+			x.array[i] = - this.array[i];
+		}
+		return x;
+	}
 	if(!m){
 		for(var i =0; i< this.array.length; i++){
 			this.array[i] = - this.array[i];
