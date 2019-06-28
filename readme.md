@@ -1,5 +1,5 @@
 设想你是一个四维人，你的眼睛看到的图像是三维的，因为除了上下左右，还多出了两个方向。
-由于可怜的三维生物（我们）只有二维视觉，所以只好把四维人眼中的三维视野图像做成半透明的给三维生物们观看，这就是4DViewer项目。但三维视野图像感觉上就是看一团雾，我们可以选择一些截面去截这个视野。比如我们可以抽取过三维图像中心的x、y、z三个方向的截面，单独放到三个角落上一边观察。
+由于可怜的三维生物（我们）只有二维视觉，所以只好把四维人眼中的三维视野图像做成半透明的给三维生物们观看，这就是4DViewer渲染引擎的任务。但三维视野图像感觉上就是看一团雾，我们可以选择一些截面去截这个视野。比如我们可以抽取过三维图像中心的x、y、z三个方向的截面，单独放到三个角落上一边观察。
 
 ## 初探四维
 
@@ -8,14 +8,9 @@
 使用鼠标左右键均可拖动改变观察角度，滚动鼠标滚轮将拉近/推远相机位置。你现在处于超立方体内部。试着推远相机，你将钻出来从外面看到整个立方体。
 超立方体由8个全等的正方体胞（“胞”指三维面，下同）围成。为区分方便，每个正方体胞心上还画了不同颜色的球形图案。
 
-
 ### 正多胞体以及其它基本几何体 [examples/polychora.html](https://wxyhly.github.io/4dViewer/examples/polychora.html)
 
 在右侧的控制栏中选择形状栏下拉菜单中可选择正多胞体、柱体、锥体、旋转体、直积形等等大量四维图形。对于比较复杂的几何体（如超球）会有一点卡顿的现象，此时建议将显示模式改为仅显示胞，然后按键盘`C`显示边。
-
-### 四维样条线及放样 [examples/spline.html](https://wxyhly.github.io/4dViewer/examples/spline.html)
-
-摄影机被固定在截胞为圆柱体的弯曲隧道中心线上前行。可通过调整右侧面板上的speed值通知前进或后退的速度。
 
 ## 四维入门
 
@@ -33,22 +28,26 @@
 + 初级目标：在不使用空格键跳跃的情况下找到空中悬浮的白色小超立方体，触碰通关。注：蓝色超立方体方块可以面朝着把它推动，绿色的超立方体是激光器，不能碰到它以及它发出的激光束。
 + 高级目标：在只有三维视野（可按键盘`C`开启线框模式）不看三个截面缩略图的情况下通关。
 
-## 场景更复杂的例子
+## 四维进阶
 
-（注：这些例子包含图形面数较多，可能导致浏览器较卡顿）
-### 四维地形 [examples/terrain.html](https://wxyhly.github.io/4dViewer/examples/terrain.html)
+### 四维Minecraft [minecraft4d/](https://wxyhly.github.io/4dViewer/minecraft4d/)
 
-采用3D Perlin噪声作为高度图生成的四维地形。
+基于随机种子的无限世界，使用鼠标左键破坏、右键放置！目前生物群系有被森林覆盖的平原、小丘陵、湿地和沙漠。
 
-### 四维Minecraft [examples/minecraft4.html](https://wxyhly.github.io/4dViewer/examples/minecraft4.html)
+## 四维刚体物理引擎
 
-基于随机种子的无限世界，使用鼠标左键破坏、右键放置！如果太卡可以调小renderDistance（渲染区块距离）参数。目前生物群系只有被森林覆盖的平原和小丘陵。
-###  四维分形海绵：[examples/mengersponge.html](https://wxyhly.github.io/4dViewer/examples/mengersponge.html)
- ***（警告：非常卡）***
-您将看到三种四维分形，它们是从一维Cantor点集、二维谢尔宾斯基地毯、到三维门格-谢尔宾斯基雪花（3D Cantor 尘埃）、门格海绵两种类比，最后类比到四维的、真正四维人喜欢的分形。当然，出于复杂度考虑，这些分形只迭代了3次。
-提示：如果画面特别卡顿，可以按`-`键减少截面的渲染层数。
+### 一些场景
 
-## 进阶操作
+- 四维汽车 [physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html)
+- 圆锥锥陀螺[physique/gyro.html](https://wxyhly.github.io/4dViewer/physique/gyro.html)
+- 四维锁链
+ + 球环-球环链（一动就会脱）[physique/unlink.html](https://wxyhly.github.io/4dViewer/physique/unlink.html)
+ + 球环-环球链[physique/st_ts_link.html](https://wxyhly.github.io/4dViewer/physique/st_ts_link.html)
+ + 球环-双圆环链[physique/st_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/st_tiger_link.html)
+ + 环球-双圆环链[physique/tiger_ts_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_ts_link.html)
+ + 双圆环-双圆环链（一大一小）[physique/tiger_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_tiger_link.html)
+
+## 参数调节
 ### 相机设置
 - ***Fov***  调整相机视野，也可通过按大键盘`9` `0`实现。
 
@@ -57,10 +56,11 @@
 - ***Thickness***  可调整截面间距（设小后三维视野质量更高，但会导致卡顿），也可通过按大键盘`+` `-`实现。
 - ***Flow***  调整图像不透明度。建议其值保持适中，过大将导致只有视野表面才可见，也可通过按键盘`[` `]`实现。
 - ***ThumbSize***  调整屏幕三角的截面缩略图大小，也可通过按键盘`;` `'`实现。
-- ***WireFrameMode***  即通过显示每个截面截得物体顶点得到的线框模式，也可通过按键盘`C`实现切换。
+- ***WireFrameMode***  即通过显示每个截面截得物体顶点得到的线框模式，也可通过按键盘`C`实现切换，通过`Ctrl+[`与`Ctrl+]`调节线框粗细。
 - ***bgColor4***  为四维世界中的背景颜色（如天空颜色）
 - ***bgColor3***  为将3D视野投影到2D的屏幕背景颜色。可以通过按键盘`,` `.`在黑-灰-白的范围内调整。
 - ***Transparency***  当3D视野中物体复杂时往往太模糊，不便于观察，有时我们希望某些像素变得透明以便观察。按住`Alt+1` `Alt+2` `Alt+3` `Alt+4` 并点击鼠标右键可以存储4种希望透明处理的颜色，只按住Alt键点击将清除所有透明色设置。
+如果渲染帧率过低，可调小节画面分辨率：`Ctrl+,`为降低，`Ctrl+.`为升高。
 
 ### 太阳控制
 
