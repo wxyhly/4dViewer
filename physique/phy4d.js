@@ -243,9 +243,13 @@ Phy4d.Obj.prototype.setDefault = function(){
 	//angulaire:
 	this.w = new Bivec();
 	this.b = new Bivec();
-	//todo: friction
+	//surfae:
 	this.restitution = 0.7;
 	this.friction = 0.1;
+	//for sleep:
+	this.energy = this.sleepEpsilon*2;
+	this.sleep = false;
+	this.sleepEpsilon = 0.05;
 }
 Phy4d.Obj.prototype.getPosition = function(){
 	return this.phyGeom.getPosition();
@@ -279,7 +283,6 @@ Phy4d.Obj.prototype.setMass = function(mass){
 	this.invMass = 1/mass;
 	if(this.invMass>0 && this.phyGeom.constructor != Phy4d.Union) this.getInertie();
 }
-
 Phy4d.Obj.prototype.getInertie = function(){
 	var I;
 	if(this.phyGeom.constructor == Phy4d.Convex){
@@ -363,6 +366,11 @@ Phy4d.Obj.prototype.getInertie = function(){
 Phy4d.Obj.prototype.getAABB = function(){
 	return this.phyGeom.getAABB();
 }
+Phy4d.Obj.prototype.wake = function(){
+	this.sleep = false;
+	this.energy = this.sleepEpsilon*2;
+}
+
 Phy4d.AABB = function(min,max,obj){
 	this.min = min;
 	this.max = max;
@@ -458,6 +466,10 @@ Phy4d.Collision.prototype._solve = function(){
 			if (newSepVelocity < 0) newSepVelocity = 0;
 		}
 		var deltaVelocity = newSepVelocity - this.Vsep;//desired change in velocity [V]
+		/*if(deltaVelocity>0.001){
+			obj1.wake();
+			obj2.wake();
+		}*/
 		var deltaV4 = this.n.mul(deltaVelocity,false).add(this.n.mul(this.Vsep,false).sub(this.Vrel));
 		var totalInvMass = obj1.invMass + obj2.invMass;
 		if(totalInvMass>0){
@@ -582,6 +594,7 @@ Phy4d.Collision.prototype._solve = function(){
 	}
 }
 Phy4d.prototype._detectCollisionBroadPhase = function(obj1,obj2){
+	//if(obj1.sleep && obj2.sleep) return 0;
 	var A = obj1.AABB;
 	var B = obj2.AABB;
 	if(A && B){
@@ -787,7 +800,22 @@ Phy4d.prototype.next = function (){
 	}
 	
 	var dt2 = this.dt*this.dt/2;
+	//this.sleepList = [];
+	//this.awakeList = [];
 	for(var obj of this.obj){
+		obj.changed = true;
+		/*if(obj.sleep){ 
+			this.sleepList.push(obj);
+			continue;
+		}
+		this.awakeList.push(obj);
+		
+		obj.energy = Math.min(obj.sleepEpsilon*10,(obj.energy + obj.w.len(false)+obj.v.len(false))/2);
+		if(obj.energy<obj.sleepEpsilon){
+			obj.sleep = true;
+			obj.w = new Bivec();
+			obj.v = new Vec4();
+		}*/
 		//linaire:
 		obj.v.add(obj.a.mul(this.dt,false));
 		var p = obj.getPosition();
@@ -801,7 +829,6 @@ Phy4d.prototype.next = function (){
 			r[0].set(dr[0].mul(r[0],false).norm());
 			r[1].set(r[1].mul(dr[1]).norm());
 		}
-		obj.changed = true;
 	}
 	
 	//solve collisions and constrains:
@@ -814,7 +841,8 @@ Phy4d.prototype.next = function (){
 		for(var obj of this.obj){
 			obj.changed = false;
 		}
-		coList[0]._solve();//solve the most serious collision.
+		if(coList[0]) coList[0]._solve();//solve the most serious collision.
+		
 		coList = this._detectCollisionsAndConstrains();
 	}
 	
