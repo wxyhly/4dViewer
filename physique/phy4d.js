@@ -226,7 +226,30 @@ Phy4d.Union.prototype.toWorld = function(obj){//convert sub obj to world coordin
 }
 Phy4d.Union.prototype.generateGeom = function(data){
 	//todo
-	return 0;
+	var list = [];
+	var datas;
+	if(data.length == this.objs.length){
+		datas = data;
+	}else if(!data.length){
+		datas = new Array(this.objs.length).fill(data);
+	}else{
+		console.error("data length doesn't match the number of objs in the union");
+	}
+	for(var obj in this.objs){
+		var o = this.objs[obj];
+		data = datas[obj];
+		var g = o.generateGeom(data);
+		if(!(o instanceof Phy4d.Union)){
+			if(data.flow) g.flow = data.flow;
+			if(data.glow) g.glow = data.glow;
+		}
+		list.push(g);
+	}
+	return new Obj4.Group(list,this.getPosition(),this.getRotation());
+}
+Phy4d.Union.prototype.getAABB = function(){
+	var k = new Vec4(100,100,100,100);
+	return new Phy4d.AABB(k.sub(false), k);
 }
 //Obj4
 Phy4d.Obj = function(phyGeom,mass){
@@ -258,6 +281,9 @@ Phy4d.Obj.prototype.getRotation = function(){
 	return this.phyGeom.getRotation();
 }
 Phy4d.Obj.prototype.generateGeom = function(data){
+	if(this.phyGeom instanceof Phy4d.Union){
+		return this.phyGeom.generateGeom(data);
+	}
 	var g = this.phyGeom.generateGeom(data);
 	if(data.flow) g.flow = data.flow;
 	if(data.glow) g.glow = data.glow;
@@ -269,8 +295,9 @@ Phy4d.Obj.prototype.getlinearVelocity = function(worldP){
 }
 Phy4d.Obj.prototype.setMass = function(mass){
 	if(mass === 0)mass = Infinity;
-	if(mass.length && this.phyGeom.constructor == Phy4d.Union){
-		
+	if(this.phyGeom.constructor == Phy4d.Union){
+		var num = this.phyGeom.objs.length;
+		if(!mass.length) mass = new Array(num).fill(mass/num);
 		var Is = [];
 		for(var o in this.phyGeom.objs){
 			var O = {mass:mass[o], phyGeom:this.phyGeom.objs[o]};
@@ -571,13 +598,15 @@ Phy4d.Collision.prototype._solve = function(){
 			obj2.v.add(impulse.mul(obj2.invMass,false));
 			
 			if(r1 && obj1.invMass){
+				var dw1 = W1_x.mul(impulse.x).add(W1_y.mul(impulse.y)).add(W1_z.mul(impulse.z)).add(W1_t.mul(impulse.t));
 				obj1.w.add(
-					W1_x.mul(impulse.x).add(W1_y.mul(impulse.y)).add(W1_z.mul(impulse.z)).add(W1_t.mul(impulse.t))
+					dw1
 				);
 			}
 			if(r2 && obj2.invMass){
+				var dw2 = W2_x.mul(impulse.x).add(W2_y.mul(impulse.y)).add(W2_z.mul(impulse.z)).add(W2_t.mul(impulse.t));
 				obj2.w.sub(
-					W2_x.mul(impulse.x).add(W2_y.mul(impulse.y)).add(W2_z.mul(impulse.z)).add(W2_t.mul(impulse.t))
+					dw2
 				);
 			}
 		}
@@ -585,11 +614,58 @@ Phy4d.Collision.prototype._solve = function(){
 	if(this.d > 0){//solve penetration (separate 2 objs)
 		var totalInvMass = obj1.invMass + obj2.invMass;
 		if(totalInvMass>0){
+			if(r1){
+				if(!MW1) {
+					var MW1 = r1[0].toMatL().mul(r1[1].toMatR()).toMatBivec();
+					var MW1t = MW1.t(false);
+				}
+				var impulse = MW1t.mul(
+					obj1.inertie.invMul(
+						MW1.mul(relContactP1.cross(this.n),false)
+					),false
+				);
+			}
+			if(r2){
+				if(!MW2) MW2 = r2[0].toMatL().mul(r2[1].toMatR()).toMatBivec();
+				
+			}
+			
+			relContactP1.cross(this.n);
+			
+			
+			var di = impulse.len();
+			var r1 = obj1.getRotation();
+			var r2 = obj2.getRotation();
 			var dPerIMass = this.n.mul(this.d/totalInvMass,false);
+			var ratioP1 = 1;
+			if(r1){
+				var dw = Math.abs(dw1.dual(false).cross(relContactP1).dot(this.n));
+				var dv = di*obj1.invMass;
+				ratioP1 = dv/(dv+dw);
+				var ratioR1 = 1 - ratioP1;
+				//dv -> d*ratioP1; dw1 -> d*ratioR1
+				dw1.norm().mul(ratioR1*this.d/Math.abs(relContactP1.dot(this.n)));
+				var dW = dw1.expQ();
+				r1[0].set(dW[0].mul(r1[0],false));
+				r1[1].mul(dW[1]);
+			}
+			var ratioP2 = 1;
+			if(r2){
+				var dw = Math.abs(dw2.dual(false).cross(relContactP1).dot(this.n));
+				var dv = di*obj2.invMass;
+				ratioP2 = dv/(dv+dw);
+				var ratioR2 = 1 - ratioP2;
+				dw2.norm().mul(-ratioR2*this.d/Math.abs(relContactP2.dot(this.n)));
+				var dW = dw2.expQ();
+				r2[0].set(dW[0].mul(r2[0],false));
+				r2[1].mul(dW[1]);
+			}
 			var p1 = obj1.getPosition();
 			var p2 = obj2.getPosition();
-			if(p1) p1.sub(dPerIMass.mul(obj1.invMass,false));
-			if(p2) p2.add(dPerIMass.mul(obj2.invMass));
+			if(p1) p1.sub(dPerIMass.mul(obj1.invMass*ratioP1,false));
+			if(p2) p2.add(dPerIMass.mul(obj2.invMass*ratioP2));
+			
+			
 		}
 	}
 }
@@ -611,7 +687,7 @@ Phy4d.prototype._detectCollisionNarrowPhase = function(obj1,obj2){
 	if(t1 == Phy4d.Union && t2 != Phy4d.Union){
 		var list = [];
 		for(var o of obj1.phyGeom.objs){
-			var c = this._detectCollision(obj1.phyGeom.toWorld(o),obj2);
+			var c = this._detectCollisionBroadPhase(obj1.phyGeom.toWorld(o),obj2);
 			if(c){
 				if(c.length){
 					for(var C of c) list.push(C);
@@ -623,7 +699,7 @@ Phy4d.prototype._detectCollisionNarrowPhase = function(obj1,obj2){
 	if(t2 == Phy4d.Union && t1 != Phy4d.Union){
 		var list = [];
 		for(var o of obj2.phyGeom.objs){
-			var c = this._detectCollision(obj2.phyGeom.toWorld(o),obj1);
+			var c = this._detectCollisionBroadPhase(obj2.phyGeom.toWorld(o),obj1);
 			if(c){
 				if(c.length){
 					for(var C of c) list.push(C);
@@ -636,7 +712,7 @@ Phy4d.prototype._detectCollisionNarrowPhase = function(obj1,obj2){
 		var list = [];
 		for(var o1 of obj1.phyGeom.objs){
 			for(var o2 of obj2.phyGeom.objs){
-				var c = this._detectCollision(obj1.phyGeom.toWorld(o1),obj2.phyGeom.toWorld(o2));
+				var c = this._detectCollisionBroadPhase(obj1.phyGeom.toWorld(o1),obj2.phyGeom.toWorld(o2));
 				if(c){
 					if(c.length){
 						for(var C of c) list.push(C);
@@ -2065,6 +2141,7 @@ Phy4d.Motor.prototype._apply = function(){
 			torque.sub(damp.mul(this.obj.w));
 		}
 	}
+	this.obj.wake();
 	this.obj.b.add(this.obj.inertie.invMul(torque));
 }
 Phy4d.Spring = function(obj1, point1, obj2, point2, k, d,breakable){
@@ -2108,12 +2185,13 @@ Phy4d.Spring.prototype._apply = function(){
 	if(obj1){
 		obj1.a.add(F.mul(obj1.invMass,false));
 		var torque1 = F.cross(worldP1.sub(p1,false));
+		obj1.wake();
 		obj1.b.add(obj1.inertie.invMul(torque1));
 	}
 	if(obj2){
 		obj2.a.sub(F.mul(obj2.invMass,false));
 		var torque2 = F.cross(worldP2.sub(p2,false));
-		
+		obj2.wake();
 		obj2.b.sub(obj2.inertie.invMul(torque2));
 	}
 }

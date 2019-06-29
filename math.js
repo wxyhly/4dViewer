@@ -1187,7 +1187,7 @@ var PMat5Q = function(l,r,v4){
 	this.rotation = [l, r];
 }
 PMat5Q.clone = function(){
-	return new PMat5Q(this.rotation[0].clone(),this.r.clone(),this.position.clone());
+	return new PMat5Q(this.rotation[0].clone(),this.rotation[1].clone(),this.position.clone());
 }
 
 PMat5Q.prototype.inv = function(flag){
@@ -1201,7 +1201,11 @@ PMat5Q.prototype.inv = function(flag){
 	this.position = this.rotation[0].mul(this.position,false).mul(this.rotation[1]).sub();
 }
 PMat5Q.prototype.mul = function (pm5,flag){
-	return new PMat5Q(this.rotation[0].mul(pm5.l,false),pm5.r.mul(this.rotation[1],false), this.rotation[0].mul(pm5.position,false).mul(this.rotation[1]).add(this.position));
+	return new PMat5Q(
+		this.rotation[0].mul(pm5.rotation[0],false),
+		pm5.rotation[1].mul(this.rotation[1],false),
+		this.rotation[0].mul(pm5.position,false).mul(this.rotation[1]).add(this.position)
+	);
 }
 PMat5Q.prototype.lookAt = function(pos,up){
 	var rayon = pos.sub(this.position,false).norm();
@@ -1224,7 +1228,9 @@ PMat5Q.prototype.lookAt = function(pos,up){
 	}
 	return this;
 }
-
+PMat5Q.prototype.coordMat = function(){//not affine mat, just rotation part
+	return this.rotation[0].toMatL().mul(this.rotation[1].toMatR());
+}
 var MatBivec = function(m){
 	this.array = m || [
 		[1,0,0,0,0,0],

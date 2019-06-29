@@ -1,6 +1,6 @@
 'use strict';
 
-Mesh4.prototype.inFrustum = function(renderer,camera,gg){
+Obj4.Group.prototype.inFrustum = Mesh4.prototype.inFrustum = function(renderer,camera,gg){
 	var border = 1/camera.projectMat.ctg;
 	var f1 = renderer.__getGeomFrustum(gg,renderer.__getWorldFrustum(camera,new Vec4(1,0,0,border)));
 	var f2 = renderer.__getGeomFrustum(gg,renderer.__getWorldFrustum(camera,new Vec4(1,0,0,-border)));
@@ -31,6 +31,7 @@ Scene.prototype.add = function(s){
 			}
 		}
 		if(s.mesh) s.mesh.update();
+		if(s instanceof Obj4.Group) s.update();
 	}
 }
 var Camera3 = function(fov,nz,fz){
@@ -478,21 +479,33 @@ MeshRenderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 	for(var gg of this.scene4.child){
 		findCrossSection(gg,wF);
 	}
-	function findCrossSection(gg, wF){
+	function findCrossSection(gg, pF, localPMatQ){//if wf is in a local coordinate, localPMatQ is needed
 		if(gg.visible == false) return false;
 		if (gg instanceof Array){
 			for(var g of gg){
-				findCrossSection(g, wF);//recursive here
+				findCrossSection(g, pF, localPMatQ);//recursive here
 			}
 		}else{
-			var gF = _this.__getGeomFrustum(gg,wF); //from world to geom coordinate
-			if (gg.mesh.intersectBoundingObj(gF)!=0) return false;
-			if (!gg.mesh.inFrustum(_this,_this.camera4,gg)) return false;
-			//return false;
-			gg.__renderMeshbuffer = gg.__renderMeshbuffer || {changed: true, geom4: gg};
-			var M = generateCrossSection(gg,gF.n,gF.t,gg.__renderMeshbuffer);
-			if(M.v.length){
-				_this._Meshbuffer.push(M);
+			
+			var gF = _this.__getGeomFrustum(gg,pF); //from world to geom coordinate
+			if(gg instanceof Obj4.Group){
+				if (gg.intersectBoundingObj(gF)!=0) return false;
+				var group = localPMatQ ? PMat5Q.prototype.mul.call(localPMatQ,gg,false): gg;
+				if (!gg.inFrustum(_this,_this.camera4,group)) return false;
+				for(var g of gg.child){
+					findCrossSection(g, gF, group);//recursive here
+				}
+			}else{
+				if (gg.mesh.intersectBoundingObj(gF)!=0) return false;
+				var PMatQ = localPMatQ ? PMat5Q.prototype.mul.call(localPMatQ,gg,false): gg;
+				if (!gg.mesh.inFrustum(_this,_this.camera4,PMatQ)) return false;
+				//return false;
+				gg.__renderMeshbuffer = gg.__renderMeshbuffer || {changed: true, geom4: gg};
+				gg.__renderMeshbuffer.PMatQ = PMatQ;
+				var M = generateCrossSection(gg,gF.n,gF.t,gg.__renderMeshbuffer);
+				if(M.v.length){
+					_this._Meshbuffer.push(M);
+				}
 			}
 		}
 	}
@@ -660,8 +673,8 @@ MeshRenderer4.prototype._renderMeshbuffer = function(mode3d,thumbnail){
 	gl.fbolink1.use([],gl.fboR);
 	this.clearColor(this.bgColor4,this.bgColor4Flow);
 	for(var G of this._Meshbuffer){
-		gl.crossProgram.uniform["mat4 mModel"].set(G.geom4.coordMat().t().array);
-		gl.crossProgram.uniform["vec4 vModel"].set(G.geom4.position.flat());
+		gl.crossProgram.uniform["mat4 mModel"].set(G.PMatQ.coordMat().t().array);
+		gl.crossProgram.uniform["vec4 vModel"].set(G.PMatQ.position.flat());
 		gl.crossProgram.attribute["vec4 V"].bind(gl.VBuffer);
 		gl.VBuffer.set(G.v,true);
 		if(G.changed){
