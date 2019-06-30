@@ -70,10 +70,10 @@ function start(){
 	//physicsEngine.gravity = new Vec4(0,0);
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
 	groundP.restitution = 0.2;
-	diceP = new Phy4d.Obj(new Phy4d.Torisphere(new Vec4(0,8,0,0),R0,R1),1);
-	var dice2P = new Phy4d.Obj(new Phy4d.Tiger(new Vec4(R3+1,8,0.01,0),R0,R2,R3),1);
-	var dice3P = new Phy4d.Obj(new Phy4d.Tiger(new Vec4(-R3-1,8,-0.01,0),R0,R2,R3),Infinity);
-	var dice4P = new Phy4d.Obj(new Phy4d.Torisphere(new Vec4(2*(R3+1),8,0,0),R0,R1),1);
+	diceP = new Phy4d.Obj(new Phy4d.Torisphere(R0,R1),1,new Vec4(0,8,0,0));
+	var dice2P = new Phy4d.Obj(new Phy4d.Tiger(R0,R2,R3),1,new Vec4(R3+1,8,0.01,0));
+	var dice3P = new Phy4d.Obj(new Phy4d.Tiger(R0,R2,R3),Infinity,new Vec4(-R3-1,8,-0.01,0));
+	var dice4P = new Phy4d.Obj(new Phy4d.Torisphere(R0,R1),1,new Vec4(2*(R3+1),8,0,0));
 	var RQ = new Bivec(0,0,0,0,0,Math.PI/2).expQ();
 	var RQ2 = new Bivec(0,0,Math.PI/2,0,0,0).expQ();
 	diceP.getRotation()[0] = RQ[0];

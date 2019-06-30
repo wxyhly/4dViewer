@@ -21,13 +21,11 @@ Phy4d.prototype.addForce = function(f){
 }
 
 //Geometries: PhyGeom
+
 Phy4d.Plane = function(n,t){//x.n - t = 0
 	n.norm();
 	this.n = n;
 	this.t = t;
-}
-Phy4d.Plane.prototype.clone = function(){
-	return new Phy4d.Plane(this.n, this.t);
 }
 Phy4d.Plane.prototype.getPosition = function(){
 	return null;
@@ -46,103 +44,61 @@ Phy4d.Plane.prototype.getAABB = function(){
 Phy4d.Plane.prototype.testAABB = function(aabb){
 	return aabb.testAABB(this);
 }
-Phy4d.Glome = function(o,R,r){//|x - o| = r
-	this.o = o;
+Phy4d.Glome = function(R){//|x - o| = r
 	this.R = R;
-	this.r = r || [new Vec4(1,0,0,0), new Vec4(1,0,0,0)];
-}
-Phy4d.Glome.prototype.clone = function(){
-	return new Phy4d.Glome(this.o, this.R, this.r);
-}
-Phy4d.Glome.prototype.getPosition = function(){
-	return this.o;
-}
-Phy4d.Glome.prototype.getRotation = function(){
-	return this.r;
 }
 Phy4d.Glome.prototype.generateGeom = function(data){
 	var m = Mesh4.glome(this.R,data.u||8,data.v||8,data.w||8);
-	return new Geom4(m,this.getPosition(),this.getRotation(),data.color);
+	return new Geom4(m,null,null,data.color);
 }
 Phy4d.Glome.prototype.getAABB = function(){
 	var RRRR = new Vec4(this.R,this.R,this.R,this.R);
-	return new Phy4d.AABB(this.o.sub(RRRR,false),this.o.add(RRRR,false),this);
+	var o = this.Obj.getPosition(true);
+	return new Phy4d.AABB(o.sub(RRRR,false),o.add(RRRR,false),this);
 }
-Phy4d.Spheritorus = function(o,R1,R2,r){//default orientation: xOt (same as shape Mesh4.spheritorus)
-	this.o = o;
+Phy4d.Spheritorus = function(R1,R2){//default orientation: xOt (same as shape Mesh4.spheritorus)
 	this.R1 = R1;
 	this.R2 = R2;
-	this.r = r || [new Vec4(1,0,0,0), new Vec4(1,0,0,0)];
-}
-Phy4d.Spheritorus.prototype.clone = function(){
-	return new Phy4d.Spheritorus(this.o, this.R1, this.R2, this.r);
-}
-Phy4d.Spheritorus.prototype.getPosition = function(){
-	return this.o;
-}
-Phy4d.Spheritorus.prototype.getRotation = function(){
-	return this.r;
 }
 Phy4d.Spheritorus.prototype.generateGeom = function(data){
 	var m = Mesh4.spheritorus(this.R1,this.R2,data.u||8,data.v||8,data.w||16);
-	return new Geom4(m,this.getPosition(),this.getRotation(),data.color);
+	return new Geom4(m,null,null,data.color);
 }
 Phy4d.Spheritorus.prototype.getAABB = function(){
 	var RRRR = new Vec4(this.R1+this.R2,this.R1+this.R2,this.R1+this.R2,this.R1+this.R2);
-	return new Phy4d.AABB(this.o.sub(RRRR,false),this.o.add(RRRR,false),this);
+	var o = this.Obj.getPosition(true);
+	return new Phy4d.AABB(o.sub(RRRR,false),o.add(RRRR,false),this);
 }
-Phy4d.Torisphere = function(o,R1,R2,r){//default orientation: t (same as shape Mesh4.torisphere)
-	this.o = o;
+Phy4d.Torisphere = function(R1,R2){//default orientation: t (same as shape Mesh4.torisphere)
 	this.R1 = R1;
 	this.R2 = R2;
-	this.r = r || [new Vec4(1,0,0,0), new Vec4(1,0,0,0)];
-}
-Phy4d.Torisphere.prototype.clone = function(){
-	return new Phy4d.Torisphere(this.o, this.R1, this.R2, this.r);
-}
-Phy4d.Torisphere.prototype.getPosition = function(){
-	return this.o;
-}
-Phy4d.Torisphere.prototype.getRotation = function(){
-	return this.r;
 }
 Phy4d.Torisphere.prototype.generateGeom = function(data){
 	var m = Mesh4.torisphere(this.R1,this.R2,data.u||8,data.v||16,data.w||16);
-	return new Geom4(m,this.getPosition(),this.getRotation(),data.color);
+	return new Geom4(m,null,null,data.color);
 }
 Phy4d.Torisphere.prototype.getAABB = function(){
+	var o = this.Obj.getPosition(true);
 	var RRRR = new Vec4(this.R1+this.R2,this.R1+this.R2,this.R1+this.R2,this.R1+this.R2);
-	return new Phy4d.AABB(this.o.sub(RRRR,false),this.o.add(RRRR,false));
+	return new Phy4d.AABB(o.sub(RRRR,false),o.add(RRRR,false));
 }
-Phy4d.Tiger = function(o,R,R1,R2,r){//default orientation: R1:xy R2:zt (same as shape Mesh4.tiger)
-	this.o = o;
+Phy4d.Tiger = function(R,R1,R2){//default orientation: R1:xy R2:zt (same as shape Mesh4.tiger)
 	this.R = R;
 	this.R1 = R1;
 	this.R2 = R2;
-	this.r = r || [new Vec4(1,0,0,0), new Vec4(1,0,0,0)];
-}
-Phy4d.Tiger.prototype.clone = function(){
-	return new Phy4d.Tiger(this.o, this.R, this.R1, this.R2, this.r);
-}
-Phy4d.Tiger.prototype.getPosition = function(){
-	return this.o;
-}
-Phy4d.Tiger.prototype.getRotation = function(){
-	return this.r;
 }
 Phy4d.Tiger.prototype.generateGeom = function(data){
 	var m = Mesh4.tiger(this.R,this.R1,this.R2,data.u||8,data.v||16,data.w||16);
-	return new Geom4(m,this.getPosition(),this.getRotation(),data.color);
+	return new Geom4(m,null,null,data.color);
 }
 Phy4d.Tiger.prototype.getAABB = function(){
 	if(!this.R12)this.R12 = Math.sqrt(this.R1*this.R1+this.R2*this.R2);
 	var R = this.R12+this.R;
 	var RRRR = new Vec4(R,R,R,R);
-	return new Phy4d.AABB(this.o.sub(RRRR,false),this.o.add(RRRR,false));
+	var o = this.Obj.getPosition(true);
+	return new Phy4d.AABB(o.sub(RRRR,false),o.add(RRRR,false));
 }
-Phy4d.Convex = function(mesh4,o,r){//from mesh4 convex hull
-	this.o = o || new Vec4();
-	this.r = r || [new Vec4(1,0,0,0), new Vec4(1,0,0,0)];
+Phy4d.Convex = function(mesh4){//from mesh4 convex hull
 	this.mesh = mesh4;
 	if(!(mesh4.C[0].info && mesh4.C[0].info.normal)){
 		mesh4.getNormal();
@@ -166,21 +122,14 @@ Phy4d.Convex = function(mesh4,o,r){//from mesh4 convex hull
 		f.info.normal.norm();
 	}
 }
-Phy4d.Convex.prototype.clone = function(){
-	return new Phy4d.Convex(this.mesh, this.o, this.r);
-}
-Phy4d.Convex.prototype.getPosition = function(){
-	return this.o;
-}
-Phy4d.Convex.prototype.getRotation = function(){
-	return this.r;
-}
 Phy4d.Convex.prototype.generateGeom = function(data){
 	var m = this.mesh;
-	return new Geom4(m,this.getPosition(),this.getRotation(),data.color);
+	return new Geom4(m,null,null,data.color);
 }
 Phy4d.Convex.prototype.getAABB = function(){
-	var m = this.r[0].toMatL().mul(this.r[1].toMatR());
+	var o = this.Obj.getPosition(true);
+	var r = this.Obj.getRotation(true);
+	var m = r[0].toMatL().mul(r[1].toMatR());
 	var xmax, ymax, zmax, tmax;
 	xmax = ymax = zmax = tmax = -Infinity;
 	var xmin, ymin, zmin, tmin;
@@ -196,33 +145,26 @@ Phy4d.Convex.prototype.getAABB = function(){
 		zmin = Math.min(zmin, wv.z);
 		tmin = Math.min(tmin, wv.t);
 	}
-	return new Phy4d.AABB(this.o.add(new Vec4(xmin,ymin,zmin,tmin),false),this.o.add(new Vec4(xmax,ymax,zmax,tmax),false),this);
+	return new Phy4d.AABB(o.add(new Vec4(xmin,ymin,zmin,tmin),false),o.add(new Vec4(xmax,ymax,zmax,tmax),false),this);
 }
 //bug: Union inertie!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //add todo: AABB
-Phy4d.Union = function(Objs,o,r){
-	this.o = o || new Vec4();
-	this.r = r || [new Vec4(1,0,0,0), new Vec4(1,0,0,0)];
+Phy4d.Union = function(Objs){
 	this.objs = Objs;
+	for(var o of Objs){
+		o.parent = this;
+	}
 }
-Phy4d.Union.prototype.clone = function(){
-	return new Phy4d.Union(this.objs,this.o,this.r);
-}
-Phy4d.Union.prototype.getPosition = function(){
-	return this.o;
-}
-Phy4d.Union.prototype.getRotation = function(){
-	return this.r;
-}
-Phy4d.Union.prototype.toWorld = function(obj){//convert sub obj to world coordinate
-	var o = obj.clone();
+Phy4d.Union.prototype.toWorld = function(o){//convert sub obj to world coordinate
+	var wo = this.Obj.getPosition(true);
+	var wr = this.Obj.getRotation(true);
 	if(o.o){
-		o.o = this.r[0].mul(o.o,false).mul(this.r[1]).add(this.o,false);//注意引用的原对象，必须new
+		o.wo = wr[0].mul(o.o,false).mul(wr[1]).add(wo);
 	}
 	if(o.r){
-		o.r = [this.r[0].mul(o.r[0],false), o.r[1].mul(this.r[1],false)];
+		o.wr = [wr[0].mul(o.r[0],false), o.r[1].mul(wr[1],false)];
 	}
-	return new Phy4d.Obj(o,this.Obj);
+	return o;//new Phy4d.Obj(o,this.Obj);
 }
 Phy4d.Union.prototype.generateGeom = function(data){
 	//todo
@@ -239,27 +181,58 @@ Phy4d.Union.prototype.generateGeom = function(data){
 		var o = this.objs[obj];
 		data = datas[obj];
 		var g = o.generateGeom(data);
-		if(!(o instanceof Phy4d.Union)){
+		if(!(o.phyGeom instanceof Phy4d.Union)){
 			if(data.flow) g.flow = data.flow;
 			if(data.glow) g.glow = data.glow;
 		}
 		list.push(g);
 	}
-	return new Obj4.Group(list,this.getPosition(),this.getRotation());
+	return new Obj4.Group(list);
 }
 Phy4d.Union.prototype.getAABB = function(){
-	var k = new Vec4(100,100,100,100);
-	return new Phy4d.AABB(k.sub(false), k);
+	var min = new Vec4(Infinity,Infinity,Infinity,Infinity);
+	var max = new Vec4(-Infinity,-Infinity,-Infinity,-Infinity);
+	for(var o of this.objs){
+		var ab = this.toWorld(o).getAABB();
+		o.AABB = ab;
+		min.x = Math.min(min.x,ab.min.x);
+		min.y = Math.min(min.y,ab.min.y);
+		min.z = Math.min(min.z,ab.min.z);
+		min.t = Math.min(min.t,ab.min.t);
+		max.x = Math.max(max.x,ab.max.x);
+		max.y = Math.max(max.y,ab.max.y);
+		max.z = Math.max(max.z,ab.max.z);
+		max.t = Math.max(max.t,ab.max.t);
+	}
+	return new Phy4d.AABB(min,max);
 }
 //Obj4
-Phy4d.Obj = function(phyGeom,mass){
+Phy4d.Obj = function(phyGeom,mass,o,r){
 	this.phyGeom = phyGeom;
 	this.phyGeom.Obj = this;
 	this.setDefault();
 	this.setMass(mass);
+	this.setPMat(o,r);
+}
+Phy4d.Obj.prototype.setPMat = function(PMat,r){
+	if(this.phyGeom instanceof Phy4d.Plane) return 0;
+	if(r && r[1]){
+		this.getRotation()[0].set(r[0]);
+		this.getRotation()[1].set(r[1]);
+	}
+	if(!PMat) return 0;
+	if(!PMat.position){
+		this.getPosition().set(PMat);
+	}else if(PMat.position && PMat.rotation){
+		this.getPosition().set(PMat.position);
+		this.getRotation()[0].set(PMat.rotation[0]);
+		this.getRotation()[1].set(PMat.rotation[1]);
+	}
 }
 Phy4d.Obj.prototype.setDefault = function(){
 	this.invMass = 0;
+	this.o = new Vec4();
+	this.r = [new Vec4(1), new Vec4(1)];
 	//linaire:
 	this.v = new Vec4();
 	this.a = new Vec4();
@@ -270,42 +243,51 @@ Phy4d.Obj.prototype.setDefault = function(){
 	this.restitution = 0.7;
 	this.friction = 0.1;
 	//for sleep:
+	this.sleepEpsilon = 0.05;
 	this.energy = this.sleepEpsilon*2;
 	this.sleep = false;
-	this.sleepEpsilon = 0.05;
 }
-Phy4d.Obj.prototype.getPosition = function(){
-	return this.phyGeom.getPosition();
+Phy4d.Obj.prototype.getPosition = function(flag){
+	if(flag){
+		return this.wo || this.o;
+	}
+	return this.o;
 }
-Phy4d.Obj.prototype.getRotation = function(){
-	return this.phyGeom.getRotation();
+Phy4d.Obj.prototype.getRotation = function(flag){
+	if(flag){
+		return this.wr || this.r;
+	}
+	return this.r;
 }
 Phy4d.Obj.prototype.generateGeom = function(data){
-	if(this.phyGeom instanceof Phy4d.Union){
-		return this.phyGeom.generateGeom(data);
-	}
 	var g = this.phyGeom.generateGeom(data);
+	g.position = this.getPosition();
+	g.rotation = this.getRotation();
+	if(this.phyGeom instanceof Phy4d.Union){
+		return g;
+	}
 	if(data.flow) g.flow = data.flow;
 	if(data.glow) g.glow = data.glow;
 	return g;
 }
 Phy4d.Obj.prototype.getlinearVelocity = function(worldP){
-	var localP = worldP.sub(this.getPosition(),false);
+	var localP = worldP.sub(this.getPosition(true),false);
 	return this.w.dual(false).cross(localP).sub().add(this.v);
 }
 Phy4d.Obj.prototype.setMass = function(mass){
-	if(mass === 0)mass = Infinity;
+	if(this.phyGeom instanceof Phy4d.Plane) mass = 0;
 	if(this.phyGeom.constructor == Phy4d.Union){
 		var num = this.phyGeom.objs.length;
-		if(!mass.length) mass = new Array(num).fill(mass/num);
+		mass = 0;
+		//if(!mass.length) mass = new Array(num).fill(mass/num);
 		var Is = [];
-		for(var o in this.phyGeom.objs){
-			var O = {mass:mass[o], phyGeom:this.phyGeom.objs[o]};
-			Is.push(Phy4d.Obj.prototype.getInertie.call(O));
+		for(var o of this.phyGeom.objs){
+			Is.push(o.getInertie());
+			mass += o.mass;
 		}
 		this.inertie = Is.reduce((a,b)=>a.add(b));
-		mass = mass.reduce((a,b)=>a+b);
 	}
+	if(mass === 0)mass = Infinity;
 	this.mass = mass;
 	this.invMass = 1/mass;
 	if(this.invMass>0 && this.phyGeom.constructor != Phy4d.Union) this.getInertie();
@@ -459,11 +441,11 @@ Phy4d.Collision = function(engine,obj1,obj2,n,d,p){
 	//obj1,obj2,Vseparation,depth,normal(from 1 to 2),point
 	this.engine = engine;
 	//find parent (union):
-	while(typeof obj1.mass=="object"){
-		obj1 = obj1.mass;
+	while(obj1.parent){
+		obj1 = obj1.parent.Obj;
 	}
-	while(typeof obj2.mass=="object"){
-		obj2 = obj2.mass;
+	while(obj2.parent){
+		obj2 = obj2.parent.Obj;
 	}
 	this.obj1 = obj1;
 	this.obj2 = obj2;
@@ -500,8 +482,8 @@ Phy4d.Collision.prototype._solve = function(){
 		var deltaV4 = this.n.mul(deltaVelocity,false).add(this.n.mul(this.Vsep,false).sub(this.Vrel));
 		var totalInvMass = obj1.invMass + obj2.invMass;
 		if(totalInvMass>0){
-			var relContactP1 = this.p.sub(this.obj1.getPosition(),false);
-			var relContactP2 = this.p.sub(this.obj2.getPosition(),false);
+			var relContactP1 = this.p.sub(this.obj1.getPosition(true),false);
+			var relContactP2 = this.p.sub(this.obj2.getPosition(true),false);
 			//relContactP2.z = 0;
 			//relContactP2.t = 0;
 			var angularComponent_x = new Vec4();
@@ -510,8 +492,8 @@ Phy4d.Collision.prototype._solve = function(){
 			var angularComponent_t = new Vec4();
 			
 			//var angularComponent = new Vec4();
-			var r1 = obj1.getRotation();
-			var r2 = obj2.getRotation();
+			var r1 = obj1.getRotation(true);
+			var r2 = obj2.getRotation(true);
 			if(r1 && obj1.invMass){
 				var M1 = r1[0].toMatL().mul(r1[1].toMatR());
 				var MW1 = M1.toMatBivec();
@@ -614,56 +596,57 @@ Phy4d.Collision.prototype._solve = function(){
 	if(this.d > 0){//solve penetration (separate 2 objs)
 		var totalInvMass = obj1.invMass + obj2.invMass;
 		if(totalInvMass>0){
-			if(r1){
+			var totalInvInertie = totalInvMass;
+			var r1 = obj1.getRotation(true);
+			var r2 = obj2.getRotation(true);
+			if(obj1.inertie){
+				var relContactP1 = this.p.sub(this.obj1.getPosition(),false);
 				if(!MW1) {
 					var MW1 = r1[0].toMatL().mul(r1[1].toMatR()).toMatBivec();
 					var MW1t = MW1.t(false);
 				}
-				var impulse = MW1t.mul(
+				var W1 = MW1t.mul(
 					obj1.inertie.invMul(
 						MW1.mul(relContactP1.cross(this.n),false)
 					),false
 				);
+				var angularInertie1 = W1.dual(false).cross(relContactP1).dot(this.n);
+				totalInvInertie += Math.abs(angularInertie1);
 			}
-			if(r2){
-				if(!MW2) MW2 = r2[0].toMatL().mul(r2[1].toMatR()).toMatBivec();
-				
+			if(obj2.inertie){
+				var relContactP2 = this.p.sub(this.obj2.getPosition(),false);
+				if(!MW2) {
+					var MW2 = r2[0].toMatL().mul(r2[1].toMatR()).toMatBivec();
+					var MW2t = MW2.t(false);
+				}
+				var W2 = MW2t.mul(
+					obj2.inertie.invMul(
+						MW2.mul(relContactP2.cross(this.n),false)
+					),false
+				);
+				var angularInertie2 = W2.dual(false).cross(relContactP2).dot(this.n);
+				totalInvInertie += Math.abs(angularInertie2);
 			}
 			
-			relContactP1.cross(this.n);
-			
-			
-			var di = impulse.len();
-			var r1 = obj1.getRotation();
-			var r2 = obj2.getRotation();
-			var dPerIMass = this.n.mul(this.d/totalInvMass,false);
-			var ratioP1 = 1;
-			if(r1){
-				var dw = Math.abs(dw1.dual(false).cross(relContactP1).dot(this.n));
-				var dv = di*obj1.invMass;
-				ratioP1 = dv/(dv+dw);
-				var ratioR1 = 1 - ratioP1;
-				//dv -> d*ratioP1; dw1 -> d*ratioR1
-				dw1.norm().mul(ratioR1*this.d/Math.abs(relContactP1.dot(this.n)));
-				var dW = dw1.expQ();
-				r1[0].set(dW[0].mul(r1[0],false));
-				r1[1].mul(dW[1]);
+			var dPerIMass = this.n.mul(this.d/totalInvInertie,false);
+			if(obj1.inertie){
+				W1.mul(this.d/totalInvInertie);
+				var l = W1.len();
+				var dr = W1.mul(Math.min(1,0.1/l)).expQ();
+				r1[0].set(dr[0].mul(r1[0],false).norm());
+				r1[1].set(r1[1].mul(dr[1]).norm());
 			}
-			var ratioP2 = 1;
-			if(r2){
-				var dw = Math.abs(dw2.dual(false).cross(relContactP1).dot(this.n));
-				var dv = di*obj2.invMass;
-				ratioP2 = dv/(dv+dw);
-				var ratioR2 = 1 - ratioP2;
-				dw2.norm().mul(-ratioR2*this.d/Math.abs(relContactP2.dot(this.n)));
-				var dW = dw2.expQ();
-				r2[0].set(dW[0].mul(r2[0],false));
-				r2[1].mul(dW[1]);
+			if(obj2.inertie){
+				W2.mul(this.d/totalInvInertie);
+				var l = W2.len();
+				var dr = W2.mul(-Math.min(1,0.1/l)).expQ();
+				r2[0].set(dr[0].mul(r2[0],false).norm());
+				r2[1].set(r2[1].mul(dr[1]).norm());
 			}
-			var p1 = obj1.getPosition();
-			var p2 = obj2.getPosition();
-			if(p1) p1.sub(dPerIMass.mul(obj1.invMass*ratioP1,false));
-			if(p2) p2.add(dPerIMass.mul(obj2.invMass*ratioP2));
+			var p1 = obj1.getPosition(true);
+			var p2 = obj2.getPosition(true);
+			if(p1) p1.sub(dPerIMass.mul(obj1.invMass,false));
+			if(p2) p2.add(dPerIMass.mul(obj2.invMass));
 			
 			
 		}
@@ -929,44 +912,52 @@ Phy4d.prototype.next = function (){
 Phy4d.prototype.detectCollision_Plane_Glome = function(planeO, glomeO){
 	var plane = planeO.phyGeom;
 	var glome = glomeO.phyGeom;
-	var d = glome.R - (glome.o.dot(plane.n) - plane.t);
+	var glome_o = glomeO.getPosition(true);
+	var d = glome.R - (glome_o.dot(plane.n) - plane.t);
 	if(d<0) return 0;
-	return new Phy4d.Collision(this,planeO, glomeO, plane.n, d, glome.o.sub(plane.n.mul(d/2 + glome.R,false),false));
+	return new Phy4d.Collision(this,planeO, glomeO, plane.n, d, glome_o.sub(plane.n.mul(d/2 + glome.R,false),false));
 }
 Phy4d.prototype.detectCollision_Glome_Glome = function(g1O, g2O){
 	var g1 = g1O.phyGeom;
 	var g2 = g2O.phyGeom;
 	var R = g1.R + g2.R;
-	var O1O2 = g2.o.sub(g1.o,false);
+	var g1_o = g1O.getPosition(true);
+	var g2_o = g2O.getPosition(true);
+	var O1O2 = g2_o.sub(g1_o,false);
 	var lO1O2 = O1O2.len(false);
 	var d = R*R - lO1O2;
 	if(d<0) return 0;
 	lO1O2 = Math.sqrt(lO1O2);
 	d = g1.R + g2.R - lO1O2;
-	return new Phy4d.Collision(this,g1O, g2O, O1O2.div(lO1O2), d, g1.o.add(O1O2.mul(d/2 + g1.R,false),false));
+	return new Phy4d.Collision(this,g1O, g2O, O1O2.div(lO1O2), d, g1_o.add(O1O2.mul(d/2 + g1.R,false),false));
 }
 Phy4d.prototype.detectCollision_Plane_Convex = function(planeO, convexO){
 	var plane = planeO.phyGeom;
 	var convex = convexO.phyGeom;
+	var convex_o = convexO.getPosition(true);
+	var convex_r = convexO.getRotation(true);
 	var list = [];
-	var offset = convex.o.dot(plane.n);
+	var offset = convex_o.dot(plane.n);
 	//n'(Rv + o) - t
 	//(R'n)'v + n'o - t
-	var n = convex.r[0].conj(false).mul(plane.n).mul(convex.r[1].conj(false));
+	var n = convex_r[0].conj(false).mul(plane.n).mul(convex_r[1].conj(false));
 	for(var v of convex.mesh.V){
 		var d = -(v.dot(n) + offset - plane.t);
 		if(d<0) continue;
 		list.push(new Phy4d.Collision(this,planeO, convexO, plane.n, d, 
-			convex.r[0].mul(v,false).mul(convex.r[1]).add(convex.o).sub(plane.n.mul(d/2,false),false)));
+			convex_r[0].mul(v,false).mul(convex_r[1]).add(convex_o).sub(plane.n.mul(d/2,false),false)));
 	}
 	if(list.length) return list;
 }
 Phy4d.prototype.detectCollision_Glome_Convex = function(glomeO, convexO){
 	var glome = glomeO.phyGeom;
 	var convex = convexO.phyGeom;
+	var glome_o = glomeO.getPosition(true);
+	var convex_o = convexO.getPosition(true);
+	var convex_r = convexO.getRotation(true);
 	var list = [];
-	//convert glome.o into convex's local coordinate to reduce sre
-	var gOlocal = convex.r[0].conj(false).mul(glome.o.sub(convex.o,false)).mul(convex.r[1].conj(false));
+	//convert glome_o into convex's local coordinate to reduce sre
+	var gOlocal = convex_r[0].conj(false).mul(glome_o.sub(convex_o,false)).mul(convex_r[1].conj(false));
 	var R2 = glome.R*glome.R;
 	
 	// resolve cell to glome
@@ -1008,9 +999,9 @@ Phy4d.prototype.detectCollision_Glome_Convex = function(glomeO, convexO){
 		var d = OV.len(false);
 		if(d>R2) continue;
 		d = glome.R - Math.sqrt(d);
-		var n = convex.r[0].mul(OV,false).mul(convex.r[1]).norm();
+		var n = convex_r[0].mul(OV,false).mul(convex_r[1]).norm();
 		list.push(new Phy4d.Collision(this,glomeO, convexO, n, d, 
-			glome.o.add(n.mul(glome.R-d/2,false),false)));
+			glome_o.add(n.mul(glome.R-d/2,false),false)));
 	}
 	if(list.length==1){
 		return list[0];
@@ -1032,9 +1023,9 @@ Phy4d.prototype.detectCollision_Glome_Convex = function(glomeO, convexO){
 		var d = N.len(false);
 		if(d>R2) continue;
 		d = glome.R - Math.sqrt(d);
-		var n = convex.r[0].mul(N,false).mul(convex.r[1]).norm();
+		var n = convex_r[0].mul(N,false).mul(convex_r[1]).norm();
 		edgeContact = new Phy4d.Collision(this,glomeO, convexO, n, d, 
-		glome.o.add(n.mul(glome.R-d/2,false),false));
+		glome_o.add(n.mul(glome.R-d/2,false),false));
 		//minD = d;
 		list.push(edgeContact);
 			
@@ -1075,39 +1066,43 @@ Phy4d.prototype.detectCollision_Glome_Convex = function(glomeO, convexO){
 		if(!isClip) continue;
 		
 		d = glome.R - d;
-		n = convex.r[0].mul(n,false).mul(convex.r[1]).norm();
+		n = convex_r[0].mul(n,false).mul(convex_r[1]).norm();
 		list.push(new Phy4d.Collision(this,glomeO, convexO, n, d, 
-			glome.o.add(n.mul(glome.R-d/2,false),false))
+			glome_o.add(n.mul(glome.R-d/2,false),false))
 		);
 	}
 	if(list.length==1){
 		return list[0];
 	}
 	var N = cellContacted.info.normal;
-	var n = convex.r[0].mul(N,false).mul(convex.r[1]).norm().sub();
+	var n = convex_r[0].mul(N,false).mul(convex_r[1]).norm().sub();
 	var Prel = N.mul(cellD/2 - glome.R,false);
 	var P = Prel.add(gOlocal,false);
 	for(var c of convex.mesh.C){
 		var d = - (P.dot(c.info.normal) - c.info.t);
 		if(d < 0) return 0;
 	}
-	return new Phy4d.Collision(this,glomeO, convexO, n, cellD, glome.o.add(n.mul(-cellD/2 + glome.R,false),false));
+	return new Phy4d.Collision(this,glomeO, convexO, n, cellD, glome_o.add(n.mul(-cellD/2 + glome.R,false),false));
 	
 }
 Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 	//return 0;
 	var c1 = c1O.phyGeom;
 	var c2 = c2O.phyGeom;
+	var c1_o = c1O.getPosition(true);
+	var c1_r = c1O.getRotation(true);
+	var c2_o = c2O.getPosition(true);
+	var c2_r = c2O.getRotation(true);
 	var list = [];
-	var wO1O2 = c2.o.sub(c1.o,false);
+	var wO1O2 = c2_o.sub(c1_o,false);
 	//o1->o2 o2 in o1's coordinate
-	var O1O2 = c1.r[0].conj(false).mul(wO1O2,false).mul(c1.r[1].conj(false));
+	var O1O2 = c1_r[0].conj(false).mul(wO1O2,false).mul(c1_r[1].conj(false));
 	//o2->o1  o1 in o2's coordinate
-	var O2O1 = c2.r[0].conj(false).mul(wO1O2,false).mul(c2.r[1].conj(false)).sub();
+	var O2O1 = c2_r[0].conj(false).mul(wO1O2,false).mul(c2_r[1].conj(false)).sub();
 	//convert c1.v into c2's local coordinate to reduce sre
 	var c2V1 = [];
-	var c2v1L = c2.r[0].conj(false).mul(c1.r[0]);
-	var c2v1R = c1.r[1].mul(c2.r[1].conj(false),false);
+	var c2v1L = c2_r[0].conj(false).mul(c1_r[0]);
+	var c2v1R = c1_r[1].mul(c2_r[1].conj(false),false);
 	
 	//c2'(c1(v1)c1+o1-o2)c2' = Lv1R + O2O1
 	
@@ -1116,8 +1111,8 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 	}
 	//convert c2.v into c1's local coordinate to reduce sre
 	var c1V2 = [];
-	var c1v2L = c1.r[0].conj(false).mul(c2.r[0]);
-	var c1v2R = c2.r[1].mul(c1.r[1].conj(false),false);
+	var c1v2L = c1_r[0].conj(false).mul(c2_r[0]);
+	var c1v2R = c2_r[1].mul(c1_r[1].conj(false),false);
 	for(var v2 of c2.mesh.V){
 		c1V2.push(c1v2L.mul(v2,false).mul(c1v2R).add(O1O2));
 	}
@@ -1155,8 +1150,8 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 				continue;
 			}
 			if(d<D){
-				var n = c1.r[0].mul(minCell1.info.normal,false).mul(c1.r[1]).norm().sub();
-				var worldv2 = c2.r[0].mul(c2.mesh.V[v2],false).mul(c2.r[1]).add(c2.o);
+				var n = c1_r[0].mul(minCell1.info.normal,false).mul(c1_r[1]).norm().sub();
+				var worldv2 = c2_r[0].mul(c2.mesh.V[v2],false).mul(c2_r[1]).add(c2_o);
 				list.push(
 					new Phy4d.Collision(this,c2O, c1O, n, d, worldv2.sub(n.mul(d/2,false),false))
 				);
@@ -1171,8 +1166,8 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 				continue;
 			}
 			if(d<D){
-				var n = c2.r[0].mul(minCell2.info.normal,false).mul(c2.r[1]).norm().sub();
-				var worldv1 = c1.r[0].mul(c1.mesh.V[v1],false).mul(c1.r[1]).add(c1.o);
+				var n = c2_r[0].mul(minCell2.info.normal,false).mul(c2_r[1]).norm().sub();
+				var worldv1 = c1_r[0].mul(c1.mesh.V[v1],false).mul(c1_r[1]).add(c1_o);
 				list.push(
 					new Phy4d.Collision(this,c1O, c2O, n, d, worldv1.sub(n.mul(d/2,false),false))
 				);
@@ -1245,8 +1240,8 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 					var Q2 = A.add(AB.mul(u,false),false).add(AC.mul(v,false));
 					var QQ = Q1.add(Q2,false).div(2);
 					var P = Q1.add(Q2,false).div(2);
-					n = c2.r[0].mul(n,false).mul(c2.r[1]);
-					faceContacted = new Phy4d.Collision(this,c1O, c2O, n, d, c2.r[0].mul(P,false).mul(c2.r[1]).add(c2.o),false);
+					n = c2_r[0].mul(n,false).mul(c2_r[1]);
+					faceContacted = new Phy4d.Collision(this,c1O, c2O, n, d, c2_r[0].mul(P,false).mul(c2_r[1]).add(c2_o),false);
 					
 				}
 				continue;
@@ -1263,12 +1258,14 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 Phy4d.prototype.detectCollision_Plane_Spheritorus = function(planeO, stO){
 	var plane = planeO.phyGeom;
 	var st = stO.phyGeom;
+	var st_o = stO.getPosition(true);
+	var st_r = stO.getRotation(true);
 	var R1 = st.R1;
 	var R2 = st.R2;
 	//plane: x.n-t==0
 	//coordinate of st: (rx+o).n-t==0   =>  x.(r'n) + o.n - t == 0
-	var offset = st.o.dot(plane.n);
-	var n = st.r[0].conj(false).mul(plane.n).mul(st.r[1].conj(false));
+	var offset = st_o.dot(plane.n);
+	var n = st_r[0].conj(false).mul(plane.n).mul(st_r[1].conj(false));
 	var Rc = new Vec4(n.x,0,0,n.t);
 	var lenRc = Rc.len();
 	if(lenRc < 0.0001){
@@ -1277,19 +1274,19 @@ Phy4d.prototype.detectCollision_Plane_Spheritorus = function(planeO, stO){
 			return [
 				new Phy4d.Collision(
 					this, planeO, stO, plane.n, d, 
-					st.r[0].mul(new Vec4(R2,0,0,0),false).mul(st.r[1]).add(st.o).sub(plane.n.mul(R1-d/2,false),false)
+					st_r[0].mul(new Vec4(R2,0,0,0),false).mul(st_r[1]).add(st_o).sub(plane.n.mul(R1-d/2,false),false)
 				),
 				new Phy4d.Collision(
 					this, planeO, stO, plane.n, d, 
-					st.r[0].mul(new Vec4(-R2,0,0,0),false).mul(st.r[1]).add(st.o).sub(plane.n.mul(R1-d/2,false),false)
+					st_r[0].mul(new Vec4(-R2,0,0,0),false).mul(st_r[1]).add(st_o).sub(plane.n.mul(R1-d/2,false),false)
 				),
 				new Phy4d.Collision(
 					this, planeO, stO, plane.n, d, 
-					st.r[0].mul(new Vec4(0,0,-R2,0),false).mul(st.r[1]).add(st.o).sub(plane.n.mul(R1-d/2,false),false)
+					st_r[0].mul(new Vec4(0,0,-R2,0),false).mul(st_r[1]).add(st_o).sub(plane.n.mul(R1-d/2,false),false)
 				),
 				new Phy4d.Collision(
 					this, planeO, stO, plane.n, d, 
-					st.r[0].mul(new Vec4(0,0,R2,0),false).mul(st.r[1]).add(st.o).sub(plane.n.mul(R1-d/2,false),false)
+					st_r[0].mul(new Vec4(0,0,R2,0),false).mul(st_r[1]).add(st_o).sub(plane.n.mul(R1-d/2,false),false)
 				)
 			];
 		}else{
@@ -1303,17 +1300,19 @@ Phy4d.prototype.detectCollision_Plane_Spheritorus = function(planeO, stO){
 	var minN = Rc.sub().sub(n.mul(R1,false));
 	var d = -(minN.dot(n) + offset - plane.t);
 	if(d<0) return 0;
-	return new Phy4d.Collision(this,planeO, stO, plane.n, d, st.r[0].mul(minN,false).mul(st.r[1]).add(st.o).add(plane.n.mul(d/2,false),false));
+	return new Phy4d.Collision(this,planeO, stO, plane.n, d, st_r[0].mul(minN,false).mul(st_r[1]).add(st_o).add(plane.n.mul(d/2,false),false));
 }
 Phy4d.prototype.detectCollision_Plane_Torisphere = function(planeO, tsO){
 	var plane = planeO.phyGeom;
 	var ts = tsO.phyGeom;
+	var ts_o = tsO.getPosition(true);
+	var ts_r = tsO.getRotation(true);
 	var R1 = ts.R1;
 	var R2 = ts.R2;
 	//plane: x.n-t==0
 	//coordinate of ts: (rx+o).n-t==0   =>  x.(r'n) + o.n - t == 0
-	var offset = ts.o.dot(plane.n);
-	var n = ts.r[0].conj(false).mul(plane.n).mul(ts.r[1].conj(false));
+	var offset = ts_o.dot(plane.n);
+	var n = ts_r[0].conj(false).mul(plane.n).mul(ts_r[1].conj(false));
 	var Rc = new Vec4(n.x,n.y,n.z,0);
 	var lenRc = Rc.len();
 	if(lenRc < 0.0001){
@@ -1322,27 +1321,27 @@ Phy4d.prototype.detectCollision_Plane_Torisphere = function(planeO, tsO){
 			return [
 				new Phy4d.Collision(
 					this, planeO, tsO, plane.n, d, 
-					ts.r[0].mul(new Vec4(R2,0,0,0),false).mul(ts.r[1]).add(ts.o).sub(plane.n.mul(R1-d/2,false),false)
+					ts_r[0].mul(new Vec4(R2,0,0,0),false).mul(ts_r[1]).add(ts_o).sub(plane.n.mul(R1-d/2,false),false)
 				),
 				new Phy4d.Collision(
 					this, planeO, tsO, plane.n, d, 
-					ts.r[0].mul(new Vec4(-R2,0,0,0),false).mul(ts.r[1]).add(ts.o).sub(plane.n.mul(R1-d/2,false),false)
+					ts_r[0].mul(new Vec4(-R2,0,0,0),false).mul(ts_r[1]).add(ts_o).sub(plane.n.mul(R1-d/2,false),false)
 				),
 				new Phy4d.Collision(
 					this, planeO, tsO, plane.n, d, 
-					ts.r[0].mul(new Vec4(0,0,-R2,0),false).mul(ts.r[1]).add(ts.o).sub(plane.n.mul(R1-d/2,false),false)
+					ts_r[0].mul(new Vec4(0,0,-R2,0),false).mul(ts_r[1]).add(ts_o).sub(plane.n.mul(R1-d/2,false),false)
 				),
 				new Phy4d.Collision(
 					this, planeO, tsO, plane.n, d, 
-					ts.r[0].mul(new Vec4(0,0,R2,0),false).mul(ts.r[1]).add(ts.o).sub(plane.n.mul(R1-d/2,false),false)
+					ts_r[0].mul(new Vec4(0,0,R2,0),false).mul(ts_r[1]).add(ts_o).sub(plane.n.mul(R1-d/2,false),false)
 				),
 				new Phy4d.Collision(
 					this, planeO, tsO, plane.n, d, 
-					ts.r[0].mul(new Vec4(0,-R2,0,0),false).mul(ts.r[1]).add(ts.o).sub(plane.n.mul(R1-d/2,false),false)
+					ts_r[0].mul(new Vec4(0,-R2,0,0),false).mul(ts_r[1]).add(ts_o).sub(plane.n.mul(R1-d/2,false),false)
 				),
 				new Phy4d.Collision(
 					this, planeO, tsO, plane.n, d, 
-					ts.r[0].mul(new Vec4(0,R2,0,0),false).mul(ts.r[1]).add(ts.o).sub(plane.n.mul(R1-d/2,false),false)
+					ts_r[0].mul(new Vec4(0,R2,0,0),false).mul(ts_r[1]).add(ts_o).sub(plane.n.mul(R1-d/2,false),false)
 				)
 				
 			];
@@ -1355,18 +1354,20 @@ Phy4d.prototype.detectCollision_Plane_Torisphere = function(planeO, tsO){
 	var d = -(minN.dot(n) + offset - plane.t);
 	if(d<0) return 0;
 	
-	return new Phy4d.Collision(this,planeO, tsO, plane.n, d, ts.r[0].mul(minN,false).mul(ts.r[1]).add(ts.o).add(plane.n.mul(d/2,false),false));
+	return new Phy4d.Collision(this,planeO, tsO, plane.n, d, ts_r[0].mul(minN,false).mul(ts_r[1]).add(ts_o).add(plane.n.mul(d/2,false),false));
 }
 Phy4d.prototype.detectCollision_Plane_Tiger = function(planeO, tigerO){
 	var plane = planeO.phyGeom;
 	var tiger = tigerO.phyGeom;
+	var tiger_o = tigerO.getPosition(true);
+	var tiger_r = tigerO.getRotation(true);
 	var R1 = tiger.R1;
 	var R2 = tiger.R2;
 	var R = tiger.R;
 	//plane: x.n-t==0
 	//coordinate of tiger: (rx+o).n-t==0   =>  x.(r'n) + o.n - t == 0
-	var offset = tiger.o.dot(plane.n);
-	var n = tiger.r[0].conj(false).mul(plane.n).mul(tiger.r[1].conj(false));
+	var offset = tiger_o.dot(plane.n);
+	var n = tiger_r[0].conj(false).mul(plane.n).mul(tiger_r[1].conj(false));
 	var Rc1 = new Vec4(n.x,n.y,0,0);
 	var lenRc1 = Rc1.len();
 	if(lenRc1 < 0.5){
@@ -1389,15 +1390,18 @@ Phy4d.prototype.detectCollision_Plane_Tiger = function(planeO, tigerO){
 	var d = -(minN.dot(n) + offset - plane.t);
 	if(d<0) return 0;
 	
-	return new Phy4d.Collision(this,planeO, tigerO, plane.n, d, tiger.r[0].mul(minN,false).mul(tiger.r[1]).add(tiger.o).add(plane.n.mul(d/2,false),false));
+	return new Phy4d.Collision(this,planeO, tigerO, plane.n, d, tiger_r[0].mul(minN,false).mul(tiger_r[1]).add(tiger_o).add(plane.n.mul(d/2,false),false));
 }
 Phy4d.prototype.detectCollision_Glome_Spheritorus = function(glomeO, stO){
 	var glome = glomeO.phyGeom;
+	var glome_o = glomeO.getPosition(true);
 	var st = stO.phyGeom;
+	var st_o = stO.getPosition(true);
+	var st_r = stO.getRotation(true);
 	var R1 = st.R1;
 	var R2 = st.R2;
-	//convert glome.o to st's coordinate
-	var gOlocal = st.r[0].conj(false).mul(glome.o.sub(st.o,false)).mul(st.r[1].conj(false));
+	//convert glome_o to st's coordinate
+	var gOlocal = st_r[0].conj(false).mul(glome_o.sub(st_o,false)).mul(st_r[1].conj(false));
 	var gRR_R1R1 = (glome.R+R1)*(glome.R+R1);
 	var Oc = new Vec4(gOlocal.x,0,0,gOlocal.t);
 	var lenRc = Oc.len();
@@ -1410,16 +1414,19 @@ Phy4d.prototype.detectCollision_Glome_Spheritorus = function(glomeO, stO){
 	var lenN = n.len(false);
 	if(lenN>gRR_R1R1)return 0;
 	var d = glome.R + R1 - Math.sqrt(lenN);
-	n = st.r[0].mul(n,false).mul(st.r[1]).norm();
-	return new Phy4d.Collision(this,glomeO, stO, n, d, glome.o.add(n.mul(-d/2 + glome.R,false),false));
+	n = st_r[0].mul(n,false).mul(st_r[1]).norm();
+	return new Phy4d.Collision(this,glomeO, stO, n, d, glome_o.add(n.mul(-d/2 + glome.R,false),false));
 }
 Phy4d.prototype.detectCollision_Glome_Torisphere = function(glomeO, tsO){
 	var glome = glomeO.phyGeom;
+	var glome_o = glomeO.getPosition(true);
 	var ts = tsO.phyGeom;
+	var ts_o = tsO.getPosition(true);
+	var ts_r = tsO.getRotation(true);
 	var R1 = ts.R1;
 	var R2 = ts.R2;
-	//convert glome.o to ts's coordinate
-	var gOlocal = ts.r[0].conj(false).mul(glome.o.sub(ts.o,false)).mul(ts.r[1].conj(false));
+	//convert glome_o to ts's coordinate
+	var gOlocal = ts_r[0].conj(false).mul(glome_o.sub(ts_o,false)).mul(ts_r[1].conj(false));
 	var gRR_R1R1 = (glome.R+R1)*(glome.R+R1);
 	var Oc = new Vec4(gOlocal.x,gOlocal.y,gOlocal.z,0);
 	var lenRc = Oc.len();
@@ -1432,17 +1439,20 @@ Phy4d.prototype.detectCollision_Glome_Torisphere = function(glomeO, tsO){
 	var lenN = n.len(false);
 	if(lenN>gRR_R1R1)return 0;
 	var d = glome.R + R1 - Math.sqrt(lenN);
-	n = ts.r[0].mul(n,false).mul(ts.r[1]).norm();
-	return new Phy4d.Collision(this,glomeO, tsO, n, d, glome.o.add(n.mul(-d/2 + glome.R,false),false));
+	n = ts_r[0].mul(n,false).mul(ts_r[1]).norm();
+	return new Phy4d.Collision(this,glomeO, tsO, n, d, glome_o.add(n.mul(-d/2 + glome.R,false),false));
 }
 Phy4d.prototype.detectCollision_Glome_Tiger = function(glomeO, tigerO){
 	var glome = glomeO.phyGeom;
 	var tiger = tigerO.phyGeom;
+	var tiger_o = tigerO.getPosition(true);
+	var tiger_r = tigerO.getRotation(true);
+	var glome_o = glomeO.getPosition(true);
 	var R = tiger.R;
 	var R1 = tiger.R1;
 	var R2 = tiger.R2;
-	//convert glome.o to tiger's coordinate
-	var gOlocal = tiger.r[0].conj(false).mul(glome.o.sub(tiger.o,false)).mul(tiger.r[1].conj(false));
+	//convert glome_o to tiger's coordinate
+	var gOlocal = tiger_r[0].conj(false).mul(glome_o.sub(tiger_o,false)).mul(tiger_r[1].conj(false));
 	var gRR_R1R1 = (glome.R+R)*(glome.R+R);
 	var Rc1 = new Vec4(gOlocal.x,gOlocal.y,0,0);
 	var lenRc1 = Rc1.len();
@@ -1464,22 +1474,26 @@ Phy4d.prototype.detectCollision_Glome_Tiger = function(glomeO, tigerO){
 	var lenN = n.len(false);
 	if(lenN>gRR_R1R1)return 0;
 	var d = glome.R + R - Math.sqrt(lenN);
-	n = tiger.r[0].mul(n,false).mul(tiger.r[1]).norm();
-	return new Phy4d.Collision(this,glomeO, tigerO, n, d, glome.o.add(n.mul(-d/2 + glome.R,false),false));
+	n = tiger_r[0].mul(n,false).mul(tiger_r[1]).norm();
+	return new Phy4d.Collision(this,glomeO, tigerO, n, d, glome_o.add(n.mul(-d/2 + glome.R,false),false));
 }
 Phy4d.prototype.detectCollision_Spheritorus_Spheritorus = function(stO1, stO2){
 	var st1 = stO1.phyGeom;
 	var st2 = stO2.phyGeom;
+	var st1_o = stO1.getPosition(true);
+	var st1_r = stO1.getRotation(true);
+	var st2_o = stO2.getPosition(true);
+	var st2_r = stO2.getRotation(true);
 	var list = [];
 	var s = Math.random()*Math.PI*2, t = Math.random()*Math.PI*2;
 	//convert st1 to st2's coordinate
-	var O1local = st2.r[0].conj(false).mul(st1.o.sub(st2.o,false)).mul(st2.r[1].conj(false));
-	var convertL2 = st2.r[0].conj(false).mul(st1.r[0]);
-	var convertR2 = st1.r[1].mul(st2.r[1].conj(false),false);
+	var O1local = st2_r[0].conj(false).mul(st1_o.sub(st2_o,false)).mul(st2_r[1].conj(false));
+	var convertL2 = st2_r[0].conj(false).mul(st1_r[0]);
+	var convertR2 = st1_r[1].mul(st2_r[1].conj(false),false);
 	//convert st2 to st1's coordinate
-	var O2local = st1.r[0].conj(false).mul(st2.o.sub(st1.o,false)).mul(st1.r[1].conj(false));
-	var convertL1 = st1.r[0].conj(false).mul(st2.r[0]);
-	var convertR1 = st2.r[1].mul(st1.r[1].conj(false),false);
+	var O2local = st1_r[0].conj(false).mul(st2_o.sub(st1_o,false)).mul(st1_r[1].conj(false));
+	var convertL1 = st1_r[0].conj(false).mul(st2_r[0]);
+	var convertR1 = st2_r[1].mul(st1_r[1].conj(false),false);
 	var maxIterations = 50;
 	var Rmax = st2.R1+st2.R1+st2.R2+st1.R2;//随机选点，反正都能收敛
 	var P = new Vec4(Math.sin(s)*Rmax,Math.cos(s)*Rmax,Math.sin(t)*Rmax,0);
@@ -1508,25 +1522,31 @@ Phy4d.prototype.detectCollision_Spheritorus_Spheritorus = function(stO1, stO2){
 		}
 	}
 	coord = coord==st2?st1:st2;//循环结束时多倒了一次
+	var coord_r = coord.Obj.getRotation(true);
+	var coord_o = coord.Obj.getPosition(true);
 	var lenN = n.len();
 	var d = st2.R1 + st1.R1 - lenN;
 	if(d<0) return 0;
 	n.div(lenN);
-	n = coord.r[0].mul(n,false).mul(coord.r[1]);
-	return (new Phy4d.Collision(this, coord==st2?stO1:stO2, coord==st1?stO1:stO2, n, d, coord.r[0].mul(Rc,false).mul(coord.r[1]).add(coord.o).sub(n.mul(coord.R1-d/2,false),false)));
+	n = coord_r[0].mul(n,false).mul(coord_r[1]);
+	return (new Phy4d.Collision(this, coord==st2?stO1:stO2, coord==st1?stO1:stO2, n, d, coord_r[0].mul(Rc,false).mul(coord_r[1]).add(coord_o).sub(n.mul(coord.R1-d/2,false),false)));
 }
 Phy4d.prototype.detectCollision_Spheritorus_Torisphere = function(stO, tsO){
 	var st = stO.phyGeom;
 	var ts = tsO.phyGeom;
+	var st_o = stO.getPosition(true);
+	var st_r = stO.getRotation(true);
+	var ts_o = tsO.getPosition(true);
+	var ts_r = tsO.getRotation(true);
 	var list = [];
 	var R11 = st.R1;
 	var R12 = st.R2;
 	var R21 = ts.R1;
 	var R22 = ts.R2;
 	//convert stO to tsO's coordinate
-	var O1local = ts.r[0].conj(false).mul(st.o.sub(ts.o,false)).mul(ts.r[1].conj(false));
-	var convertL = ts.r[0].conj(false).mul(st.r[0]);
-	var convertR = st.r[1].mul(ts.r[1].conj(false),false);
+	var O1local = ts_r[0].conj(false).mul(st_o.sub(ts_o,false)).mul(ts_r[1].conj(false));
+	var convertL = ts_r[0].conj(false).mul(st_r[0]);
+	var convertR = st_r[1].mul(ts_r[1].conj(false),false);
 	var X = convertL.mul(new Vec4(R12,0,0,0),false).mul(convertR);
 	var T = convertL.mul(new Vec4(0,0,0,R12),false).mul(convertR);
 	//equation for st in ts's coord:  |O1local + X cos s + T sin s|<st.R1
@@ -1568,8 +1588,8 @@ Phy4d.prototype.detectCollision_Spheritorus_Torisphere = function(stO, tsO){
 				cos = ncos;
 				continue;
 			}
-			n = ts.r[0].mul(n,false).mul(ts.r[1]);
-			list.push(new Phy4d.Collision(this, stO, tsO, n, d+0.002, ts.r[0].mul(Oc,false).mul(ts.r[1]).add(ts.o).sub(n.mul(R21-d/2,false),false)));
+			n = ts_r[0].mul(n,false).mul(ts_r[1]);
+			list.push(new Phy4d.Collision(this, stO, tsO, n, d+0.002, ts_r[0].mul(Oc,false).mul(ts_r[1]).add(ts_o).sub(n.mul(R21-d/2,false),false)));
 			found = true;
 			break;
 		}
@@ -1612,8 +1632,8 @@ Phy4d.prototype.detectCollision_Spheritorus_Torisphere = function(stO, tsO){
 				cos = ncos;
 				continue;
 			}
-			n = ts.r[0].mul(n,false).mul(ts.r[1]);
-			list.push(new Phy4d.Collision(this, stO, tsO, n, d+0.002, ts.r[0].mul(Oc,false).mul(ts.r[1]).add(ts.o).sub(n.mul(R21-d/2,false),false)));
+			n = ts_r[0].mul(n,false).mul(ts_r[1]);
+			list.push(new Phy4d.Collision(this, stO, tsO, n, d+0.002, ts_r[0].mul(Oc,false).mul(ts_r[1]).add(ts_o).sub(n.mul(R21-d/2,false),false)));
 			found = true;
 			break;
 		}
@@ -1628,6 +1648,10 @@ Phy4d.prototype.detectCollision_Spheritorus_Torisphere = function(stO, tsO){
 Phy4d.prototype.detectCollision_Spheritorus_Tiger = function(stO, tigerO){
 	var st = stO.phyGeom;
 	var tiger = tigerO.phyGeom;
+	var st_o = stO.getPosition(true);
+	var st_r = stO.getRotation(true);
+	var tiger_o = tigerO.getPosition(true);
+	var tiger_r = tigerO.getRotation(true);
 	var list = [];
 	var R11 = st.R1;
 	var R12 = st.R2;
@@ -1635,9 +1659,9 @@ Phy4d.prototype.detectCollision_Spheritorus_Tiger = function(stO, tigerO){
 	var R2 = tiger.R2;
 	var R = tiger.R;
 	//convert stO to tsO's coordinate
-	var O1local = tiger.r[0].conj(false).mul(st.o.sub(tiger.o,false)).mul(tiger.r[1].conj(false));
-	var convertL = tiger.r[0].conj(false).mul(st.r[0]);
-	var convertR = st.r[1].mul(tiger.r[1].conj(false),false);
+	var O1local = tiger_r[0].conj(false).mul(st_o.sub(tiger_o,false)).mul(tiger_r[1].conj(false));
+	var convertL = tiger_r[0].conj(false).mul(st_r[0]);
+	var convertR = st_r[1].mul(tiger_r[1].conj(false),false);
 	var X = convertL.mul(new Vec4(R12,0,0,0),false).mul(convertR);
 	var T = convertL.mul(new Vec4(0,0,0,R12),false).mul(convertR);
 	//equation for st in tiger's coord:  |O1local + X cos s + T sin s|<st.R1
@@ -1688,8 +1712,8 @@ Phy4d.prototype.detectCollision_Spheritorus_Tiger = function(stO, tigerO){
 				cos = ncos;
 				continue;
 			}
-			n = tiger.r[0].mul(n,false).mul(tiger.r[1]);
-			list.push(new Phy4d.Collision(this, stO, tigerO, n, d+0.002, tiger.r[0].mul(Rc,false).mul(tiger.r[1]).add(tiger.o).sub(n.mul(R-d/2,false),false)));
+			n = tiger_r[0].mul(n,false).mul(tiger_r[1]);
+			list.push(new Phy4d.Collision(this, stO, tigerO, n, d+0.002, tiger_r[0].mul(Rc,false).mul(tiger_r[1]).add(tiger_o).sub(n.mul(R-d/2,false),false)));
 			found = true;
 			break;
 		}
@@ -1741,8 +1765,8 @@ Phy4d.prototype.detectCollision_Spheritorus_Tiger = function(stO, tigerO){
 				cos = ncos;
 				continue;
 			}
-			n = tiger.r[0].mul(n,false).mul(tiger.r[1]);
-			list.push(new Phy4d.Collision(this, stO, tigerO, n, d+0.002, tiger.r[0].mul(Rc,false).mul(tiger.r[1]).add(tiger.o).sub(n.mul(R-d/2,false),false)));
+			n = tiger_r[0].mul(n,false).mul(tiger_r[1]);
+			list.push(new Phy4d.Collision(this, stO, tigerO, n, d+0.002, tiger_r[0].mul(Rc,false).mul(tiger_r[1]).add(tiger_o).sub(n.mul(R-d/2,false),false)));
 			found = true;
 			break;
 		}
@@ -1757,16 +1781,20 @@ Phy4d.prototype.detectCollision_Spheritorus_Tiger = function(stO, tigerO){
 Phy4d.prototype.detectCollision_Torisphere_Tiger = function(tsO, tigerO){
 	var ts = tsO.phyGeom;
 	var ti = tigerO.phyGeom;
+	var ts_o = tsO.getPosition(true);
+	var ts_r = tsO.getRotation(true);
+	var ti_o = tigerO.getPosition(true);
+	var ti_r = tigerO.getRotation(true);
 	var list = [];
 	var s = Math.random()*Math.PI*2, t = Math.random()*Math.PI*2;
 	//convert ts to ti's coordinate
-	var O1local = ti.r[0].conj(false).mul(ts.o.sub(ti.o,false)).mul(ti.r[1].conj(false));
-	var convertL2 = ti.r[0].conj(false).mul(ts.r[0]);
-	var convertR2 = ts.r[1].mul(ti.r[1].conj(false),false);
+	var O1local = ti_r[0].conj(false).mul(ts_o.sub(ti_o,false)).mul(ti_r[1].conj(false));
+	var convertL2 = ti_r[0].conj(false).mul(ts_r[0]);
+	var convertR2 = ts_r[1].mul(ti_r[1].conj(false),false);
 	//convert ti to ts's coordinate
-	var O2local = ts.r[0].conj(false).mul(ti.o.sub(ts.o,false)).mul(ts.r[1].conj(false));
-	var convertL1 = ts.r[0].conj(false).mul(ti.r[0]);
-	var convertR1 = ti.r[1].mul(ts.r[1].conj(false),false);
+	var O2local = ts_r[0].conj(false).mul(ti_o.sub(ts_o,false)).mul(ts_r[1].conj(false));
+	var convertL1 = ts_r[0].conj(false).mul(ti_r[0]);
+	var convertR1 = ti_r[1].mul(ts_r[1].conj(false),false);
 	var maxIterations = 20;
 	var Rmax = ti.R1+ti.R+ti.R2+ts.R1;//随机选点，反正都能收敛
 	var P = new Vec4(Math.sin(s)*Rmax,Math.cos(s)*Rmax,Math.sin(t)*Rmax,Math.cos(t)*Rmax);
@@ -1817,26 +1845,33 @@ Phy4d.prototype.detectCollision_Torisphere_Tiger = function(tsO, tigerO){
 		}
 	}
 	coord = coord==ti?ts:ti;//循环结束时多倒了一次
+	var coord_r = coord.Obj.getRotation(true);
+	var coord_o = coord.Obj.getPosition(true);
 	var lenN = n.len();
 	var d = ti.R + ts.R1 - lenN;
 	if(d<0) return 0;
 	n.div(lenN);
-	n = coord.r[0].mul(n,false).mul(coord.r[1]);
-	return (new Phy4d.Collision(this, coord==ti?tsO:tigerO, coord==ts?tsO:tigerO, n, d+0.01, coord.r[0].mul(Rc,false).mul(coord.r[1]).add(coord.o).sub(n.mul((coord.R||coord.R1)-d/2,false),false)));
+	n = coord_r[0].mul(n,false).mul(coord_r[1]);
+	return (new Phy4d.Collision(this, coord==ti?tsO:tigerO, coord==ts?tsO:tigerO, n, d+0.01, coord_r[0].mul(Rc,false).mul(coord_r[1]).add(coord_o).sub(n.mul((coord.R||coord.R1)-d/2,false),false)));
 }
 Phy4d.prototype.detectCollision_Tiger_Tiger = function(t1O, t2O){
 	var t1 = t1O.phyGeom;
 	var t2 = t2O.phyGeom;
+	var t1_o = t1O.getPosition(true);
+	var t1_r = t1O.getRotation(true);
+	var t2_o = t2O.getPosition(true);
+	var t2_r = t2O.getRotation(true);
+
 	var list = [];
 	var s = Math.random()*Math.PI*2, t = Math.random()*Math.PI*2;
 	//convert t1 to t2's coordinate
-	var O1local = t2.r[0].conj(false).mul(t1.o.sub(t2.o,false)).mul(t2.r[1].conj(false));
-	var convertL2 = t2.r[0].conj(false).mul(t1.r[0]);
-	var convertR2 = t1.r[1].mul(t2.r[1].conj(false),false);
+	var O1local = t2_r[0].conj(false).mul(t1_o.sub(t2_o,false)).mul(t2_r[1].conj(false));
+	var convertL2 = t2_r[0].conj(false).mul(t1_r[0]);
+	var convertR2 = t1_r[1].mul(t2_r[1].conj(false),false);
 	//convert t2 to t1's coordinate
-	var O2local = t1.r[0].conj(false).mul(t2.o.sub(t1.o,false)).mul(t1.r[1].conj(false));
-	var convertL1 = t1.r[0].conj(false).mul(t2.r[0]);
-	var convertR1 = t2.r[1].mul(t1.r[1].conj(false),false);
+	var O2local = t1_r[0].conj(false).mul(t2_o.sub(t1_o,false)).mul(t1_r[1].conj(false));
+	var convertL1 = t1_r[0].conj(false).mul(t2_r[0]);
+	var convertR1 = t2_r[1].mul(t1_r[1].conj(false),false);
 	var maxIterations = 20;
 	var Rmax = t2.R1+t2.R+t2.R2+t1.R;//随机选点，反正都能收敛
 	var P = new Vec4(Math.sin(s)*Rmax,Math.cos(s)*Rmax,Math.sin(t)*Rmax,Math.cos(t)*Rmax);
@@ -1872,27 +1907,33 @@ Phy4d.prototype.detectCollision_Tiger_Tiger = function(t1O, t2O){
 		}
 	}
 	coord = coord==t2?t1:t2;//循环结束时多倒了一次
+	var coord_r = coord.Obj.getRotation(true);
+	var coord_o = coord.Obj.getPosition(true);
 	var lenN = n.len();
 	var d = t2.R + t1.R - lenN;
 	if(d<0) return 0;
 	n.div(lenN);
-	n = coord.r[0].mul(n,false).mul(coord.r[1]);
-	return (new Phy4d.Collision(this, coord==t2?t1O:t2O, coord==t1?t1O:t2O, n, d+0.01, coord.r[0].mul(Rc,false).mul(coord.r[1]).add(coord.o).sub(n.mul(coord.R-d/2,false),false)));
+	n = coord_r[0].mul(n,false).mul(coord_r[1]);
+	return (new Phy4d.Collision(this, coord==t2?t1O:t2O, coord==t1?t1O:t2O, n, d+0.01, coord_r[0].mul(Rc,false).mul(coord_r[1]).add(coord_o).sub(n.mul(coord.R-d/2,false),false)));
 }
 
 Phy4d.prototype.detectCollision_Torisphere_Torisphere = function(t1O, t2O){
 	var t1 = t1O.phyGeom;
 	var t2 = t2O.phyGeom;
+	var t1_o = t1O.getPosition(true);
+	var t1_r = t1O.getRotation(true);
+	var t2_o = t2O.getPosition(true);
+	var t2_r = t2O.getRotation(true);
 	var list = [];
 	var s = Math.random()*Math.PI*2, t = Math.random()*Math.PI*2;
 	//convert t1 to t2's coordinate
-	var O1local = t2.r[0].conj(false).mul(t1.o.sub(t2.o,false)).mul(t2.r[1].conj(false));
-	var convertL2 = t2.r[0].conj(false).mul(t1.r[0]);
-	var convertR2 = t1.r[1].mul(t2.r[1].conj(false),false);
+	var O1local = t2_r[0].conj(false).mul(t1_o.sub(t2_o,false)).mul(t2_r[1].conj(false));
+	var convertL2 = t2_r[0].conj(false).mul(t1_r[0]);
+	var convertR2 = t1_r[1].mul(t2_r[1].conj(false),false);
 	//convert t2 to t1's coordinate
-	var O2local = t1.r[0].conj(false).mul(t2.o.sub(t1.o,false)).mul(t1.r[1].conj(false));
-	var convertL1 = t1.r[0].conj(false).mul(t2.r[0]);
-	var convertR1 = t2.r[1].mul(t1.r[1].conj(false),false);
+	var O2local = t1_r[0].conj(false).mul(t2_o.sub(t1_o,false)).mul(t1_r[1].conj(false));
+	var convertL1 = t1_r[0].conj(false).mul(t2_r[0]);
+	var convertR1 = t2_r[1].mul(t1_r[1].conj(false),false);
 	var maxIterations = 50;
 	var Rmax = t2.R1+t2.R1+t2.R2+t1.R2;//随机选点，反正都能收敛
 	var P = new Vec4(Math.sin(s)*Rmax,Math.cos(s)*Rmax,Math.sin(t)*Rmax,0);
@@ -1922,12 +1963,14 @@ Phy4d.prototype.detectCollision_Torisphere_Torisphere = function(t1O, t2O){
 		}
 	}
 	coord = coord==t2?t1:t2;//循环结束时多倒了一次
+	var coord_r = coord.Obj.getRotation(true);
+	var coord_o = coord.Obj.getPosition(true);
 	var lenN = n.len();
 	var d = t2.R1 + t1.R1 - lenN;
 	if(d<0) return 0;
 	n.div(lenN);
-	n = coord.r[0].mul(n,false).mul(coord.r[1]);
-	return (new Phy4d.Collision(this, coord==t2?t1O:t2O, coord==t1?t1O:t2O, n, d, coord.r[0].mul(Rc,false).mul(coord.r[1]).add(coord.o).sub(n.mul(coord.R1-d/2,false),false)));
+	n = coord_r[0].mul(n,false).mul(coord_r[1]);
+	return (new Phy4d.Collision(this, coord==t2?t1O:t2O, coord==t1?t1O:t2O, n, d, coord_r[0].mul(Rc,false).mul(coord_r[1]).add(coord_o).sub(n.mul(coord.R1-d/2,false),false)));
 }
 	
 Phy4d.prototype._projectConvex = function(cOwV,axis,flag){
@@ -1962,6 +2005,7 @@ Phy4d.PointConstrain = function(obj1, point1, obj2, point2, maxDistance ,breakab
 	this.restitution = 0.5; //for maxDistance > 0
 	this.enable = true;
 }
+
 Phy4d.PointConstrain.prototype._detect = function(){
 	var p1,p2,r1,r2;
 	var obj1 = this.obj1;
@@ -2003,6 +2047,7 @@ Phy4d.PointConstrain.prototype._detect = function(){
 	this.worldP2 = worldP2;
 	return this;
 }
+
 Phy4d.PointConstrain.prototype._solve = function(){
 	var obj1 = this.obj1;
 	var obj2 = this.obj2;
@@ -2019,7 +2064,7 @@ Phy4d.PointConstrain.prototype._solve = function(){
 		var r1 = obj1&&obj1.getRotation();
 		var r2 = obj2&&obj2.getRotation();
 		if(r1){
-			var relContactP1 = this.worldP1.sub(this.obj1.getPosition(),false);
+			var relContactP1 = this.worldP1.sub(this.obj1.getPosition(true),false);
 			var M1 = r1[0].toMatL().mul(r1[1].toMatR());
 			var MW1 = M1.toMatBivec();
 			var MW1t = MW1.t(false);
@@ -2051,7 +2096,7 @@ Phy4d.PointConstrain.prototype._solve = function(){
 			
 		}
 		if(r2){
-			var relContactP2 = this.worldP2.sub(this.obj2.getPosition(),false);
+			var relContactP2 = this.worldP2.sub(this.obj2.getPosition(true),false);
 			var M2 = r2[0].toMatL().mul(r2[1].toMatR());
 			var MW2 = M2.toMatBivec();
 			var MW2t = MW2.t(false);
@@ -2104,15 +2149,131 @@ Phy4d.PointConstrain.prototype._solve = function(){
 			);
 		}
 		//penetration solve
-		var dPerIMass = this.n.mul(this.d*0.3/totalInvMass,false);
-		var p1 = obj1&&obj1.getPosition();
-		var p2 = obj2&&obj2.getPosition();
+		var totalInvInertie = totalInvMass;
+		if(obj1)var r1 = obj1.getRotation();
+		if(obj2)var r2 = obj2.getRotation();
+		if(obj1 && obj1.inertie){
+			if(!MW1) {
+				var MW1 = r1[0].toMatL().mul(r1[1].toMatR()).toMatBivec();
+				var MW1t = MW1.t(false);
+			}
+			var W1 = MW1t.mul(
+				obj1.inertie.invMul(
+					MW1.mul(relContactP1.cross(this.n),false)
+				),false
+			);
+			var angularInertie1 = W1.dual(false).cross(relContactP1).dot(this.n);
+			totalInvInertie += Math.abs(angularInertie1);
+		}
+		if(obj2 && obj2.inertie){
+			if(!MW2) {
+				var MW2 = r2[0].toMatL().mul(r2[1].toMatR()).toMatBivec();
+				var MW2t = MW2.t(false);
+			}
+			var W2 = MW2t.mul(
+				obj2.inertie.invMul(
+					MW2.mul(relContactP2.cross(this.n),false)
+				),false
+			);
+			var angularInertie2 = W2.dual(false).cross(relContactP2).dot(this.n);
+			totalInvInertie += Math.abs(angularInertie2);
+		}
+		
+		var dPerIMass = this.n.mul(this.d/totalInvInertie,false);
+		if(obj1 && obj1.inertie){
+			W1.mul(this.d/totalInvInertie);
+			var l = W1.len();
+			var dr = W1.mul(Math.min(1,0.1/l)).expQ();
+			r1[0].set(dr[0].mul(r1[0],false).norm());
+			r1[1].set(r1[1].mul(dr[1]).norm());
+		}
+		if(obj2 && obj2.inertie){
+			W2.mul(this.d/totalInvInertie);
+			var l = W2.len();
+			var dr = W2.mul(-Math.min(1,0.1/l)).expQ();
+			r2[0].set(dr[0].mul(r2[0],false).norm());
+			r2[1].set(r2[1].mul(dr[1]).norm());
+		}
+		var p1 = obj1?obj1.getPosition():null;
+		var p2 = obj2?obj2.getPosition():null;
 		if(p1) p1.sub(dPerIMass.mul(obj1.invMass,false));
 		if(p2) p2.add(dPerIMass.mul(obj2.invMass));
 	}
 }
-
-
+Phy4d.RotationPlaneConstrain = function(obj1, plane1, obj2, plane2){
+	this.obj1 = obj1;
+	this.plane1 = plane1.norm();
+	this.obj2 = obj2;
+	this.plane2 = plane2.norm();
+	this.enable = true;
+}
+Phy4d.RotationPlaneConstrain.prototype._detect = function(){
+	var r1,r2;
+	var obj1 = this.obj1;
+	var obj2 = this.obj2;
+	var wrel = new Bivec();
+	if(obj1){
+		r1 = obj1.getRotation();
+		this.M1 = r1[0].toMatL().mul(r1[1].toMatR()).toMatBivec();
+		wrel.add(obj1.w);
+	}
+	if(obj2){
+		r2 = obj2.getRotation();
+		this.M2 = r2[0].toMatL().mul(r2[1].toMatR()).toMatBivec();
+		wrel.sub(obj2.w);
+	}
+	
+	var worldP1 = (obj1) ? this.M1.mul(this.plane1) : this.plane1;
+	var worldP2 = (obj2) ? this.M2.mul(this.plane2) : this.plane2;
+	var p1p2 = worldP1.commutate(worldP2,false);
+	this.worldP1 = worldP1;
+	this.worldP2 = worldP2;
+	this.p1p2 = p1p2;
+	this.d = p1p2.len(1);
+	this.wrel = wrel;
+	return this;
+}
+Phy4d.RotationPlaneConstrain.prototype._solve = function(){
+	var totalInvInertie = 0;
+	var obj1 = this.obj1;
+	var obj2 = this.obj2;
+	var worldP1 = this.worldP1;
+	var worldP2 = this.worldP2;
+	if(obj1){
+		var r1 = obj1.getRotation();
+		totalInvInertie += obj1.invMass;
+	}
+	if(obj2){
+		var r2 = obj2.getRotation();
+		totalInvInertie += obj2.invMass;
+	}
+	if(obj1){
+		var worldP2d = worldP2.dual(false);
+		var newW = worldP2.mul(worldP2.dot(this.wrel),false).add(worldP2d.mul(worldP2d.dot(this.wrel),false));
+		var deltaW = newW.sub(this.wrel);
+		
+		obj1.w.add(deltaW.mul(this.obj1.invMass/totalInvInertie,false));
+	}
+	if(obj2){
+		var worldP1d = worldP1.dual(false);
+		var newW = worldP1.mul(worldP1.dot(this.wrel),false).add(worldP1d.mul(this.worldP1d.dot(this.wrel),false));
+		var deltaW = newW.sub(this.wrel);
+		obj2.w.sub(deltaW.mul(this.obj2.invMass/totalInvInertie,false));
+	}
+	
+	if(obj1){
+		var p1 = this.M1.t().mul(this.p1p2).mul(this.obj1.invMass/totalInvInertie);
+		var dr = p1.expQ();
+		r1[0].set(dr[0].mul(r1[0],false).norm());
+		r1[1].set(r1[1].mul(dr[1]).norm());
+	}
+	if(obj2){
+		var p2 = this.M2.t().mul(this.p1p2).mul(-this.obj2.invMass/totalInvInertie);;
+		var dr = p2.expQ();
+		r2[0].set(dr[0].mul(r2[0],false).norm());
+		r2[1].set(r2[1].mul(dr[1]).norm());
+	}
+}
 
 Phy4d.Motor = function(obj,torque,damp,coordObj){
 	this.obj = obj;
@@ -2122,10 +2283,10 @@ Phy4d.Motor = function(obj,torque,damp,coordObj){
 	this.enable = true;
 }
 Phy4d.Motor.prototype._apply = function(){
-	var torque = this.torque;
+	var torque = this.torque.clone();
 	var MW;
 	if(this.coordObj){
-		var r = this.coordObj.getRotation();
+		var r = this.coordObj.getRotation(true);
 		var M = r[0].toMatL().mul(r[1].toMatR());
 		MW = M.toMatBivec().t();
 		torque = MW.mul(torque);
@@ -2160,12 +2321,12 @@ Phy4d.Spring.prototype._apply = function(){
 	var obj1 = this.obj1;
 	var obj2 = this.obj2;
 	if(obj1){
-		p1 = obj1.getPosition();
-		r1 = obj1.getRotation();
+		p1 = obj1.getPosition(true);
+		r1 = obj1.getRotation(true);
 	}
 	if(obj2){
-		p2 = obj2.getPosition();
-		r2 = obj2.getRotation();
+		p2 = obj2.getPosition(true);
+		r2 = obj2.getRotation(true);
 	}
 	
 	var worldP1 = (obj1) ? r1[0].mul(this.point1,false).mul(r1[1]).add(p1) : this.point1;

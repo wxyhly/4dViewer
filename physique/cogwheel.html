@@ -40,10 +40,11 @@ function start(){
 	controler.addGUI(gui);
 	
 	physicsEngine = new Phy4d();
-	physicsEngine.gravity = new Vec4(0,-9.8);
+	physicsEngine.gravity = new Vec4(0);
 	var addObj = function(Phy4dObj, data){
 		physicsEngine.addObj(Phy4dObj);
-		scene.add(Phy4dObj.generateGeom(data));
+		Phy4dObj.geom = Phy4dObj.generateGeom(data);
+		scene.add(Phy4dObj.geom);
 		return Phy4dObj;
 	}
 	
@@ -53,26 +54,67 @@ function start(){
 	var groundP = addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity),{flow:0.2,color:0xAAAA66});
 	groundP.friction = 0.5;
 	groundP.restitution = 0.4;
-	var list = [new Phy4d.Glome(new Vec4(),0.8)];
+	var list = [];
 	var n = 8;
 	for(var i=0;i<n;i++){
 		var t = Math.PI*2*i/n;
-		list.push(new Phy4d.Glome(new Vec4(Math.cos(t),Math.sin(t),0.0,0),0.2));
+		list.push(new Phy4d.Obj(new Phy4d.Glome(0.2),0.1,new Vec4(Math.cos(t),Math.sin(t),0.0,0)));
 	}
-	var settings = {flow:5.2,color:0x00FF00,u:4,v:4,w:4};
-	union1 = addObj(new Phy4d.Obj(new Phy4d.Union(list,new Vec4(-1,5,0,0),new Bivec(0.4).expQ()),1),settings);
-	settings.color = 0xFF0000;
-	var union2 = addObj(new Phy4d.Obj(new Phy4d.Union(list,new Vec4(1,5,0,0)),1),settings);
+	var list2 = [];
+	var n = 8;
+	for(var i=0;i<n;i++){
+		var t = Math.PI*2*i/n;
+		list2.push(new Phy4d.Obj(new Phy4d.Glome(0.2),0.1,new Vec4(Math.cos(t),Math.sin(t),0.0,0)));
+	}
+	var list3 = [];
+	var n = 8;
+	for(var i=0;i<n;i++){
+		var t = Math.PI*2*i/n;
+		list3.push(new Phy4d.Obj(new Phy4d.Glome(0.2),0.1,new Vec4(Math.cos(t),Math.sin(t),0.0,0)));
+	}
+	var w1 = 0.2, w2 = 0.2, w3 = 1, w4=1;
+	var cyl = Mesh4.cubinder(0.9,16,0.4,0.4).join(Mesh4.cuboid(w1,w2,w3,w4).move(new Vec4(0,0,-w3/2,-w4/2)));
+	var settings = {u:4,v:4,w:4};
+	union1 = addObj(new Phy4d.Obj(new Phy4d.Union(list),null,new Vec4(-1,5,0,0),new Bivec(0.4).expQ()),settings);
+	union1.geom.add(new Geom4(cyl));
+	union1.geom.color = 0xFF0000;
+	var union2 = addObj(new Phy4d.Obj(new Phy4d.Union(list2),null,new Vec4(0,5,0,1),new Bivec(
+		0,0,-Math.PI/2
+	).expQ()),settings);
+	union2.geom.add(new Geom4(cyl));
+	union2.geom.color = 0xFFFF00;
+	var union3 = addObj(new Phy4d.Obj(new Phy4d.Union(list3),null,new Vec4(-1,4,1,0),new Bivec(
+		0,0,0,Math.PI/2
+	).expQ()),settings);
+	union3.geom.add(new Geom4(cyl));
+	union3.geom.color = 0x00FF00;
+	union1.geom.flow = 5;
+	union2.geom.flow = 5;
+	union3.geom.flow = 5;
+	union1.friction = 0;
+	union2.friction = 0;
+	union3.friction = 0;
 	physicsEngine.addConstrain(new Phy4d.PointConstrain(union1, new Vec4(),null,union1.getPosition().clone()));
-	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(),null,union2.getPosition().clone()));
-	//wall
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union1, new Vec4(0,0,10,0),null,union1.getPosition().add(new Vec4(0,0,10,0),false)));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union1, new Vec4(0,0,0,10),null,union1.getPosition().add(new Vec4(0,0,0,10),false)));
 	
-	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(),null,union2.getPosition().clone()));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(0,0,0,-10),null,union2.getPosition().add(new Vec4(10),false)));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(0,0,10,0),null,union2.getPosition().add(new Vec4(0,0,10),false)));
+	
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union3, new Vec4(),null,union3.getPosition().clone()));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union3, new Vec4(0,0,10,0),null,union3.getPosition().add(new Vec4(0,10),false)));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union3, new Vec4(0,0,0,10),null,union3.getPosition().add(new Vec4(0,0,0,10),false)));
+	var M = new Bivec(0.01);
+	physicsEngine.addForce(new Phy4d.Motor(union1, M, 0.1));
+	//wall
+	gui.add(M,"xy",-0.2,0.2);
+	/*physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4(-1,0,0,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0, 1,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,-1,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth/2),Infinity));
-	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));*/
 	addGlome = function (x,y,z,t,vx,vy,vz,vt){
 		var gP = new Phy4d.Obj(
 			new Phy4d.Glome(
@@ -90,10 +132,10 @@ function start(){
 	var t=0;
 	function loop(){
 		t+=0.001;
-		union1.w.xy = Math.sin(t)*0.5;
+		//union1.w.xy = Math.sin(t)*0.5;
 		controler.update();
-		var step = 5;
-		physicsEngine.iterations = 10;
+		var step = 1;
+		physicsEngine.iterations = 50;
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
 		if(physicsEngine.pause!==true){
 			while(step--)

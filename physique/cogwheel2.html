@@ -1,0 +1,138 @@
+<html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../renderer.js"></script>
+<script src="../controler.js"></script>
+<script src="../polychora.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
+<script src="phy4d.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var union1,physicsEngine,addGlome;
+var scene;
+function start(){
+	scene = new Scene();
+	var glomes = [];
+	var planeWidth = 15;
+	var R0 = 1, R1 = 1, R2 = 2;
+	//ground
+	var groundM = Mesh3.cube(planeWidth).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
+	//wall
+	var wall = groundM.clone();
+	wall.C.pop();
+	wall = wall.extrude(new Vec4(0,planeWidth,0,0));
+	var wallG = new Geom4(wall,new Vec4(0,-2,0,0),null,0x999999);
+	scene.add(wallG);
+	wallG.flow = 0.2;
+
+	var camera = new Camera4(80,0.01,50);
+	camera.position = new Vec4(-3,5.8,0,-0.6);
+	camera.lookAt(new Vec4(0,5,0,0));
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera);
+	renderer.light4.t = 0.7;
+	var controler = new Controler4.KeepUp(renderer);
+	controler.moveStep = 0.1;
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	
+	physicsEngine = new Phy4d();
+	physicsEngine.gravity = new Vec4(0);
+	var addObj = function(Phy4dObj, data){
+		physicsEngine.addObj(Phy4dObj);
+		Phy4dObj.geom = Phy4dObj.generateGeom(data);
+		scene.add(Phy4dObj.geom);
+		return Phy4dObj;
+	}
+	
+	var domino = Mesh4.cubinder(0.3,10,2,2);
+	var cube = Mesh4.tesseract(1);
+	
+	var groundP = addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity),{flow:0.2,color:0xAAAA66});
+	groundP.friction = 0.5;
+	groundP.restitution = 0.4;
+	var list = [];
+	var n = 8;
+	for(var i=0;i<n;i++){
+		var t = Math.PI*2*i/n;
+		list.push(new Phy4d.Obj(new Phy4d.Glome(0.2),0.1,new Vec4(Math.cos(t),Math.sin(t),0.0,0)));
+		list.push(new Phy4d.Obj(new Phy4d.Glome(0.2),0.1,new Vec4(0,0,Math.cos(t),Math.sin(t))));
+	}
+	var list2 = [];
+	var n = 8;
+	for(var i=0;i<n;i++){
+		var t = Math.PI*2*i/n;
+		list2.push(new Phy4d.Obj(new Phy4d.Glome(0.2),0.1,new Vec4(Math.cos(t),Math.sin(t),0.0,0)));
+	}
+	var list3 = [];
+	var n = 8;
+	for(var i=0;i<n;i++){
+		var t = Math.PI*2*i/n;
+		list3.push(new Phy4d.Obj(new Phy4d.Glome(0.2),0.1,new Vec4(Math.cos(t),Math.sin(t),0.0,0)));
+	}
+	var cyl = Mesh4.cubinder(0.9,16,0.4,0.4);
+	var settings = {u:4,v:4,w:4};
+	union1 = addObj(new Phy4d.Obj(new Phy4d.Union(list),null,new Vec4(-1,5,0,0),new Bivec(0.4).expQ()),settings);
+	union1.geom.add(new Geom4(Mesh4.tesseract(0.9),null,null,0x999999));
+	union1.geom.add(new Geom4(cyl));
+	union1.geom.add(new Geom4(cyl,null,new Bivec(0,Math.PI/2,0,0,Math.PI/2).expQ()));
+	union1.geom.color = 0xFF0000;
+	var union2 = addObj(new Phy4d.Obj(new Phy4d.Union(list2),null,new Vec4(0,5,0,1),new Bivec(
+		0,0,Math.PI/2
+	).expQ()),settings);
+	union2.geom.add(new Geom4(cyl));
+	union2.geom.color = 0xFFFF00;
+	var union3 = addObj(new Phy4d.Obj(new Phy4d.Union(list3),null,new Vec4(0,5,0,-1),new Bivec(
+		0,0,0,Math.PI/2
+	).expQ()),settings);
+	union3.geom.add(new Geom4(cyl));
+	union3.geom.color = 0x00FF00;
+	union1.geom.flow = 5;
+	union2.geom.flow = 5;
+	union3.geom.flow = 5;
+	union1.friction = 0;
+	union2.friction = 0;
+	union3.friction = 0;
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union1, new Vec4(),null,union1.getPosition().clone()));
+	physicsEngine.addConstrain(new Phy4d.RotationPlaneConstrain(union1, new Bivec(1), null, new Bivec(1)));
+	
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(),null,union2.getPosition().clone()));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(0,0,0,10),null,union2.getPosition().add(new Vec4(10),false)));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(0,0,10,0),null,union2.getPosition().add(new Vec4(0,0,10),false)));
+	
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union3, new Vec4(),null,union3.getPosition().clone()));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union3, new Vec4(0,0,10,0),null,union3.getPosition().add(new Vec4(0,10),false)));
+	physicsEngine.addConstrain(new Phy4d.PointConstrain(union3, new Vec4(0,0,0,10),null,union3.getPosition().add(new Vec4(0,0,0,10),false)));
+	var M1 = new Bivec(0.01,0,0,0);
+	var M2 = new Bivec(0.01,0,0,0);
+	physicsEngine.addForce(new Phy4d.Motor(union2, M1,0.1,union2));
+	physicsEngine.addForce(new Phy4d.Motor(union3, M2,0.1,union3));
+	//wall
+	gui.add(M1,"xy",-0.2,0.2);
+	gui.add(M2,"xy",-0.2,0.2);
+	var t=0;
+	function loop(){
+		t+=0.001;
+		//union1.w.xy = Math.sin(t)*0.5;
+		controler.update();
+		var step = 1;
+		physicsEngine.iterations = 50;
+		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
+		if(physicsEngine.pause!==true){
+			while(step--)
+				physicsEngine.next();
+		}
+		renderer.render();
+		window.requestAnimationFrame(loop);
+	}
+	loop();
+	
+}
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>

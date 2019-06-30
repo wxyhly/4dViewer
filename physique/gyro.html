@@ -51,16 +51,12 @@ function start(){
 	physicsEngine = new Phy4d();
 	//physicsEngine.gravity = new Vec4();
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
-	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),2);
 	diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
 	diceP.w.xt = 10;
-	//diceP.w.yt = -Math.random();
 	diceP.restitution = 0.9;
 	diceP.friction = 0.9;
-	//physicsEngine.addObj(cameraP);
 	physicsEngine.addObj(groundP);
 	physicsEngine.addObj(diceP);
-	//physicsEngine.addObj(dice2P);
 	//wall
 	
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
@@ -71,11 +67,8 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
 	addGlome = function (x,y,z,t){
 		var gP = new Phy4d.Obj(
-			new Phy4d.Glome(
-				new Vec4(x,y,z,t),
-				0.3
-			),
-		2);
+			new Phy4d.Glome(0.3),
+		2,new Vec4(x,y,z,t));
 		gP.restitution = 0.9;
 		gP.friction = 0.9;
 		var g = new Geom4(

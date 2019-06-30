@@ -130,10 +130,18 @@ var Obj4 = function(pos,rot){
 Obj4.Group = function(child,pos,rot){
 	Obj4.call(this,pos,rot);
 	this.child = child;
+	for(var c of this.child){
+		c.parent = this;
+	}
 	this.getBoundingObjs();
 }
 Obj4.Group.prototype = Object.create(Obj4.prototype);
-
+Obj4.Group.prototype.add = function(s){
+	if(s.mesh)s.mesh.update();
+	this.child.push(s);
+	s.parent = this;
+	this.getBoundingObjs();
+}
 Obj2.prototype.coord = function(p){
 	var s = Math.sin(this.rotation),
 		c = Math.cos(this.rotation);
@@ -232,7 +240,7 @@ var Geom2 = function(m,pos,rot,color){
 	else throw "Geom2(m): m must be instance of Mesh2";
 	Obj2.call(this,pos,rot);
 	this.scale = 1;
-	this.color = color||0x0000FF;
+	this.color = color;
 	this.visible = true;
 }
 Geom2.prototype = Object.create(Obj2.prototype);
@@ -241,7 +249,7 @@ var Geom3 = function(m,pos,rot,color){
 	else throw "Geom3(m): m must be instance of Mesh3";
 	Obj3.call(this,pos,rot);
 	this.scale = 1;
-	this.color = color||0xFF0000;
+	this.color = color;
 	this.visible = true;
 }
 Geom3.prototype = Object.create(Obj3.prototype);
@@ -250,7 +258,7 @@ var Geom4 = function(m,pos,rot,color){
 	else throw "Geom4(m): m must be instance of Mesh4";
 	Obj4.call(this,pos,rot);
 	this.scale = 1;
-	this.color = typeof color == "number" ? color : 0x00FF00;
+	this.color = color;
 	this.visible = true;
 }
 Geom4.prototype = Object.create(Obj4.prototype);

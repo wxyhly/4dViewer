@@ -12,9 +12,9 @@
 var gl$ = function (obj){
 	return document.getElementById(obj).getContext("experimental-webgl");
 }
-var diceP,physicsEngine,addGlome;
+var diceP,physicsEngine,addGlome,scene;
 function start(){
-	var scene = new Scene();
+	scene = new Scene();
 	var glomes = [];
 	var planeWidth = 15;
 	//ground
@@ -47,8 +47,8 @@ function start(){
 	
 	physicsEngine = new Phy4d();
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
-	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.3),Infinity);
-	diceP = new Phy4d.Obj(new Phy4d.Convex(diceM,new Vec4(0,4,0,0)),0.2);
+	var cameraP = new Phy4d.Obj(new Phy4d.Glome(0.3),Infinity,camera.position);
+	diceP = new Phy4d.Obj(new Phy4d.Convex(diceM),0.2,new Vec4(0,4,0,0));
 	diceP.w.xy = -Math.random();
 	diceP.w.yt = -Math.random();
 	diceP.restitution = 0.9;
@@ -65,11 +65,7 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
 	addGlome = function (x,y,z,t){
 		var gP = new Phy4d.Obj(
-			new Phy4d.Glome(
-				new Vec4(x,y,z,t),
-				0.4
-			),
-		0.8);
+			new Phy4d.Glome(0.4),0.8,new Vec4(x,y,z,t));
 		
 		var g = new Geom4(
 			Mesh4.glome(gP.phyGeom.R,8,8,8), //shape

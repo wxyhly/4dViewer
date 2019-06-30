@@ -354,6 +354,8 @@ Vec4.prototype.dot = function (v4){
 	return this.x*v4.x + this.y*v4.y + this.z*v4.z + this.t*v4.t;
 }
 Vec2.prototype.len = function (flag){
+	if(flag == 1) return Math.abs(this.x) + Math.abs(this.y);
+	if(flag == Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y));
 	var L = this.x*this.x + this.y*this.y;
 	if(flag === false){
 		return L;
@@ -361,6 +363,8 @@ Vec2.prototype.len = function (flag){
 	return Math.sqrt(L);
 }
 Vec3.prototype.len = function (flag){
+	if(flag == 1) return Math.abs(this.x) + Math.abs(this.y) + Math.abs(this.z);
+	if(flag == Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
 	var L = this.x*this.x + this.y*this.y + this.z*this.z;
 	if(flag === false){
 		return L;
@@ -368,6 +372,8 @@ Vec3.prototype.len = function (flag){
 	return Math.sqrt(L);
 }
 Vec4.prototype.len = function(flag){
+	if(flag == 1) return Math.abs(this.x) + Math.abs(this.y) + Math.abs(this.z) + Math.abs(this.t);
+	if(flag == Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z), Math.abs(this.t));
 	var L = this.x*this.x + this.y*this.y + this.z*this.z + this.t*this.t;
 	if(flag === false){
 		return L;
@@ -753,7 +759,7 @@ Bivec.prototype.getAngle = function (W) {
 	if (W instanceof Bivec){
 		var M = 1 / (this.len() * W.len())*0.99999999999999999;
 		var P = Math.abs(this.dot(W)), Q = Math.abs(this.cross(W));
-		var cmm = Math.acos((P + Q) * M);
+		var cmm = Math.acos(Math.min(1,(P + Q) * M));
 		var cpp = Math.acos((P - Q) * M);
 		return [(cpp+cmm)*90/Math.PI,(cpp-cmm)*90/Math.PI];
 	}else if (W instanceof Vec4){

@@ -29,9 +29,7 @@ function start(){
 	scene.add(wallG);
 	wallG.flow = 0.2;
 
-	var cell16 = Mesh4.polychoron(16,2).rotate(
-	[new Vec4(0.37976685510375163,-0.5514258197691032,0.14840651342568903,-0.7277926956416981),new Vec4(0.6005662916432893,-0.5704274108452806,-0.04824693090449129,0.5582158471026009)]
-	);
+	var cell16 = Mesh4.polychoron(16,2);
 	var cube = Mesh4.tesseract(2);
 
 	var camera = new Camera4(80,0.01,50);
@@ -47,10 +45,9 @@ function start(){
 	physicsEngine = new Phy4d();
 	//physicsEngine.gravity = new Vec4(0,-0.1);
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0.15,1,0,0).norm(),0),Infinity);
-	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),2);
-		diceP  = new Phy4d.Obj(new Phy4d.Convex(cube,new Vec4(0.0,1,0.0,0.0)),1);
-	var dice2P = new Phy4d.Obj(new Phy4d.Convex(cell16,new Vec4(0,4,0,0.001)),1);
-	var dice3P = new Phy4d.Obj(new Phy4d.Convex(Mesh4.duocylinder(1,1, 8,8),new Vec4(0,7,0,0)),1);
+		diceP  = new Phy4d.Obj(new Phy4d.Convex(cube),1,new Vec4(0.0,1,0.0,0.0));
+	var dice2P = new Phy4d.Obj(new Phy4d.Convex(cell16),1,new Vec4(0,4,0,0.001),[new Vec4(0.37976685510375163,-0.5514258197691032,0.14840651342568903,-0.7277926956416981),new Vec4(0.6005662916432893,-0.5704274108452806,-0.04824693090449129,0.5582158471026009)]);
+	var dice3P = new Phy4d.Obj(new Phy4d.Convex(Mesh4.duocylinder(1,1, 8,8)),1,new Vec4(0,7,0,0));
 	diceP.friction = 0.4;
 	physicsEngine.addObj(groundP);
 	scene.add(groundP.generateGeom({flow:0.2,color:0xAAAA66}));
@@ -69,12 +66,7 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
 	addGlome = function (x,y,z,t,vx,vy,vz,vt){
-		var gP = new Phy4d.Obj(
-			new Phy4d.Glome(
-				new Vec4(x,y,z,t),
-				0.6
-			),
-		1);
+		var gP = new Phy4d.Obj(new Phy4d.Glome(0.6),1,new Vec4(x,y,z,t));
 		gP.v.x = vx||0;
 		gP.v.y = vy||0;
 		gP.v.z = vz||0;
@@ -94,7 +86,7 @@ function start(){
 		}
 		t++;
 		if(t%50==0 && t<50*6){
-			addGlome(9,4.6,0,0,-12);
+			addGlome(5,4.6,0,0,-12);
 		}
 		
 		renderer.render();

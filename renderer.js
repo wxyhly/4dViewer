@@ -502,14 +502,38 @@ MeshRenderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 				//return false;
 				gg.__renderMeshbuffer = gg.__renderMeshbuffer || {changed: true, geom4: gg};
 				gg.__renderMeshbuffer.PMatQ = PMatQ;
-				var M = generateCrossSection(gg,gF.n,gF.t,gg.__renderMeshbuffer);
+				var info = {
+					glow: gg.glow,
+					flow: gg.flow,
+					color: gg.color,
+				};
+				var gInfo = gg;
+				while(typeof info.flow=="undefined"){
+					if(!gInfo.parent) {info.flow = 1; break;}
+					gInfo = gInfo.parent;
+					info.flow = gInfo.flow;
+					
+				}
+				var gInfo = gg;
+				while(typeof info.glow=="undefined"){
+					if(!gInfo.parent) {info.glow = false; break;}
+					gInfo = gInfo.parent;
+					info.glow = gInfo.glow;
+				}
+				var gInfo = gg;
+				while(typeof info.color=="undefined"){
+					if(!gInfo.parent) {info.color = 0xFFFFFF; break;}
+					gInfo = gInfo.parent;
+					info.color = gInfo.color;
+				}
+				var M = generateCrossSection(gg,gF.n,gF.t,gg.__renderMeshbuffer,info);
 				if(M.v.length){
 					_this._Meshbuffer.push(M);
 				}
 			}
 		}
 	}
-	function generateCrossSection(gg,n,t,RMB){
+	function generateCrossSection(gg,n,t,RMB,gInfo){
 		var M = gg.mesh;
 		//var d = performance.now();
 		var V = RMB.V = RMB.V || new Array(M.V.length);
@@ -610,12 +634,12 @@ MeshRenderer4.prototype.renderCrossSection = function(frustum,mode3d,thumbnail){
 				}
 				mfv = Mesh4._util.uniqueArr(mfv);// all vertices of face F[j]
 				var N;
-				if(gg.glow){
+				if(mf.info.glow!==false && (mf.info.glow||gInfo.glow)){
 					N = new Vec4();
 				}else if(mf.info) N = mf.info.normal;//Normalement on a calculé N in crossSection from cell
 				N = N || new Vec4(1,0,0,0);
-				var Ccolor = (typeof mf.info.color=="number") ? mf.info.color : gg.color;
-				var Cflow = (typeof mf.info.flow=="number") ? mf.info.flow : gg.flow;
+				var Ccolor = (typeof mf.info.color=="number") ? mf.info.color : gInfo.color;
+				var Cflow = (typeof mf.info.flow=="number") ? mf.info.flow : gInfo.flow;
 				if(typeof Cflow!="number")Cflow = 1;
 				var colorR = (Ccolor >> 16)/256;
 				var colorG = (Ccolor >> 8 & 0xFF)/256;
