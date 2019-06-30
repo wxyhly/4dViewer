@@ -94,7 +94,7 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
 	function loop(){
 		controler.update();
-		var step = 10;
+		var step = 5;
 		physicsEngine.iterations = 10;
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
 		if(physicsEngine.pause!==true){

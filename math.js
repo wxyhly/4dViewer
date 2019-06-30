@@ -196,7 +196,8 @@ Vec3.prototype.add = function (v3,flag){
 		return this;
 	}
 }
-Vec4.prototype.add = function (v4,flag){
+Vec4.prototype.add = function (v4,flag,err){
+	if(err) console.error("too many parametres");
 	if(flag === false){
 		return new Vec4(this.x+v4.x,this.y+v4.y,this.z+v4.z,this.t+v4.t);
 	}else{
@@ -207,7 +208,8 @@ Vec4.prototype.add = function (v4,flag){
 		return this;
 	}
 }
-Vec2.prototype.sub = function (v2,flag){
+Vec2.prototype.sub = function (v2,flag,err){
+	if(err) console.error("too many parametres");
 	if(!v2){
 		this.x = -this.x;
 		this.y = -this.y;
@@ -1123,13 +1125,15 @@ Mat4.prototype.inv = function (flag){
 
 var PMat5 = function(m4,v4){
 	if(!m4){
-		this.m4 = new Mat4();//Identity
+		this.rotation = new Mat4();//Identity
+	}else{
+		this.rotation = m4.clone();
 	}
 	if(!v4){
-		this.v4 = new Vec4();//null Vector4
+		this.position = new Vec4();//null Vector4
+	}else{
+		this.position = v4.clone();
 	}
-	this.rotation = m4.clone();
-	this.position = v4.clone();
 }
 PMat5.clone = function(){
 	return new PMat5(this.rotation.clone(),this.position.clone());
@@ -1172,17 +1176,18 @@ PMat5.prototype.lookAt = function(pos,up){
 
 var PMat5Q = function(l,r,v4){
 	if(!l){
-		l = new Vec4();//Identity
-		r = new Vec4();//Identity
+		l = new Vec4(1);//Identity
+		r = new Vec4(1);//Identity
 	}
 	if(!v4){
 		this.position = new Vec4();//null Vector4
+	}else{
+		this.position = v4.clone();
 	}
 	this.rotation = [l, r];
-	this.position = v4.clone();
 }
 PMat5Q.clone = function(){
-	return new PMat5Q(this.rotation[0].clone(),this.r.clone(),this.position.clone());
+	return new PMat5Q(this.rotation[0].clone(),this.rotation[1].clone(),this.position.clone());
 }
 
 PMat5Q.prototype.inv = function(flag){
@@ -1196,7 +1201,11 @@ PMat5Q.prototype.inv = function(flag){
 	this.position = this.rotation[0].mul(this.position,false).mul(this.rotation[1]).sub();
 }
 PMat5Q.prototype.mul = function (pm5,flag){
-	return new PMat5Q(this.rotation[0].mul(pm5.l,false),pm5.r.mul(this.rotation[1],false), this.rotation[0].mul(pm5.position,false).mul(this.rotation[1]).add(this.position));
+	return new PMat5Q(
+		this.rotation[0].mul(pm5.rotation[0],false),
+		pm5.rotation[1].mul(this.rotation[1],false),
+		this.rotation[0].mul(pm5.position,false).mul(this.rotation[1]).add(this.position)
+	);
 }
 PMat5Q.prototype.lookAt = function(pos,up){
 	var rayon = pos.sub(this.position,false).norm();
@@ -1219,7 +1228,9 @@ PMat5Q.prototype.lookAt = function(pos,up){
 	}
 	return this;
 }
-
+PMat5Q.prototype.coordMat = function(){//not affine mat, just rotation part
+	return this.rotation[0].toMatL().mul(this.rotation[1].toMatR());
+}
 var MatBivec = function(m){
 	this.array = m || [
 		[1,0,0,0,0,0],

@@ -125,8 +125,14 @@ var Obj3 = function(pos,rot){
 }
 var Obj4 = function(pos,rot){
 	this.position = pos||new Vec4(0,0,0,0);
-	this.rotation = [new Vec4(1,0,0,0),new Vec4(1,0,0,0)];//quanternion[L,R]
+	this.rotation = rot||[new Vec4(1,0,0,0),new Vec4(1,0,0,0)];//quanternion[L,R]
 }
+Obj4.Group = function(child,pos,rot){
+	Obj4.call(this,pos,rot);
+	this.child = child;
+	this.getBoundingObjs();
+}
+Obj4.Group.prototype = Object.create(Obj4.prototype);
 
 Obj2.prototype.coord = function(p){
 	var s = Math.sin(this.rotation),
@@ -160,10 +166,10 @@ Obj3.prototype.coordMat = function(){//affine mat
 		0,0,0,1
 	);
 }
-Obj4.prototype.coordMat = function(){//affine mat not surpported
-	//console.warn("Affine matrix for 4D Obj is not surpported, pure rotation matrix is computed instead.");
-	return this.rotation[0].toMatL().mul(this.rotation[1].toMatR());
+Obj4.prototype.coordMat = function(){//not affine mat, just rotation part
+	return PMat5Q.prototype.coordMat.call(this);
 }
+
 Obj2.prototype.move = Obj3.prototype.move = Obj4.prototype.move = function(p){
 	this.position.add(p);
 	return this;
@@ -620,7 +626,7 @@ Mesh4.prototype.loft = function(fn,n,flag){
 	}
 	return M;
 }
-Mesh4.prototype.directProduct = function(M4){
+Mesh4.prototype.directProduct = function(M4,color){
 	//this and M4: 2d new Mesh4
 	var M = new Mesh4();
 	var face = M4.F.length;
@@ -678,7 +684,9 @@ Mesh4.prototype.directProduct = function(M4){
 				var l = M4.F[m][n];
 				c.push(fall+j+l*this.E.length);
 			}
-			c.info = {color: 0xFFFFFF};
+			if(color){
+				c.info = {color: color};
+			}
 			M.C.push(c);
 		}
 	}
@@ -1230,8 +1238,8 @@ Mesh4.spherinder = function(r,u,v,h){
 Mesh4.sphone = function(r,u,v,h){
 	return Mesh3.sphere(r,u,v).embed(true).pyramid(new Vec4(0,0,0,h)).move(new Vec4(0,0,0,-h/2));
 }
-Mesh4.duocylinder = function(R1,R2,u,v){
-	return Mesh2.polygon(R1,u).embed(4,true).directProduct(Mesh2.polygon(R2,v).embed(4,true,new Vec4(0,0,1,0),new Vec4(0,0,0,1)));
+Mesh4.duocylinder = function(R1,R2,u,v,color){
+	return Mesh2.polygon(R1,u).embed(4,true).directProduct(Mesh2.polygon(R2,v).embed(4,true,new Vec4(0,0,1,0),new Vec4(0,0,0,1)),color);
 }
 Mesh4.cubinder = function(R,n,h1,h2){
 	return Mesh2.polygon(R,n).embed(4,true).directProduct(Mesh2.rectangle(h1,h2).embed(4,true,new Vec4(0,0,1,0),new Vec4(0,0,0,1)));
@@ -1442,7 +1450,79 @@ Mesh4.prototype.update = function(){
 	this.getBoundingObjs();
 	return this;
 }
-Mesh4.prototype.intersectBoundingObj = function(plane){
+Obj4.Group.prototype.update = function(){
+	for(var s of this.child){
+		s.update ? s.update() : s.mesh.update();
+	}
+	this.getBoundingObjs();
+}
+Obj4.Group.prototype.getBoundingObjs = function(plane){
+	var min = new Vec4(Infinity,Infinity,Infinity,Infinity);
+	var max = new Vec4(-Infinity,-Infinity,-Infinity,-Infinity);
+	for(var c of this.child){
+		var w = c.coordMat().array;
+		var x = new Vec4(w[0],w[1],w[2],w[3]);
+		var y = new Vec4(w[4],w[5],w[6],w[7]);
+		var z = new Vec4(w[8],w[9],w[10],w[11]);
+		var t = new Vec4(w[12],w[13],w[14],w[15]);
+		
+		function findMinMax(axis){
+			var min, max;
+			var box = c.boundingBox || c.mesh.boundingBox ||((c.getBoundingObjs)?c.getBoundingObjs().boundingBox : c.mesh.getBoundingObjs().boundingBox);
+			if ( axis.x > 0 ) {
+				min = axis.x * box.min.x;
+				max = axis.x * box.max.x;
+			} else {
+				min = axis.x * box.max.x;
+				max = axis.x * box.min.x;
+			}
+			if ( axis.y > 0 ) {
+				min += axis.y * box.min.y;
+				max += axis.y * box.max.y;
+			} else {
+				min += axis.y * box.max.y;
+				max += axis.y * box.min.y;
+			}
+			if ( axis.z > 0 ) {
+				min += axis.z * box.min.z;
+				max += axis.z * box.max.z;
+			} else {
+				min += axis.z * box.max.z;
+				max += axis.z * box.min.z;
+			}
+			if ( axis.t > 0 ) {
+				min += axis.t * box.min.t;
+				max += axis.t * box.max.t;
+			} else {
+				min += axis.t * box.max.t;
+				max += axis.t * box.min.t;
+			}
+			return [min,max];
+		}
+		
+		x = findMinMax(x);
+		y = findMinMax(y);
+		z = findMinMax(z);
+		t = findMinMax(t);
+		var MIN = new Vec4(x[0],y[0],z[0],t[0]).add(c.position);
+		var MAX = new Vec4(x[1],y[1],z[1],t[1]).add(c.position);
+		min.x = Math.min(min.x,MIN.x);
+		min.y = Math.min(min.y,MIN.y);
+		min.z = Math.min(min.z,MIN.z);
+		min.t = Math.min(min.t,MIN.t);
+		max.x = Math.max(max.x,MAX.x);
+		max.y = Math.max(max.y,MAX.y);
+		max.z = Math.max(max.z,MAX.z);
+		max.t = Math.max(max.t,MAX.t);
+	}
+	
+	this.boundingBox = {
+		min:min,
+		max:max
+	};
+	return this;
+}
+Mesh4.prototype.intersectBoundingObj = Obj4.Group.prototype.intersectBoundingObj = function(plane){
 	var min, max;
 	var box = this.boundingBox;
 	if ( plane.n.x > 0 ) {

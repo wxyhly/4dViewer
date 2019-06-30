@@ -74,7 +74,7 @@ function start(){
 		}
 		controler.update();
 		physicsEngine.iterations = 15*7;
-		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/2;
+		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/4;
 		cameraP.v = camera.position.sub(cameraPrevP,false).div(physicsEngine.dt);
 		physicsEngine.next();
 		physicsEngine.next();

@@ -29,6 +29,7 @@ function start(){
 	var camera = new Camera4(90,0.01,80);
 	camera.position = new Vec4(0,0,0,-1.9);
 	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
+	renderer.bgColor4Flow = 0.2;
 	var controler = new Controler4.Trackball(renderer);
 	var gui = new dat.GUI();
 	controler.addGUI(gui);

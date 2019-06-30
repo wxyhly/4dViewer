@@ -65,7 +65,7 @@ var Controler4 = function(renderer){
 	this._onresize();
 }
 Controler4.prototype._onresize = function(){
-	var w = Math.min(document.body.clientWidth, document.body.clientHeight*2);
+	var w = Math.min(document.body.clientWidth, document.body.clientHeight*2)-50;
 	var res = this.renderer.resolution || 1;
 	this.renderer.resize(Math.round(w),Math.round(w/2));
 	this.needUpdate = true;
