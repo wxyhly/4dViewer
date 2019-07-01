@@ -13,9 +13,9 @@ var gl$ = function (obj){
 	return document.getElementById(obj).getContext("experimental-webgl");
 }
 var diceP,physicsEngine,addGlome;
-var GJK;
+var scene, list;
 function start(){
-	var scene = new Scene();
+	scene = new Scene();
 	var glomes = [];
 	var planeWidth = 15;
 	var R0 = 1, R1 = 1, R2 = 2;
@@ -28,7 +28,43 @@ function start(){
 	var wallG = new Geom4(wall,new Vec4(0,-2,0,0),null,0x999999);
 	scene.add(wallG);
 	wallG.flow = 0.2;
-
+	list = [];
+	
+	function project(v3){
+		k = 1/(1-v3.z);
+		return new Vec2(v3.x,v3.y).mul(k);
+	}
+	var p2 = Math.PI/2;
+	var coordinateHopf = function(v3,k2) {
+		/*if(v3 instanceof Vec2){
+			v3 = project(v3);
+		}*/
+		var l = v3.len();
+		v3.div(l);
+		var eta = (Math.asin(v3.z)+Math.PI/2)/2;
+		var k1 = Math.atan2(v3.y,v3.x)/2;
+		return new Vec4(
+			Math.cos(k1+k2) * Math.sin(eta), Math.sin(k1+k2) * Math.sin(eta),
+			Math.cos(k1-k2) * Math.cos(eta), Math.sin(k1-k2) * Math.cos(eta)
+		);//.mul(l);
+	}
+	var nm = 16;
+	function addLine(a,b,eta,div){
+		var ab = b.sub(a,false);
+		for(var q = 1; q<div; q++){
+			var c = a.add(ab.mul(q/div,false),false).mul(4);
+			list.push(coordinateHopf(c,eta));
+		}
+	}
+	var div = 16;
+	var M = Mesh3.polyhedron(4);
+	for(var n=0; n<nm; n++){
+		var eta = Math.PI*2*n/nm;
+		for(var e of M.E){
+			addLine(M.V[e[0]],M.V[e[1]],eta,div);
+		}
+	}
+	scene.add(new Geom4(Mesh4.convexhull(list)).move(new Vec4(0,4,0,0)));
 	var camera = new Camera4(80,0.01,50);
 	camera.position = new Vec4(0,4,0,-5);
 	
@@ -44,9 +80,9 @@ function start(){
 	var domino = Mesh4.cuboid(0.2,1.2,0.8,0.8);
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
 	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),2);
-		diceP  = new Phy4d.Obj(new Phy4d.Convex(domino,new Vec4(0.0,1,0.0,0.0)),1);
-	var dice2P = new Phy4d.Obj(new Phy4d.Convex(domino,new Vec4(-1,1,0,0)),1);
-	var dice3P = new Phy4d.Obj(new Phy4d.Convex(domino,new Vec4(-2,1,0,0)),1);
+		diceP  = new Phy4d.Obj(new Phy4d.Convex(domino),1,new Vec4(0.0,1,0.0,0.0));
+	var dice2P = new Phy4d.Obj(new Phy4d.Convex(domino),1,new Vec4(-1,1,0,0));
+	var dice3P = new Phy4d.Obj(new Phy4d.Convex(domino),1,new Vec4(-2,1,0,0));
 
 	groundP.friction = 0.5;
 	physicsEngine.addObj(groundP);
@@ -68,10 +104,9 @@ function start(){
 	addGlome = function (x,y,z,t,vx,vy,vz,vt){
 		var gP = new Phy4d.Obj(
 			new Phy4d.Glome(
-				new Vec4(x,y,z,t),
 				0.6
 			),
-		1.2);
+		1.2,new Vec4(x,y,z,t));
 		gP.v.x = vx||0;
 		gP.v.y = vy||0;
 		gP.v.z = vz||0;
@@ -81,10 +116,9 @@ function start(){
 	}
 	var addDomino = function (x,y,z,t,vx,vy,vz,vt){
 		var gP = new Phy4d.Obj(
-			new Phy4d.Convex(domino,
-				new Vec4(x,y,z,t)
+			new Phy4d.Convex(domino
 			),
-		1);
+		1,new Vec4(x,y,z,t));
 		gP.v.x = vx||0;
 		gP.v.y = vy||0;
 		gP.v.z = vz||0;
@@ -96,7 +130,7 @@ function start(){
 	function loop(){
 		controler.update();
 		var step = 5;
-		physicsEngine.iterations = Math.floor(count*count*count);
+		/*physicsEngine.iterations = Math.floor(count*count*count);
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.5)/step;
 		if(physicsEngine.pause!==true){
 			while(step--)
@@ -111,7 +145,7 @@ function start(){
 			addDomino(0,4,0,0);
 			count++
 		}
-		
+		*/
 		renderer.render();
 		window.requestAnimationFrame(loop);
 	}

@@ -781,8 +781,7 @@ Mesh4.prototype.dual = function(){
 	return M;
 }
 
-Mesh3.prototype.weld = Mesh4.prototype.weld = function(threshold){
-	function mapreduce(source, map, dest){
+Mesh4._util.mapreduce = function(source, map, dest){
 		/*example:
 			source: this.V;
 			map: map[i]=j : i -> j, if no img, mark map[i] with -1
@@ -826,6 +825,8 @@ Mesh3.prototype.weld = Mesh4.prototype.weld = function(threshold){
 			t ++;
 		}
 	}
+Mesh3.prototype.weld = Mesh4.prototype.weld = function(threshold){
+	var mapreduce = Mesh4._util.mapreduce;
 	threshold = threshold || 0.0001;
 	var threshold2 = threshold*threshold;
 	var mapV = [];// chain: rv2[i]=j : i -> j, if no change rv2[i] undefined
@@ -1626,4 +1627,227 @@ Mesh4.prototype.getBoundingObjs = function(){
 	this.boundingBox = {min:min, max:max};
 	this.boundingSphere = {center:O, radius:r};
 	return this;
+}
+
+Mesh4._util._support = function (list,support){
+	var p = null;
+	var sup = -Infinity;
+	for(var P of list){
+		var nsup = P.dot(support);
+		if(nsup>sup){
+			p = P;
+			sup = nsup;
+		}
+	}
+	return p;
+};
+Mesh4.convexhull = function(Vs){
+	Vs.forEach((v)=>{v.add(new Vec4(Math.random(),Math.random(),Math.random(),Math.random()).mul(0.000001))});
+	var frontier = Vs.slice(0);
+	var hull = new Mesh4({
+		V:[],
+		E:[[0,1],[0,2],[1,2],[0,3],[1,3],[0,4],[1,4],[2,3],[2,4],[3,4]],
+		F:[[0,1,2],[0,3,4],[0,5,6],[1,3,7],[1,5,8],[2,4,7],[2,6,8],[3,5,9],[4,6,9],[7,8,9]],
+		C:[[0,1,3,5],[0,2,4,6],[1,2,7,8],[3,4,7,9],[5,6,8,9]]
+	});
+	var N;
+	var foo = false;
+	var threshold = 0.0000000000001;
+	//initialize a non-degraded simplex
+	for(var i=0; i<Vs.length && !foo;i++){
+		for(var j=i+1; j<Vs.length && !foo;j++){
+			for(var k=j+1; k<Vs.length && !foo;k++){
+				for(var l=k+1; l<Vs.length && !foo;l++){
+					for(var m=l+1; m<Vs.length && !foo;m++){
+						var NA = Vs[i].sub(Vs[j],false).cross(Vs[i].sub(Vs[k],false));
+						var NB = Vs[i].sub(Vs[l],false).cross(Vs[i].sub(Vs[m],false));
+						var NANB = NA.cross(NB);
+						if(Math.abs(NANB)>threshold){
+							if(NANB<0){
+								hull.V.push(Vs[i],Vs[j],Vs[l],Vs[k],Vs[m]);
+							}else{
+								hull.V.push(Vs[i],Vs[j],Vs[k],Vs[l],Vs[m]);
+							}
+							foo = true;
+						}
+					}
+				}
+			}
+		}
+	}
+	var center = hull.V.reduce((a,b)=>a.add(b,false)).div(5);
+	hull.C.forEach((c)=>calculeInfo(hull,c));
+	frontier[--i] = null;
+	frontier[--j] = null;
+	frontier[--k] = null;
+	frontier[--l] = null;
+	frontier[--m] = null;
+	for(var f of hull.F){
+		f.seenTime = 0;
+	}
+	for(var e of hull.E){
+		e.seenTime = 0;
+	}
+	for(var v of hull.V){
+		v.seenTime = 0;
+	}
+	while(frontier.length){
+		var nv = frontier.pop();
+		if(!nv) continue;
+		var inside = true;
+		//check whether v is inside
+		for(var c of hull.C){
+			var cn = c.info.normal;
+			var ct = c.info.t;
+			if(nv.dot(cn)>=ct){
+				inside = false;
+				c.remove = true;
+				for(var F of c){
+					var f = hull.F[F];
+					f.seenTime++;
+				}
+			}
+		}
+		if(inside) continue;
+		for(var f of hull.F){
+			if(f.seenTime!=1) continue;
+			for(var E of f){
+				var e = hull.E[E];
+				e.seenTime = 1;
+				for(var V of e){
+					var v = hull.V[V];
+					v.seenTime = 1;
+				}
+			}
+		}
+		var Iv = hull.V.length;
+		var Ie = hull.E.length;
+		var If = hull.F.length;
+		hull.V.push(nv);
+		var ecount = Ie;
+		var fcount = If;
+		for(var V in hull.V){
+			var v = hull.V[V];
+			V = Number(V);
+			if(v.seenTime != 1) continue;
+			var ne = [Iv,V];
+			v.E = ecount++;
+			hull.E.push(ne);
+		}
+		for(var E in hull.E){
+			var e = hull.E[E];
+			E = Number(E);
+			if(e.seenTime != 1) continue;
+			var nf = [E,hull.V[e[0]].E, hull.V[e[1]].E];
+			e.F = fcount++;
+			hull.F.push(nf);
+		}
+		
+		for(var F in hull.F){
+			var f = hull.F[F];
+			if(f.seenTime != 1) continue;
+			F = Number(F);
+			var nc = [F,hull.E[f[0]].F, hull.E[f[1]].F,hull.E[f[2]].F];
+			if(calculeInfo(hull,nc)){
+				hull.C.push(nc);
+			}
+		}
+		for(var C=0; C<hull.C.length; C++){
+			var c = hull.C[C];
+			if(c.remove){
+				hull.C.splice(C,1);
+				C--;
+			}else{
+				for(var F of c){
+					hull.F[F].seenTime = -1;
+				}
+			}
+		}
+		for(var f of hull.F){
+			if(f.seenTime != -1) continue;
+			for(var E of f){
+				hull.E[E].seenTime = -1;
+			}
+		}
+		for(var e of hull.E){
+			if(e.seenTime != -1) continue;
+			for(var V of e){
+				hull.V[V].seenTime = -1;
+			}
+		}
+		var mapreduce = Mesh4._util.mapreduce;
+		var mapV = [];
+		for(var V in hull.V){
+			V = Number(V);
+			var v = hull.V[V];
+			mapV.push((v.seenTime==-1)?V:-1);
+			v.seenTime = 0;
+			delete v.E;
+		}
+		mapreduce(hull.V,mapV,hull.E);
+		var mapE = [];
+		for(var E in hull.E){
+			E = Number(E);
+			var e = hull.E[E];
+			mapE.push((e.seenTime==-1)?E:-1);
+			e.seenTime = 0;
+			delete e.F;
+		}
+		mapreduce(hull.E,mapE,hull.F);
+		var mapF = [];
+		for(var F in hull.F){
+			F = Number(F);
+			var f = hull.F[F];
+			mapF.push((f.seenTime==-1)?F:-1);
+			f.seenTime = 0;
+		}
+		mapreduce(hull.F,mapF,hull.C);
+		
+	}
+	function calculeInfo(hull,c){
+		var cv = null, cn = null;
+		if(!c.info) c.info = {};
+		if(!c.info.V){
+			c.info.V = new Set();
+			for(var F of c){
+				var f = hull.F[F];
+				for(var E of f){
+					var e = hull.E[E];
+					var v1 = hull.V[e[0]];
+					var v2 = hull.V[e[1]];
+					c.info.V.add(v1);
+					c.info.V.add(v2);
+				}
+			}
+			c.info.V = [...c.info.V];
+		}
+		if(c.info.normal) return 0;
+		for(var j=0; j<4; j++){//4 vertices of that cell
+			if(!cv) {
+				cv = c.info.V[j];
+			}else if(!cn){
+				cn = c.info.V[j].sub(cv,false);
+			}else{
+				cn = cn.cross(c.info.V[j].sub(cv,false));
+			}
+		}
+		var ct = cv.dot(cn);
+		var temp = cv.sub(center,false).dot(cn);
+		if(temp!=0){
+			if(temp<0){
+				cn.sub();
+				ct = -ct;
+			}
+		}else{
+			return false;//this face is degraded, it will be aborted later
+		}
+		c.info.normal = cn;
+		c.info.t = ct;
+		return true;
+	}
+	
+	for(var c of hull.C){
+		delete c.info.V;
+	}
+	return hull;
 }

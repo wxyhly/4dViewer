@@ -556,7 +556,7 @@ Mesh4.regularPolychoron = Mesh4.polychoron = function(n,R){
 }
 
 Mesh4._util.getCoxeterGroup4 = function(rgPower, gbPower, baPower) {
-	rbPower = raPower = gaPower = 2;
+	var rbPower = raPower = gaPower = 2;
     function copyString(string, copies) {
         var s = "";
         for (var i = 0; i < copies; i++) {
@@ -605,7 +605,7 @@ Mesh4._util.getCoxeterGroup4 = function(rgPower, gbPower, baPower) {
     return freeGroup;
 }
 
-Mesh3.regularPolyhedron = function(n){
+Mesh3.regularPolyhedron = Mesh3.polyhedron = function(n){
 	var rg, gb;
 	switch(n){
 		case 4: rg = gb = 3;
@@ -659,7 +659,7 @@ Mesh3.regularPolyhedron = function(n){
 	});
 }
 Mesh4._util.getCoxeterGroup3 = function(rgPower, gbPower) {
-	var gaPower = 2;
+	var rbPower = 2;
     function copyString(string, copies) {
         var s = "";
         for (var i = 0; i < copies; i++) {

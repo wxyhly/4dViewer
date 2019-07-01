@@ -98,6 +98,8 @@ function start(){
 	union3.friction = 0;
 	physicsEngine.addConstrain(new Phy4d.PointConstrain(union1, new Vec4(),null,union1.getPosition().clone()));
 	physicsEngine.addConstrain(new Phy4d.RotationPlaneConstrain(union1, new Bivec(1), null, new Bivec(1)));
+	var Hopf = new Vec4(1,0,0,1).cross(new Vec4(0,1,-1,0)).norm();
+	//physicsEngine.addConstrain(new Phy4d.RotationPlaneConstrain(union1, Hopf, null, Hopf));
 	
 	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(),null,union2.getPosition().clone()));
 	physicsEngine.addConstrain(new Phy4d.PointConstrain(union2, new Vec4(0,0,0,10),null,union2.getPosition().add(new Vec4(10),false)));
