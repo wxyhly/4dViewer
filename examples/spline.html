@@ -22,6 +22,8 @@ function start(){
 	var lineMarker2 = new Geom4(path.loft(10,Mesh3.cube(0.1).move(new Vec3(0,0,0.5)).embed(),true));
 	lineMarker1.color = 0x0000FF;
 	lineMarker2.color = 0xFF6000;
+	tunel.color = 0x00FF00;
+	tunel.flow = 0.3;
 	scene.add(tunel);
 	scene.add(lineMarker1);
 	scene.add(lineMarker2);

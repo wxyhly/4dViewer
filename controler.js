@@ -207,9 +207,10 @@ Controler4.prototype.update = function(callback){
 	}
 	this.needUpdate = false;
 }
-Controler4.prototype.addGUI = function(gui){
+Controler4.prototype.addGUI = function(gui,show){
 	var _this = this;
 	this.gui = gui;
+	if(!show)gui.close();
 	var change = function(){_this.needUpdate = true};
 	var renderer = this.renderer;
 	var rend = gui.addFolder('Renderer');
@@ -234,13 +235,27 @@ Controler4.prototype.addGUI = function(gui){
 }
 Controler4.Trackball = function(renderer){
 	Controler4.call(this,renderer);
+	this.keyConfig = Object.assign(this.keyConfig, {
+		/* 6 move directions for limit3d*/
+		left: "A".charCodeAt(0),
+		right: "D".charCodeAt(0),
+		up: "W".charCodeAt(0),
+		down: "S".charCodeAt(0),
+		sidefront: "Q".charCodeAt(0),
+		sideback: "E".charCodeAt(0)
+	});
 	var _this = this;
 	this.rotateMouseStep = 100;
 	this.rotateKeyStep = 0.05;
 	this.zoomStep = 0.02;
+	this.panMouseStep = 1;
+	this.panKeyStep = 0.2;
 	this.button = false;
 	this.center = new Vec4(0,0,0,0);
 	this.damp = 0.3;
+	this.restrict3d = false;
+	this.enablePan = false;
+	this.enableZoom = true;
 	//this.isDamping = false;
 	this.resRot = new Bivec(0,0,0,0,0,0);
 	this.resZoom = 0;
@@ -250,10 +265,20 @@ Controler4.Trackball = function(renderer){
 		var y = ev.movementY/_this.rotateMouseStep;
 		if(_this.button === 0){
 			_this._rotateA_B(-x,y,_this.x.cross(_this.z),_this.y.cross(_this.z));
-		}else if(_this.button === 2){
-			_this._rotateA_B(-x,y,_this.x.cross(_this.t),_this.y.cross(_this.t));
-		}else if(_this.button === 1){
-			_this._rotateA_B(x,-y,_this.x.cross(_this.y),_this.z.cross(_this.t));
+		}
+		if(_this.enablePan||_this.restrict3d){
+			if(_this.button === 2){
+				_this._movePan(-x,y,0,0);
+			}else if(_this.button === 1){
+				//_this._rotateA_B(x,0,_this.x.cross(_this.y),new Bivec());
+				_this._movePan(0,0,-y,0);
+			}
+		}else{
+			if(_this.button === 2){
+				_this._rotateA_B(-x,y,_this.x.cross(_this.t),_this.y.cross(_this.t));
+			}else if(_this.button === 1){
+				_this._rotateA_B(x,-y,_this.x.cross(_this.y),_this.z.cross(_this.t));
+			}
 		}
 	});
 	this.canvas.addEventListener('mousedown', function( ev ) {
@@ -275,31 +300,58 @@ Controler4.Trackball.prototype.addGUI = function(gui){
 	Controler4.prototype.addGUI.call(this,gui);
 	var con = gui.addFolder("Control");
 	con.add(this,"damp",0,1);
+	con.add(this,"panKeyStep",0.01,2);
+	con.add(this,"panMouseStep",0.1,10);
 }
 Controler4.Trackball.prototype._needDamping = function(){
 	return this.resRot.len(false)>0.00001 || Math.abs(this.resZoom)>0.00001;
 }
 Controler4.Trackball.prototype._zoom = function(step){
-	this.camera4.position.mul(1+step);
+	if(this.enableZoom) this.camera4.position.mul(1+step).sub(this.center.mul(step,false));
 }
 Controler4.Trackball.prototype._rotateA_B = function(x,y,A,B){
 	var R = A.mul(x).add(B.mul(y));
 	this._rotate(R);
 }
+Controler4.Trackball.prototype._movePan = function(x,y,z,t){
+	if(!this.enablePan)return;
+	var delta = this.x.mul(x*this.panMouseStep,false).add(this.y.mul(y*this.panMouseStep,false)).add(this.z.mul(z*this.panMouseStep,false)).add(this.t.mul(t*this.panMouseStep,false));
+	this.camera4.position.add(delta);
+	this.center.add(delta);
+	this.needUpdate = true;
+}
 Controler4.Trackball.prototype._rotate = function(Bivec){
 	this.resRot = Bivec;
 	var R = Bivec.expQ()
 	this.camera4.rotate(R);
-	this.camera4.position = R[0].mul(this.camera4.position,false).mul(R[1]);
+	this.camera4.position = R[0].mul(this.camera4.position.sub(this.center,false),false).mul(R[1]).add(this.center);
 	this.needUpdate = true;
 }
 Controler4.Trackball.prototype.beforeUpdate = function(){
 	var mat = this.camera4.coordMat();
-	
+	var step = this.panKeyStep/this.panMouseStep;
 	this.x = mat.mul(new Vec4(1,0,0,0));
 	this.y = mat.mul(new Vec4(0,1,0,0));
 	this.z = mat.mul(new Vec4(0,0,1,0));
 	this.t = mat.mul(new Vec4(0,0,0,1));
+	if(this.keyPressed[this.keyConfig.left]){
+		this._movePan(-step,0,0,0);
+	}
+	if(this.keyPressed[this.keyConfig.right]){
+		this._movePan(step,0,0,0);
+	}
+	if(this.keyPressed[this.keyConfig.up]){
+		this._movePan(0,step,0,0);
+	}
+	if(this.keyPressed[this.keyConfig.down]){
+		this._movePan(0,-step,0,0);
+	}
+	if(this.keyPressed[this.keyConfig.sidefront]){
+		this._movePan(0,0,-step,0);
+	}
+	if(this.keyPressed[this.keyConfig.sideback]){
+		this._movePan(0,0,step,0);
+	}
 	if(this._needDamping()){
 		this.resRot.div(1+this.damp);
 		this.resZoom /= 1+this.damp;
