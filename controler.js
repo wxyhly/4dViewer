@@ -214,8 +214,14 @@ Controler4.prototype.addGUI = function(gui,show){
 	var change = function(){_this.needUpdate = true};
 	var renderer = this.renderer;
 	var rend = gui.addFolder('Renderer');
+	rend.add(renderer,"thickness",0.01,1).onChange(change);
+	rend.add(renderer,"flow",0,10).onChange(change);
+	rend.add(renderer,"thumbSize",1.8,22).onChange(change);
+	rend.add(renderer,"wireFrameMode").onChange(change);
+	rend.addColor(renderer,"bgColor4").onChange(change);
+	rend.add(renderer,"bgColor4Flow",0,1).onChange(change);
+	rend.addColor(renderer,"bgColor3").onChange(change);
 	var trans = rend.addFolder('Transparency');
-	trans.add(renderer,"bgColor4Flow",0,1).onChange(change);
 	trans.addColor(renderer.opaqueColors[0],"color").onChange(change);
 	trans.add(renderer.opaqueColors[0],"tolerance").onChange(change);
 	trans.addColor(renderer.opaqueColors[1],"color").onChange(change);
@@ -224,12 +230,7 @@ Controler4.prototype.addGUI = function(gui,show){
 	trans.add(renderer.opaqueColors[2],"tolerance").onChange(change);
 	trans.addColor(renderer.opaqueColors[3],"color").onChange(change);
 	trans.add(renderer.opaqueColors[3],"tolerance").onChange(change);
-	rend.add(renderer,"thickness",0.01,1).onChange(change);
-	rend.add(renderer,"flow",0,20).onChange(change);
-	rend.add(renderer,"thumbSize",1.8,22).onChange(change);
-	rend.add(renderer,"wireFrameMode").onChange(change);
-	rend.addColor(renderer,"bgColor4").onChange(change);
-	rend.addColor(renderer,"bgColor3").onChange(change);
+	
 	var cam4 = gui.addFolder('Camera4');
 	cam4.add(this,"fov",10,170).onChange(function(fov){_this.camera4.setProjectMat4(fov);_this.needUpdate = true;});
 }

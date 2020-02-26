@@ -34,16 +34,48 @@ function start(){
 	var gui = new dat.GUI();
 	controler.addGUI(gui);
 	
-	gui["显示 display"] = 3; //"Both"
-	gui.add(gui,"显示 display",{"胞":1,"边":2,"两者":3}).onChange(function(v){
+	gui["显示"] = 3; //"Both"
+	var displayOnChange = function(v){
 		polytope["obj"].visible = v & 1;
 		polytope["edge"].visible = v >> 1;
 		controler.needUpdate = true;
-	});
+	};
+	gui.add(gui,"显示",{"胞":1,"边":2,"两者":3}).onChange(displayOnChange);
 	gui.addColor(polytope["obj"],"color").onChange(change);
 	gui.addColor(polytope["edge"],"color").onChange(change);
 	
 	gui["选择形状"] = "正多胞体";
+	gui["预设 presets"] = 1;
+	gui.add(gui,"预设 presets",{"默认 default":1,"线框 Frame":2,"胞与线框Cell Frame":3,"胞(除雾) Cell(no fog)":4}).onChange(function(v){
+		switch(v){
+			case "1":
+				renderer.flow = 1;
+				renderer.bgColor4Flow = 0.2;
+				renderer.wireFrameMode = false;
+				gui["显示"] = 3;
+				break;
+			case "2":
+				renderer.flow = 20;
+				renderer.bgColor4Flow = 0.01;
+				renderer.wireFrameMode = false;
+				gui["显示"] = 2;
+				break;
+			case "3":
+				renderer.flow = 1;
+				renderer.bgColor4Flow = 0.2;
+				renderer.wireFrameMode = true;
+				gui["显示"] = 1;
+				break;	
+			case "4":
+				renderer.flow = 1.4;
+				renderer.bgColor4Flow = 0.005;
+				renderer.wireFrameMode = false;
+				gui["显示"] = 1;
+				break;	
+		}
+		displayOnChange(gui["显示"]);
+		controler.needUpdate = true;
+	});
 	gui["对偶 Dual"] = false;
 	gui.add(gui,"选择形状",["正多胞体","超球","柱体","锥体","旋转体","直积形"]).onChange(function(v){
 		gui.removeFolder(gui.ShapePanel);
