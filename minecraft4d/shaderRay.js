@@ -18,7 +18,9 @@ float opacity(vec3 cc){
 const int chunkSize = 32*4*4;
 int MC_ID = -1;
 int MC_DIR = -1;
+int MC_GLASS;
 float MC_SHADOW = 0.0;
+int glass = 0;
 vec4 MC_UV;
 const int rdRange = renderDistance*2+1;
 const int rdRange2 = rdRange*rdRange;
@@ -26,6 +28,7 @@ const float resolution = 1./2048.0;
 float wireFrame, DISTANCE;
 vec4 light_Dir_100,light_Dir_001;
 vec4 Prel;
+const float GLASS_ID = 30.0;
 float getID(vec4 pos){
 	
 	vec4 p = pos - Prel;
@@ -54,7 +57,12 @@ float getID(vec4 pos){
 			),texture2D(chunk, offset)
 	);
 }
-
+float isGlass(float id){
+	return step((GLASS_ID-0.5)/256.0,id)-step((GLASS_ID+0.5)/256.0,id);
+}
+float isTransparent(float id){
+	return step(step(0.001,id)-isGlass(id),0.5);
+}
 void raycastMC(vec4 s, vec4 e){
 	// 终点方块坐标
 	const vec4 semi = vec4(0.5000,0.5000,0.5000,0.5000);
@@ -112,12 +120,15 @@ void raycastMC(vec4 s, vec4 e){
 			if(direction>6.9&&direction<7.1) int1.w -= 1.0;
 			// 检测新起点方块
 			ID = getID(int1);
-			found = found + step(0.001,ID);
+			found = found + step(0.001,ID)-isGlass(ID);
+			//- (step((GLASS_ID-0.5)/256.0,ID)-step(ID,(GLASS_ID+0.5)/256.0));
+			glass += int(isGlass(ID));
 		}
-		if(found>0.5&&found<1.5&&ID>0.001){
+		if(found>0.5&&found<1.5&&ID>0.001&&isGlass(ID)<0.5){
 			MC_ID = int(ID*256.0 +0.5);
 			MC_DIR = int(direction+0.5);
 			MC_UV = start;
+			MC_GLASS = glass;
 			end = start - light_Dir_100 + 0.002;
 			int2 = (floor(end));
 			start = start - light_Dir_001 + 0.001;
@@ -289,32 +300,32 @@ vec3 raytracing(vec4 coord4){
 	//环境光遮蔽：
 	
 	float AO = 
-		mix(0.0,1.0,uvw.x)*step(Up,0.001) +
-		mix(1.0,0.0,uvw.x)*step(Um,0.001) +
-		mix(0.0,1.0,uvw.y)*step(Vp,0.001) +
-		mix(1.0,0.0,uvw.y)*step(Vm,0.001) +
-		mix(0.0,1.0,uvw.z)*step(Wp,0.001) +
-		mix(1.0,0.0,uvw.z)*step(Wm,0.001) +
-		mix(0.0,1.0,uvw.x)*mix(0.0,1.0,uvw.y)*step(UpVp,0.001)+
-		mix(0.0,1.0,uvw.x)*mix(1.0,0.0,uvw.y)*step(UpVm,0.001)+
-		mix(1.0,0.0,uvw.x)*mix(1.0,0.0,uvw.y)*step(UmVm,0.001)+
-		mix(1.0,0.0,uvw.x)*mix(0.0,1.0,uvw.y)*step(UmVp,0.001)+
-		mix(0.0,1.0,uvw.x)*mix(0.0,1.0,uvw.z)*step(UpWp,0.001)+
-		mix(0.0,1.0,uvw.x)*mix(1.0,0.0,uvw.z)*step(UpWm,0.001)+
-		mix(1.0,0.0,uvw.x)*mix(1.0,0.0,uvw.z)*step(UmWm,0.001)+
-		mix(1.0,0.0,uvw.x)*mix(0.0,1.0,uvw.z)*step(UmWp,0.001)+
-		mix(0.0,1.0,uvw.y)*mix(0.0,1.0,uvw.z)*step(VpWp,0.001)+
-		mix(0.0,1.0,uvw.y)*mix(1.0,0.0,uvw.z)*step(VpWm,0.001)+
-		mix(1.0,0.0,uvw.y)*mix(1.0,0.0,uvw.z)*step(VmWm,0.001)+
-		mix(1.0,0.0,uvw.y)*mix(0.0,1.0,uvw.z)*step(VmWp,0.001)+
-		mix(0.0,1.0,uvw.x)*mix(0.0,1.0,uvw.y)*mix(0.0,1.0,uvw.z)*step(UpVpWp,0.001)+
-		mix(0.0,1.0,uvw.x)*mix(0.0,1.0,uvw.y)*mix(1.0,0.0,uvw.z)*step(UpVpWm,0.001)+
-		mix(0.0,1.0,uvw.x)*mix(1.0,0.0,uvw.y)*mix(0.0,1.0,uvw.z)*step(UpVmWp,0.001)+
-		mix(0.0,1.0,uvw.x)*mix(1.0,0.0,uvw.y)*mix(1.0,0.0,uvw.z)*step(UpVmWm,0.001)+
-		mix(1.0,0.0,uvw.x)*mix(0.0,1.0,uvw.y)*mix(0.0,1.0,uvw.z)*step(UmVpWp,0.001)+
-		mix(1.0,0.0,uvw.x)*mix(0.0,1.0,uvw.y)*mix(1.0,0.0,uvw.z)*step(UmVpWm,0.001)+
-		mix(1.0,0.0,uvw.x)*mix(1.0,0.0,uvw.y)*mix(0.0,1.0,uvw.z)*step(UmVmWp,0.001)+
-		mix(1.0,0.0,uvw.x)*mix(1.0,0.0,uvw.y)*mix(1.0,0.0,uvw.z)*step(UmVmWm,0.001);
+		mix(0.0,1.0,uvw.x)*isTransparent(Up) +
+		mix(1.0,0.0,uvw.x)*isTransparent(Um) +
+		mix(0.0,1.0,uvw.y)*isTransparent(Vp) +
+		mix(1.0,0.0,uvw.y)*isTransparent(Vm) +
+		mix(0.0,1.0,uvw.z)*isTransparent(Wp) +
+		mix(1.0,0.0,uvw.z)*isTransparent(Wm) +
+		mix(0.0,1.0,uvw.x)*mix(0.0,1.0,uvw.y)*isTransparent(UpVp)+
+		mix(0.0,1.0,uvw.x)*mix(1.0,0.0,uvw.y)*isTransparent(UpVm)+
+		mix(1.0,0.0,uvw.x)*mix(1.0,0.0,uvw.y)*isTransparent(UmVm)+
+		mix(1.0,0.0,uvw.x)*mix(0.0,1.0,uvw.y)*isTransparent(UmVp)+
+		mix(0.0,1.0,uvw.x)*mix(0.0,1.0,uvw.z)*isTransparent(UpWp)+
+		mix(0.0,1.0,uvw.x)*mix(1.0,0.0,uvw.z)*isTransparent(UpWm)+
+		mix(1.0,0.0,uvw.x)*mix(1.0,0.0,uvw.z)*isTransparent(UmWm)+
+		mix(1.0,0.0,uvw.x)*mix(0.0,1.0,uvw.z)*isTransparent(UmWp)+
+		mix(0.0,1.0,uvw.y)*mix(0.0,1.0,uvw.z)*isTransparent(VpWp)+
+		mix(0.0,1.0,uvw.y)*mix(1.0,0.0,uvw.z)*isTransparent(VpWm)+
+		mix(1.0,0.0,uvw.y)*mix(1.0,0.0,uvw.z)*isTransparent(VmWm)+
+		mix(1.0,0.0,uvw.y)*mix(0.0,1.0,uvw.z)*isTransparent(VmWp)+
+		mix(0.0,1.0,uvw.x)*mix(0.0,1.0,uvw.y)*mix(0.0,1.0,uvw.z)*isTransparent(UpVpWp)+
+		mix(0.0,1.0,uvw.x)*mix(0.0,1.0,uvw.y)*mix(1.0,0.0,uvw.z)*isTransparent(UpVpWm)+
+		mix(0.0,1.0,uvw.x)*mix(1.0,0.0,uvw.y)*mix(0.0,1.0,uvw.z)*isTransparent(UpVmWp)+
+		mix(0.0,1.0,uvw.x)*mix(1.0,0.0,uvw.y)*mix(1.0,0.0,uvw.z)*isTransparent(UpVmWm)+
+		mix(1.0,0.0,uvw.x)*mix(0.0,1.0,uvw.y)*mix(0.0,1.0,uvw.z)*isTransparent(UmVpWp)+
+		mix(1.0,0.0,uvw.x)*mix(0.0,1.0,uvw.y)*mix(1.0,0.0,uvw.z)*isTransparent(UmVpWm)+
+		mix(1.0,0.0,uvw.x)*mix(1.0,0.0,uvw.y)*mix(0.0,1.0,uvw.z)*isTransparent(UmVmWp)+
+		mix(1.0,0.0,uvw.x)*mix(1.0,0.0,uvw.y)*mix(1.0,0.0,uvw.z)*isTransparent(UmVmWm);
 	AO *= 1.0 - clamp(light_Dir.y*2.0,0.0,1.0)*(0.9+N.y*0.1);
 	float SO = MC_SHADOW * clamp(angleCos,0.0,1.0) * clamp(-light_Dir.y*2.0,0.0,1.0);			
 	uvw *= 8.0;
@@ -336,7 +347,7 @@ vec3 raytracing(vec4 coord4){
 		dot(direct,light_Dir)<-0.98?
 			sunColor:
 			bgColor4;
-	return c;
+	return mix(c,vec3(0.7,0.8,0.9),float(MC_GLASS)*0.2);
 }
 void main(void) {
 	Prel = floor(vec4(chunkCenter.x,0.0,chunkCenter.yz)/4.0)*4.0;

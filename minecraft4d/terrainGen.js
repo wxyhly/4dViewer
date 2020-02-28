@@ -29,7 +29,12 @@ MCWorld.nameList = [
 	"catcus",
 	"creeper_head",
 	"enderman_head",
-	"steve_head"
+	"steve_head",
+	"",
+	"",
+	"",
+	"",
+	"glass"
 ];
 MCWorld.idList = {};
 for(var i in MCWorld.nameList){

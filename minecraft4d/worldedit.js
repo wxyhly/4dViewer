@@ -494,6 +494,123 @@ MCWorld.prototype.WEMove = function(x1,y1,z1,t1,x2,y2,z2,t2,num,dir,replId){//id
 	}
 	
 }
+MCWorld.Macro = function(world){
+	this.world = world;
+}
+MCWorld.Macro.load = function(input){
+	MCLoader.buffer = null;
+	var file = input.files[0];
+	if(!file) return 0;
+	filename = file.name.split(".")[0];
+	var reader = new FileReader();
+	reader.onload = function() {
+		var str = this.result;
+		MCWorld.Macro.content = str;
+		MCWorld.Macro.parse();
+		MCWorld.Macro.execute();
+	}
+	reader.readAsText(file);
+	MCLoader.msg("读取本地文件中");
+	input.value = '';
+}
+MCWorld.Macro.execute = function(){
+	for(var c of MCWorld.Macro.commands){
+		Command.parse(c,true);
+	}
+	HUD.togglePause(false);
+}
+MCWorld.Macro.parse = function(){
+	var str = MCWorld.Macro.content;
+	str = str.replace(/\t|\r/g,"");
+	var list = str.split("\n");
+	MCWorld.Macro.defines = {};
+	MCWorld.Macro.commands = [];
+	var fnLoc = {};
+	var fnStack = [];
+	for(var i=0; i<list.length;i++){
+		//remove note
+		var l = list[i];
+		l = l.replace(/#.*$/g,"");
+		//parse inline function define
+		var regRes = l.match(/^\s*fn ([a-z|A-Z|_]+)\s*:\s*$/);
+		if(regRes){
+			fnLoc[regRes[1]] = {
+				begin: i+1,
+				ctxt: []
+			}
+			fnStack.push(regRes[1]);
+			list[i] = "";
+		}else{
+			var regRes = l.match(/^\s*endfn\s*$/);
+			if(regRes){
+				fnLoc[fnStack.pop()].end = i-1;
+				list[i] = "";
+			}else{
+				if (fnStack.length){
+					fnLoc[fnStack[fnStack.length-1]].ctxt.push(l);
+					list[i] = "";
+				}else{
+					list[i] = l;
+				}
+			}
+		}
+		
+	}
+	do{
+		//inline function replace
+		var newList = [];
+		for(var i=0; i<list.length;i++){
+			var l = list[i];
+			var isfn = false;
+			for(var f in fnLoc){
+				if(l.match(new RegExp("^\\s*"+f+"\\s*$","g"))){
+					newList = newList.concat(fnLoc[f].ctxt);
+					isfn = true;
+					break;
+				}
+			}
+			if(!(l.match(/^\s*$/)|| isfn)){
+				newList.push(l);
+			}
+		}
+		if(list.length == newList.length)break;
+		list = newList;
+	}while(true);
+
+	for(var l of list){
+		var regRes = l.match(/\s*def ([a-z|A-Z|_]+)\s+(\S+)\s*$/);
+		//deal def
+		if(regRes){
+			MCWorld.Macro.defines[regRes[1]]=MCWorld.Macro.parseExpr(regRes[2]);
+		}else{
+			//parse def
+			l = MCWorld.Macro.parseExpr(l);
+			if(!l.match(/^\s*$/))
+			//execute
+			MCWorld.Macro.commands.push(l);
+		}
+	}
+}
+MCWorld.Macro.parseExpr = function(str){
+	for(var d in MCWorld.Macro.defines){
+		str = str.replace(new RegExp("\\b"+d+"\\b","g"),MCWorld.Macro.defines[d]);
+	}
+	var pieces = str.split(" ");
+	var result = [];
+	for(var piece of pieces){
+		if(!piece.match(/^(\/|-|~)?[a-z|A-Z|_|0-9]*$/)){
+			try{
+				result.push(eval(piece));
+			}
+			catch(e){
+				MCLoader.msg(e);
+			}
+		}else{
+			result.push(piece);
+		}
+	}
+	return result.join(" ");
+}
 MCWorld.Schema = function(world, x1,y1,z1,t1, x2,y2,z2,t2, x0,y0,z0,t0){
 	if(world) {
 		var xm = Math.min(x1,x2), xp = Math.max(x1,x2); this.sizeX = xp - xm + 1;

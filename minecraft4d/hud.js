@@ -26,8 +26,10 @@ var HUD = {
 	},
 	infoQueue : [],
 	info: function(str){
+		
 		HUD.infoQueue.push([str,new Date().getTime()]);
 		if(HUD.infoQueue>5)HUD.infoQueue.shift();
+		console.log(str);
 	},
 	skipNight: null,
 	draw: function(){

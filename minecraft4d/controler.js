@@ -142,6 +142,11 @@ Controler4.MC.prototype.onkeydown = function(ev){
 	if(ev.keyCode=="P".charCodeAt(0)){
 		HUD.togglePause();
 	}
+	if(ev.keyCode==this.keyConfig.toggleHUD){
+		if(this.renderer.hudCanvas){
+			this.renderer.hudCanvas.style.display = this.renderer.hudCanvas.style.display=="none"?"block":"none";
+		}
+	}
 	//console.log(ev.keyCode)
 	if(ev.keyCode==191){//"/"
 		document.exitPointerLock();
@@ -232,9 +237,6 @@ Controler4.MC.prototype.beforeUpdate = function(){
 			var M = xz.expQ();
 			this.planeRotation[0] = M[0].mul(this.planeRotation[0]).norm();
 			this.planeRotation[1] = this.planeRotation[1].mul(M[1]).norm();
-		}
-		if(this.renderer.hudCanvas && this.keyPressed[this.keyConfig.toggleHUD]){
-			this.renderer.hudCanvas.style.display = this.renderer.hudCanvas.style.display=="none"?"block":"none";
 		}
 	}
 	if(this.keyPressed[this.keyConfig.up]&&this.enableKey){//space

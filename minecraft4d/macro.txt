@@ -1,0 +1,50 @@
+# by wxyhly(hqak)
+# 2020/02/28
+# 盖房子
+
+def floor 4
+def size 10
+def h 5
+
+/tp 0 h+1 0 0
+/pos1 0 floor 0 0
+/pos2 size floor size size
+/set 1
+/shift h u
+/set gray_concrete
+/expand h-1 d
+/shift 1 d
+/wall planks
+
+# 开窗：
+def wtop floor+3
+def wbas floor+2
+fn windowlines:
+    /pos1 3 wtop wline w_wpos
+    /pos2 4 wbas wline+1 w_wpos
+    /set glass
+    /pos1 6 wtop wline w_wpos
+    /pos2 7 wbas wline+1 w_wpos
+    /set glass
+endfn
+
+fn windowface:
+    def wline 2
+    windowlines
+    def wline 5
+    windowlines
+    def wline 8
+    windowlines
+endfn
+
+def w_wpos 0
+windowface
+
+def w_wpos size
+windowface
+
+/pos1 0 floor 0 0
+/pos2 size floor+h size size
+/tp 0 h+3 -1 0
+
+
