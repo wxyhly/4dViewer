@@ -5,7 +5,7 @@ varying vec4 coord4;
 uniform float flow,ambientLight;
 uniform mat4 mCamera3;
 uniform vec3 Camera4Proj, chunkCenter, bgColor4,sunColor;
-uniform vec4 vCam4,dx4,light_Dir, focusPos;
+uniform vec4 vCam4,dx4,light_Dir, focusPos, N_glass;
 uniform float light_Density, lineWidth;
 uniform mat4 mCam4;
 uniform int displayMode;
@@ -18,10 +18,12 @@ float opacity(vec3 cc){
 const int chunkSize = 32*4*4;
 int MC_ID = -1;
 int MC_DIR = -1;
-int MC_GLASS;
+int MC_GLASS_DIR = -1;
+int MC_GLASS = 0;
 float MC_SHADOW = 0.0;
 int glass = 0;
 vec4 MC_UV;
+vec4 MC_GLASS_UV;
 const int rdRange = renderDistance*2+1;
 const int rdRange2 = rdRange*rdRange;
 const float resolution = 1./2048.0;
@@ -124,6 +126,11 @@ void raycastMC(vec4 s, vec4 e){
 			//- (step((GLASS_ID-0.5)/256.0,ID)-step(ID,(GLASS_ID+0.5)/256.0));
 			glass += int(isGlass(ID));
 		}
+		if(glass==1 && MC_GLASS_DIR==-1 && found<0.5){
+			MC_GLASS_DIR = int(direction+0.5);
+			MC_GLASS_UV = start;
+			MC_GLASS = glass;
+		}
 		if(found>0.5&&found<1.5&&ID>0.001&&isGlass(ID)<0.5){
 			MC_ID = int(ID*256.0 +0.5);
 			MC_DIR = int(direction+0.5);
@@ -136,7 +143,11 @@ void raycastMC(vec4 s, vec4 e){
 			start = start+d*0.0001;
 		}
 	}
+	MC_GLASS = MC_GLASS>=2?1:MC_GLASS;
 	MC_SHADOW = step(found,1.5);
+	MC_GLASS_UV = mix(MC_UV,MC_GLASS_UV,float(MC_GLASS));
+	MC_GLASS_DIR = MC_GLASS>0?MC_GLASS_DIR:MC_DIR;
+
 }
 
 vec3 raytracing(vec4 coord4){
@@ -144,16 +155,23 @@ vec3 raytracing(vec4 coord4){
 	vec4 ro = vCam4+dx4;
 	MC_ID = 0;
 	MC_DIR = -1;
+	MC_GLASS_DIR = -1;
 	raycastMC(ro,direct*100.0+ro);
 	vec4 int1 = floor(MC_UV);
+	vec4 int1_glass = floor(MC_GLASS_UV);
 	MC_UV = MC_UV - int1;
-	
+	MC_GLASS_UV = MC_GLASS_UV - int1_glass;
 	//sre bloc pos int1: (lup ambientlight sre)
 	float direction = float(MC_DIR);
+	float direction_glass = float(MC_GLASS_DIR);
 	int1.x -= step(4.9,direction)*step(direction,5.1);
 	int1.y -= step(0.9,direction)*step(direction,1.1);
 	int1.z -= step(2.9,direction)*step(direction,3.1);
 	int1.w -= step(6.9,direction)*step(direction,7.1);
+	int1_glass.x -= step(4.9,direction_glass)*step(direction_glass,5.1);
+	int1_glass.y -= step(0.9,direction_glass)*step(direction_glass,1.1);
+	int1_glass.z -= step(2.9,direction_glass)*step(direction_glass,3.1);
+	int1_glass.w -= step(6.9,direction_glass)*step(direction_glass,7.1);
 	DISTANCE = dot(int1 - ro,int1 - ro);
 	vec4 N = 
 		MC_DIR == 0?
@@ -171,6 +189,22 @@ vec3 raytracing(vec4 coord4){
 		MC_DIR == 6?
 			vec4(0.0,0.0,0.0,1.0):
 		vec4(0.0,0.0,0.0,-1.0);
+	vec4 N_glass = 
+		MC_GLASS_DIR == 0?
+			vec4(0.0,1.0,0.0,0.0):
+		MC_GLASS_DIR == 1?
+			vec4(0.0,-1.0,0.0,0.0):
+		MC_GLASS_DIR == 2?
+			vec4(0.0,0.0,1.0,0.0):
+		MC_GLASS_DIR == 3?
+			vec4(0.0,0.0,-1.0,0.0):
+		MC_GLASS_DIR == 4?
+			vec4(1.0,0.0,0.0,0.0):
+		MC_GLASS_DIR == 5?
+			vec4(-1.0,0.0,0.0,0.0):
+		MC_GLASS_DIR == 6?
+			vec4(0.0,0.0,0.0,1.0):
+		vec4(0.0,0.0,0.0,-1.0);
 		
 	float angleCos = dot(N,light_Dir)*light_Density;
 	vec4 uU = MC_DIR >= 4 && MC_DIR <= 5?
@@ -183,6 +217,7 @@ vec3 raytracing(vec4 coord4){
 	vec4 uW = MC_DIR >5?
 			vec4(0.,0.,1.,0.):
 			vec4(0.,0.,0.,1.);
+	
 	vec3 uvw = (MC_DIR < 2?
 			MC_UV.xzw:
 		MC_DIR < 4?
@@ -191,28 +226,16 @@ vec3 raytracing(vec4 coord4){
 			MC_UV.zyw:
 			MC_UV.xyz 
 	);
-	//访问下层相邻方块（用于线框边界检测）
-	bool dUp = getID(int1+uU)>0.001;
-	bool dUm = getID(int1-uU)>0.001;
-	bool dVp = getID(int1+uV)>0.001;
-	bool dVm = getID(int1-uV)>0.001;
-	bool dWp = getID(int1+uW)>0.001;
-	bool dWm = getID(int1-uW)>0.001;
-	bool dUpVp = getID(int1+uU+uV)>0.001;
-	bool dUpVm = getID(int1+uU-uV)>0.001;
-	bool dUmVm = getID(int1-uU-uV)>0.001;
-	bool dUmVp = getID(int1-uU+uV)>0.001;
-	bool dUpWp = getID(int1+uU+uW)>0.001;
-	bool dUpWm = getID(int1+uU-uW)>0.001;
-	bool dUmWm = getID(int1-uU-uW)>0.001;
-	bool dUmWp = getID(int1-uU+uW)>0.001;
-	bool dVpWp = getID(int1+uV+uW)>0.001;
-	bool dVpWm = getID(int1+uV-uW)>0.001;
-	bool dVmWm = getID(int1-uV-uW)>0.001;
-	bool dVmWp = getID(int1-uV+uW)>0.001;
+	vec3 uvw_glass = (MC_GLASS_DIR < 2?
+			MC_GLASS_UV.xzw:
+		MC_GLASS_DIR < 4?
+			MC_GLASS_UV.xyw:
+		MC_GLASS_DIR < 6?
+			MC_GLASS_UV.zyw:
+			MC_GLASS_UV.xyz 
+	);
 	
-	
-	//访问上层相邻方块（用于线框边界检测和AO）	
+	//访问上层相邻方块（用于AO，不考虑玻璃）	
 	int1 -= N;
 	float Up = getID(int1+uU);
 	float Um = getID(int1-uU);
@@ -241,46 +264,104 @@ vec3 raytracing(vec4 coord4){
 	float UmVmWp = getID(int1-uU-uV+uW);
 	float UmVmWm = getID(int1-uU-uV-uW);
 	
-	//线框模式：
-	
-	bool uUp = Up>0.001;
-	bool uUm = Um>0.001;
-	bool uVp = Vp>0.001;
-	bool uVm = Vm>0.001;
-	bool uWp = Wp>0.001;
-	bool uWm = Wm>0.001;
-	bool uUpVp = UpVp>0.001;
-	bool uUpVm = UpVm>0.001;
-	bool uUmVm = UmVm>0.001;
-	bool uUmVp = UmVp>0.001;
-	bool uUpWp = UpWp>0.001;
-	bool uUpWm = UpWm>0.001;
-	bool uUmWm = UmWm>0.001;
-	bool uUmWp = UmWp>0.001;
-	bool uVpWp = VpWp>0.001;
-	bool uVpWm = VpWm>0.001;
-	bool uVmWm = VmWm>0.001;
-	bool uVmWp = VmWp>0.001;
 	//define AAA 0.9
 	//define BBB 0.1
 	
 	if(displayMode == 1){
+		vec4 gU = MC_GLASS_DIR >= 4 && MC_GLASS_DIR <= 5?
+			vec4(0.,0.,1.,0.):
+			vec4(1.,0.,0.,0.);
+				
+		vec4 gV = MC_GLASS_DIR >1?
+				vec4(0.,1.,0.,0.):
+				vec4(0.,0.,1.,0.);
+		vec4 gW = MC_GLASS_DIR >5?
+				vec4(0.,0.,1.,0.):
+				vec4(0.,0.,0.,1.);
+		//访问下层相邻方块（用于线框边界检测）
+		bool dUp = getID(int1_glass+gU)>0.001;
+		bool dUm = getID(int1_glass-gU)>0.001;
+		bool dVp = getID(int1_glass+gV)>0.001;
+		bool dVm = getID(int1_glass-gV)>0.001;
+		bool dWp = getID(int1_glass+gW)>0.001;
+		bool dWm = getID(int1_glass-gW)>0.001;
+		bool dUpVp = getID(int1_glass+gU+gV)>0.001;
+		bool dUpVm = getID(int1_glass+gU-gV)>0.001;
+		bool dUmVm = getID(int1_glass-gU-gV)>0.001;
+		bool dUmVp = getID(int1_glass-gU+gV)>0.001;
+		bool dUpWp = getID(int1_glass+gU+gW)>0.001;
+		bool dUpWm = getID(int1_glass+gU-gW)>0.001;
+		bool dUmWm = getID(int1_glass-gU-gW)>0.001;
+		bool dUmWp = getID(int1_glass-gU+gW)>0.001;
+		bool dVpWp = getID(int1_glass+gV+gW)>0.001;
+		bool dVpWm = getID(int1_glass+gV-gW)>0.001;
+		bool dVmWm = getID(int1_glass-gV-gW)>0.001;
+		bool dVmWp = getID(int1_glass-gV+gW)>0.001;
+		int1_glass -= N_glass;
+		//用于线边框（要考虑玻璃）
+		float glass_Up = getID(int1_glass+gU);
+		float glass_Um = getID(int1_glass-gU);
+		float glass_Vp = getID(int1_glass+gV);
+		float glass_Vm = getID(int1_glass-gV);
+		float glass_Wp = getID(int1_glass+gW);
+		float glass_Wm = getID(int1_glass-gW);
+		float glass_UpVp = getID(int1_glass+gU+gV);
+		float glass_UpVm = getID(int1_glass+gU-gV);
+		float glass_UmVm = getID(int1_glass-gU-gV);
+		float glass_UmVp = getID(int1_glass-gU+gV);
+		float glass_UpWp = getID(int1_glass+gU+gW);
+		float glass_UpWm = getID(int1_glass+gU-gW);
+		float glass_UmWm = getID(int1_glass-gU-gW);
+		float glass_UmWp = getID(int1_glass-gU+gW);
+		float glass_VpWp = getID(int1_glass+gV+gW);
+		float glass_VpWm = getID(int1_glass+gV-gW);
+		float glass_VmWm = getID(int1_glass-gV-gW);
+		float glass_VmWp = getID(int1_glass-gV+gW);
+		float glass_UpVpWp = getID(int1_glass+gU+gV+gW);
+		float glass_UpVpWm = getID(int1_glass+gU+gV-gW);
+		float glass_UpVmWp = getID(int1_glass+gU-gV+gW);
+		float glass_UpVmWm = getID(int1_glass+gU-gV-gW);
+		float glass_UmVpWp = getID(int1_glass-gU+gV+gW);
+		float glass_UmVpWm = getID(int1_glass-gU+gV-gW);
+		float glass_UmVmWp = getID(int1_glass-gU-gV+gW);
+		float glass_UmVmWm = getID(int1_glass-gU-gV-gW);
+		
+		//线框模式：
+		
+		bool uUp = glass_Up>0.001;
+		bool uUm = glass_Um>0.001;
+		bool uVp = glass_Vp>0.001;
+		bool uVm = glass_Vm>0.001;
+		bool uWp = glass_Wp>0.001;
+		bool uWm = glass_Wm>0.001;
+		bool uUpVp = glass_UpVp>0.001;
+		bool uUpVm = glass_UpVm>0.001;
+		bool uUmVm = glass_UmVm>0.001;
+		bool uUmVp = glass_UmVp>0.001;
+		bool uUpWp = glass_UpWp>0.001;
+		bool uUpWm = glass_UpWm>0.001;
+		bool uUmWm = glass_UmWm>0.001;
+		bool uUmWp = glass_UmWp>0.001;
+		bool uVpWp = glass_VpWp>0.001;
+		bool uVpWm = glass_VpWm>0.001;
+		bool uVmWm = glass_VmWm>0.001;
+		bool uVmWp = glass_VmWp>0.001;
 		float AAA = 1. - lineWidth;
 		float BBB = lineWidth;
 		wireFrame = 
 			//step(AAA,uvw.x)*step(AAA,uvw.y)*float((!(dUpVp^^dVp)&&dUp&&(!uUpVp^^uVp)&&!uUp)||(dVp&&(!dUp^^dUpVp)&&!uVp&&!(uUp^^uUpVp)))+
-			step(AAA,uvw.x)*step(AAA,uvw.y)*float(!(((!(dUpVp^^dVp)&&(!uUpVp^^uVp)||(uUpVp&&uVp))&&dUp&&!uUp) || (((!dUp^^dUpVp)&&!(uUp^^uUpVp)||(uUp&&uUpVp))&&dVp&&!uVp)))+
-			step(AAA,uvw.x)*step(uvw.y,BBB)*float(!(((!(dUpVm^^dVm)&&(!uUpVm^^uVm)||(uUpVm&&uVm))&&dUp&&!uUp) || (((!dUp^^dUpVm)&&!(uUp^^uUpVm)||(uUp&&uUpVm))&&dVm&&!uVm)))+
-			step(uvw.x,BBB)*step(uvw.y,BBB)*float(!(((!(dUmVm^^dVm)&&(!uUmVm^^uVm)||(uUmVm&&uVm))&&dUm&&!uUm) || (((!dUm^^dUmVm)&&!(uUm^^uUmVm)||(uUm&&uUmVm))&&dVm&&!uVm)))+
-			step(uvw.x,BBB)*step(AAA,uvw.y)*float(!(((!(dUmVp^^dVp)&&(!uUmVp^^uVp)||(uUmVp&&uVp))&&dUm&&!uUm) || (((!dUm^^dUmVp)&&!(uUm^^uUmVp)||(uUm&&uUmVp))&&dVp&&!uVp)))+
-			step(AAA,uvw.x)*step(AAA,uvw.z)*float(!(((!(dUpWp^^dWp)&&(!uUpWp^^uWp)||(uUpWp&&uWp))&&dUp&&!uUp) || (((!dUp^^dUpWp)&&!(uUp^^uUpWp)||(uUp&&uUpWp))&&dWp&&!uWp)))+
-			step(AAA,uvw.x)*step(uvw.z,BBB)*float(!(((!(dUpWm^^dWm)&&(!uUpWm^^uWm)||(uUpWm&&uWm))&&dUp&&!uUp) || (((!dUp^^dUpWm)&&!(uUp^^uUpWm)||(uUp&&uUpWm))&&dWm&&!uWm)))+
-			step(uvw.x,BBB)*step(uvw.z,BBB)*float(!(((!(dUmWm^^dWm)&&(!uUmWm^^uWm)||(uUmWm&&uWm))&&dUm&&!uUm) || (((!dUm^^dUmWm)&&!(uUm^^uUmWm)||(uUm&&uUmWm))&&dWm&&!uWm)))+
-			step(uvw.x,BBB)*step(AAA,uvw.z)*float(!(((!(dUmWp^^dWp)&&(!uUmWp^^uWp)||(uUmWp&&uWp))&&dUm&&!uUm) || (((!dUm^^dUmWp)&&!(uUm^^uUmWp)||(uUm&&uUmWp))&&dWp&&!uWp)))+
-			step(AAA,uvw.y)*step(AAA,uvw.z)*float(!(((!(dVpWp^^dWp)&&(!uVpWp^^uWp)||(uVpWp&&uWp))&&dVp&&!uVp) || (((!dVp^^dVpWp)&&!(uVp^^uVpWp)||(uVp&&uVpWp))&&dWp&&!uWp)))+
-			step(AAA,uvw.y)*step(uvw.z,BBB)*float(!(((!(dVpWm^^dWm)&&(!uVpWm^^uWm)||(uVpWm&&uWm))&&dVp&&!uVp) || (((!dVp^^dVpWm)&&!(uVp^^uVpWm)||(uVp&&uVpWm))&&dWm&&!uWm)))+
-			step(uvw.y,BBB)*step(uvw.z,BBB)*float(!(((!(dVmWm^^dWm)&&(!uVmWm^^uWm)||(uVmWm&&uWm))&&dVm&&!uVm) || (((!dVm^^dVmWm)&&!(uVm^^uVmWm)||(uVm&&uVmWm))&&dWm&&!uWm)))+
-			step(uvw.y,BBB)*step(AAA,uvw.z)*float(!(((!(dVmWp^^dWp)&&(!uVmWp^^uWp)||(uVmWp&&uWp))&&dVm&&!uVm) || (((!dVm^^dVmWp)&&!(uVm^^uVmWp)||(uVm&&uVmWp))&&dWp&&!uWp)));
+			step(AAA,uvw_glass.x)*step(AAA,uvw_glass.y)*float(!(((!(dUpVp^^dVp)&&(!uUpVp^^uVp)||(uUpVp&&uVp))&&dUp&&!uUp) || (((!dUp^^dUpVp)&&!(uUp^^uUpVp)||(uUp&&uUpVp))&&dVp&&!uVp)))+
+			step(AAA,uvw_glass.x)*step(uvw_glass.y,BBB)*float(!(((!(dUpVm^^dVm)&&(!uUpVm^^uVm)||(uUpVm&&uVm))&&dUp&&!uUp) || (((!dUp^^dUpVm)&&!(uUp^^uUpVm)||(uUp&&uUpVm))&&dVm&&!uVm)))+
+			step(uvw_glass.x,BBB)*step(uvw_glass.y,BBB)*float(!(((!(dUmVm^^dVm)&&(!uUmVm^^uVm)||(uUmVm&&uVm))&&dUm&&!uUm) || (((!dUm^^dUmVm)&&!(uUm^^uUmVm)||(uUm&&uUmVm))&&dVm&&!uVm)))+
+			step(uvw_glass.x,BBB)*step(AAA,uvw_glass.y)*float(!(((!(dUmVp^^dVp)&&(!uUmVp^^uVp)||(uUmVp&&uVp))&&dUm&&!uUm) || (((!dUm^^dUmVp)&&!(uUm^^uUmVp)||(uUm&&uUmVp))&&dVp&&!uVp)))+
+			step(AAA,uvw_glass.x)*step(AAA,uvw_glass.z)*float(!(((!(dUpWp^^dWp)&&(!uUpWp^^uWp)||(uUpWp&&uWp))&&dUp&&!uUp) || (((!dUp^^dUpWp)&&!(uUp^^uUpWp)||(uUp&&uUpWp))&&dWp&&!uWp)))+
+			step(AAA,uvw_glass.x)*step(uvw_glass.z,BBB)*float(!(((!(dUpWm^^dWm)&&(!uUpWm^^uWm)||(uUpWm&&uWm))&&dUp&&!uUp) || (((!dUp^^dUpWm)&&!(uUp^^uUpWm)||(uUp&&uUpWm))&&dWm&&!uWm)))+
+			step(uvw_glass.x,BBB)*step(uvw_glass.z,BBB)*float(!(((!(dUmWm^^dWm)&&(!uUmWm^^uWm)||(uUmWm&&uWm))&&dUm&&!uUm) || (((!dUm^^dUmWm)&&!(uUm^^uUmWm)||(uUm&&uUmWm))&&dWm&&!uWm)))+
+			step(uvw_glass.x,BBB)*step(AAA,uvw_glass.z)*float(!(((!(dUmWp^^dWp)&&(!uUmWp^^uWp)||(uUmWp&&uWp))&&dUm&&!uUm) || (((!dUm^^dUmWp)&&!(uUm^^uUmWp)||(uUm&&uUmWp))&&dWp&&!uWp)))+
+			step(AAA,uvw_glass.y)*step(AAA,uvw_glass.z)*float(!(((!(dVpWp^^dWp)&&(!uVpWp^^uWp)||(uVpWp&&uWp))&&dVp&&!uVp) || (((!dVp^^dVpWp)&&!(uVp^^uVpWp)||(uVp&&uVpWp))&&dWp&&!uWp)))+
+			step(AAA,uvw_glass.y)*step(uvw_glass.z,BBB)*float(!(((!(dVpWm^^dWm)&&(!uVpWm^^uWm)||(uVpWm&&uWm))&&dVp&&!uVp) || (((!dVp^^dVpWm)&&!(uVp^^uVpWm)||(uVp&&uVpWm))&&dWm&&!uWm)))+
+			step(uvw_glass.y,BBB)*step(uvw_glass.z,BBB)*float(!(((!(dVmWm^^dWm)&&(!uVmWm^^uWm)||(uVmWm&&uWm))&&dVm&&!uVm) || (((!dVm^^dVmWm)&&!(uVm^^uVmWm)||(uVm&&uVmWm))&&dWm&&!uWm)))+
+			step(uvw_glass.y,BBB)*step(AAA,uvw_glass.z)*float(!(((!(dVmWp^^dWp)&&(!uVmWp^^uWp)||(uVmWp&&uWp))&&dVm&&!uVm) || (((!dVm^^dVmWp)&&!(uVm^^uVmWp)||(uVm&&uVmWp))&&dWp&&!uWp)));
 			
 			
 			/*step(AAA,uvw.x)*step(AAA,uvw.y)*mix(dUpVp+uUp+uUpVp+uVp+(1.-dUpVp)*(1.-dUp)*(1.-dVp), 1.-clamp((1.-uUp)*(1.-uUpVp)*(1.-uVp)+uUpVp*(uUp*(1.-uVp)+uVp*(1.-uUp)),0.,1.), dUp*dUpVp*dVp)+
@@ -295,6 +376,8 @@ vec3 raytracing(vec4 coord4){
 			step(AAA,uvw.y)*step(uvw.z,BBB)*mix(dVpWm+uVp+uVpWm+uWm+(1.-dVpWm)*(1.-dVp)*(1.-dWm), 1.-clamp((1.-uVp)*(1.-uVpWm)*(1.-uWm)+uVpWm*(uVp*(1.-uWm)+uWm*(1.-uVp)),0.,1.), dVp*dVpWm*dWm)+
 			step(uvw.y,BBB)*step(uvw.z,BBB)*mix(dVmWm+uVm+uVmWm+uWm+(1.-dVmWm)*(1.-dVm)*(1.-dWm), 1.-clamp((1.-uVm)*(1.-uVmWm)*(1.-uWm)+uVmWm*(uVm*(1.-uWm)+uWm*(1.-uVm)),0.,1.), dVm*dVmWm*dWm)+
 			step(uvw.y,BBB)*step(AAA,uvw.z)*mix(dVmWp+uVm+uVmWp+uWp+(1.-dVmWp)*(1.-dVm)*(1.-dWp), 1.-clamp((1.-uVm)*(1.-uVmWp)*(1.-uWp)+uVmWp*(uVm*(1.-uWp)+uWp*(1.-uVm)),0.,1.), dVm*dVmWp*dWp);*/
+	}else{
+		int1_glass -= N_glass;
 	}
 	
 	//环境光遮蔽：
@@ -329,25 +412,22 @@ vec3 raytracing(vec4 coord4){
 	AO *= 1.0 - clamp(light_Dir.y*2.0,0.0,1.0)*(0.9+N.y*0.1);
 	float SO = MC_SHADOW * clamp(angleCos,0.0,1.0) * clamp(-light_Dir.y*2.0,0.0,1.0);			
 	uvw *= 8.0;
-	
+	uvw_glass *= 8.0;
 	vec2 pixel = vec2(uvw.x + float(int(uvw.z)*8+MC_DIR*64), 8.0-uvw.y + float((MC_ID-1)*8))/512.0;
 	
-	vec4 delta = abs(int1 - focusPos + N);
-	vec3 flag = 1.0 - step(3.0,abs(uvw-vec3(4.0,4.0,4.0)));//abs(uvw+vec3(1.0,1.0,1.0)));
+	vec4 delta = abs(int1_glass - focusPos + N_glass);
+	vec3 flag = 1.0 - step(3.0,abs(uvw_glass-vec3(4.0,4.0,4.0)));//abs(uvw+vec3(1.0,1.0,1.0)));
 	
 	vec3 c = mix(
-		texture2D(bloc,pixel).rgb*(SO + (AO-4.0)*0.05 + ambientLight),//贴图颜色*光照
+		MC_ID==0?(dot(direct,light_Dir)<-0.98?
+			sunColor:
+			bgColor4):(texture2D(bloc,pixel).rgb*(SO + (AO-4.0)*0.05 + ambientLight)),//贴图颜色*光照
 		//阳光 + 环境光遮蔽 + 环境光
 		vec3(1.0,0.0,0.0),
-		(1.0-flag.x*flag.y*flag.z)*step(delta.x+delta.y+delta.z+delta.w,0.4)+wireFrame //与外面红框混合
+		(MC_ID==0&&MC_GLASS<1)?0.0:((1.0-flag.x*flag.y*flag.z)*step(delta.x+delta.y+delta.z+delta.w,0.4)+wireFrame) //与外面红框混合
 	);
-	c = 
-		MC_ID!=0 ?
-			c:
-		dot(direct,light_Dir)<-0.98?
-			sunColor:
-			bgColor4;
-	return mix(c,vec3(0.7,0.8,0.9),float(MC_GLASS)*0.2);
+	//c = MC_GLASS>0? vec3(0.9,0.1,0.3):c;
+	return mix(c,vec3(0.1,0.8,0.9),float(MC_GLASS)*ambientLight*0.6);
 }
 void main(void) {
 	Prel = floor(vec4(chunkCenter.x,0.0,chunkCenter.yz)/4.0)*4.0;
