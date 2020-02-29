@@ -600,7 +600,11 @@ MCWorld.Macro.parseExpr = function(str){
 	for(var piece of pieces){
 		if(!piece.match(/^(\/|-|~)?[a-z|A-Z|_|0-9]*$/)){
 			try{
-				result.push(eval(piece));
+				if(piece[0]=="~"){
+					result.push("~"+eval(piece.substr(1)));
+				}else{
+						result.push(eval(piece));
+				}
 			}
 			catch(e){
 				MCLoader.msg(e);
