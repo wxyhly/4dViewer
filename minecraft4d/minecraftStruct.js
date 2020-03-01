@@ -172,7 +172,7 @@ MCStruct.building1 = function(px,pz,pt,seed,terrain, data, bx,bz,bt, cx,cz,ct,li
 		if(Math.abs(x)>s+2||Math.abs(z)>s+2||Math.abs(t)>s+2) return 0;
 		TerrainGen.currentBlocInfo.building = true;
 		var Info = terrain.getTerrain_Y(x+cx*MCChunk.SIZE+s/2,z+cz*MCChunk.SIZE+s/2,t+ct*MCChunk.SIZE+s/2,false);
-		var _rnd = terrain.seed + (x+cx*MCChunk.SIZE)*12+ (z+cz*MCChunk.SIZE)*143+ (t+ct*MCChunk.SIZE)*37;
+		var _rnd = terrain.seed + (x+cx*MCChunk.SIZE)*41+ (z+cz*MCChunk.SIZE)*143+ (t+ct*MCChunk.SIZE)*37;
 		//无房屋查重功能，必须生成一样
 		if(Info.hill>1 || Info.riverDistance<0.11)return 0;
 		var brickId = (Info.sand>0)?6:12;
@@ -245,7 +245,7 @@ MCStruct.building1 = function(px,pz,pt,seed,terrain, data, bx,bz,bt, cx,cz,ct,li
 			}
 		}
 		//window:
-		var fenetre = (_rnd%2)?1:0;
+		var fenetre = (_rnd%7>3)?1:0;
 		_rnd = Math.floor(_rnd/2);
 		var xph = (xp==0)?0:(xp==1)?0:(xp==-1)?-1:(xp==2)?1:(xp==-2)?-1:0;
 		var xnh = (xn==0)?0:(xn==1)?0:(xn==-1)?-1:(xn==2)?1:(xn==-2)?-1:0;
@@ -254,19 +254,19 @@ MCStruct.building1 = function(px,pz,pt,seed,terrain, data, bx,bz,bt, cx,cz,ct,li
 		var tph = (tp==0)?0:(tp==1)?0:(tp==-1)?-1:(tp==2)?1:(tp==-2)?-1:0;
 		var tnh = (tn==0)?0:(tn==1)?0:(tn==-1)?-1:(tn==2)?1:(tn==-2)?-1:0;
 		
-		if(_rnd%3!=0||Math.abs(xp)<3) MCStruct.set(0, x+s,terrainY+1+(xp!=0&&xp<5?xph:fenetre),z+3,t+3, x+s,terrainY+3+xph,z+4,t+4);
+		if(_rnd%3!=0||Math.abs(xp)<3) MCStruct.set(xp!=0&&xp<5?0:fenetre*30, x+s,terrainY+1+(xp!=0&&xp<5?xph:fenetre),z+3,t+3, x+s,terrainY+3+xph,z+4,t+4);
 		_rnd = Math.floor(_rnd/2);                                                                                   
-		if(_rnd%3!=0||Math.abs(xn)<3) MCStruct.set(0, x  ,terrainY+1+(xn!=0&&xn<5?xnh:fenetre),z+3,t+3, x  ,terrainY+3+xnh,z+4,t+4);
-		_rnd = Math.floor(_rnd/2);                                                                                   
-		                                                                                                           
-		if(_rnd%3!=0||Math.abs(zp)<3) MCStruct.set(0, x+3,terrainY+1+(zp!=0&&zp<5?zph:fenetre),z+s,t+3, x+4,terrainY+3+zph,z+s,t+4);
-		_rnd = Math.floor(_rnd/2);                                                                                   
-		if(_rnd%3!=0||Math.abs(zn)<3) MCStruct.set(0, x+3,terrainY+1+(zn!=0&&zn<5?znh:fenetre),z  ,t+3, x+4,terrainY+3+znh,z  ,t+4);
+		if(_rnd%3!=0||Math.abs(xn)<3) MCStruct.set(xn!=0&&xn<5?0:fenetre*30, x  ,terrainY+1+(xn!=0&&xn<5?xnh:fenetre),z+3,t+3, x  ,terrainY+3+xnh,z+4,t+4);
 		_rnd = Math.floor(_rnd/2);                                                                                   
 		                                                                                                           
-		if(_rnd%3!=0||Math.abs(tp)<3) MCStruct.set(0, x+3,terrainY+1+(tp!=0&&tp<5?tph:fenetre),z+3,t+s, x+4,terrainY+3+tph,z+4,t+s);
+		if(_rnd%3!=0||Math.abs(zp)<3) MCStruct.set(zp!=0&&zp<5?0:fenetre*30, x+3,terrainY+1+(zp!=0&&zp<5?zph:fenetre),z+s,t+3, x+4,terrainY+3+zph,z+s,t+4);
 		_rnd = Math.floor(_rnd/2);                                                                                   
-		if(_rnd%3!=0||Math.abs(tn)<3) MCStruct.set(0, x+3,terrainY+1+(tn!=0&&tn<5?tnh:fenetre),z+3,t  , x+4,terrainY+3+tnh,z+4,t  );
+		if(_rnd%3!=0||Math.abs(zn)<3) MCStruct.set(zn!=0&&zn<5?0:fenetre*30, x+3,terrainY+1+(zn!=0&&zn<5?znh:fenetre),z  ,t+3, x+4,terrainY+3+znh,z  ,t+4);
+		_rnd = Math.floor(_rnd/2);                                                                                   
+		                                                                                                           
+		if(_rnd%3!=0||Math.abs(tp)<3) MCStruct.set(tp!=0&&tp<5?0:fenetre*30, x+3,terrainY+1+(tp!=0&&tp<5?tph:fenetre),z+3,t+s, x+4,terrainY+3+tph,z+4,t+s);
+		_rnd = Math.floor(_rnd/2);                                                                                   
+		if(_rnd%3!=0||Math.abs(tn)<3) MCStruct.set(tn!=0&&tn<5?0:fenetre*30, x+3,terrainY+1+(tn!=0&&tn<5?tnh:fenetre),z+3,t  , x+4,terrainY+3+tnh,z+4,t  );
 		
 		if(!F2 && Math.abs(_rnd*1431.433)%4<1.5){
 			terrainY = terrainY+h;
@@ -280,19 +280,19 @@ MCStruct.building1 = function(px,pz,pt,seed,terrain, data, bx,bz,bt, cx,cz,ct,li
 			s+=1;
 			_rnd*=14321.4324523;
 			_rnd = Math.round(_rnd);
-			if(_rnd%3!=0||Math.abs(xp)<3) MCStruct.set(0, x+s,terrainY+1+(xp!=0&&xp<5?xph:fenetre),z+3,t+3, x+s,terrainY+3+xph,z+4,t+4);
-			_rnd = Math.floor(_rnd/2);                                                                                   
-			if(_rnd%3!=0||Math.abs(xn)<3) MCStruct.set(0, x  ,terrainY+1+(xn!=0&&xn<5?xnh:fenetre),z+3,t+3, x  ,terrainY+3+xnh,z+4,t+4);
-			_rnd = Math.floor(_rnd/2);                                                                                   
-																													   
-			if(_rnd%3!=0||Math.abs(zp)<3) MCStruct.set(0, x+3,terrainY+1+(zp!=0&&zp<5?zph:fenetre),z+s,t+3, x+4,terrainY+3+zph,z+s,t+4);
-			_rnd = Math.floor(_rnd/2);                                                                                   
-			if(_rnd%3!=0||Math.abs(zn)<3) MCStruct.set(0, x+3,terrainY+1+(zn!=0&&zn<5?znh:fenetre),z  ,t+3, x+4,terrainY+3+znh,z  ,t+4);
-			_rnd = Math.floor(_rnd/2);                                                                                   
-																													   
-			if(_rnd%3!=0||Math.abs(tp)<3) MCStruct.set(0, x+3,terrainY+1+(tp!=0&&tp<5?tph:fenetre),z+3,t+s, x+4,terrainY+3+tph,z+4,t+s);
-			_rnd = Math.floor(_rnd/2);                                                                                   
-			if(_rnd%3!=0||Math.abs(tn)<3) MCStruct.set(0, x+3,terrainY+1+(tn!=0&&tn<5?tnh:fenetre),z+3,t  , x+4,terrainY+3+tnh,z+4,t  );
+			if(_rnd%3!=0||Math.abs(xp)<3) MCStruct.set(xp!=0&&xp<5?0:fenetre*30, x+s,terrainY+1+(xp!=0&&xp<5?xph:fenetre),z+3,t+3, x+s,terrainY+3+xph,z+4,t+4);
+			_rnd = Math.floor(_rnd/2);                                                                                                 
+			if(_rnd%3!=0||Math.abs(xn)<3) MCStruct.set(xn!=0&&xn<5?0:fenetre*30, x  ,terrainY+1+(xn!=0&&xn<5?xnh:fenetre),z+3,t+3, x  ,terrainY+3+xnh,z+4,t+4);
+			_rnd = Math.floor(_rnd/2);                                                                                                 
+														                        													   
+			if(_rnd%3!=0||Math.abs(zp)<3) MCStruct.set(zp!=0&&zp<5?0:fenetre*30, x+3,terrainY+1+(zp!=0&&zp<5?zph:fenetre),z+s,t+3, x+4,terrainY+3+zph,z+s,t+4);
+			_rnd = Math.floor(_rnd/2);                                                                                                 
+			if(_rnd%3!=0||Math.abs(zn)<3) MCStruct.set(zn!=0&&zn<5?0:fenetre*30, x+3,terrainY+1+(zn!=0&&zn<5?znh:fenetre),z  ,t+3, x+4,terrainY+3+znh,z  ,t+4);
+			_rnd = Math.floor(_rnd/2);                                                                                                 
+														                        													   
+			if(_rnd%3!=0||Math.abs(tp)<3) MCStruct.set(tp!=0&&tp<5?0:fenetre*30, x+3,terrainY+1+(tp!=0&&tp<5?tph:fenetre),z+3,t+s, x+4,terrainY+3+tph,z+4,t+s);
+			_rnd = Math.floor(_rnd/2);                                                                                                 
+			if(_rnd%3!=0||Math.abs(tn)<3) MCStruct.set(tn!=0&&tn<5?0:fenetre*30, x+3,terrainY+1+(tn!=0&&tn<5?tnh:fenetre),z+3,t  , x+4,terrainY+3+tnh,z+4,t  );
 		}
 	}
 	function jardin(x00,z00,t00,dir){
