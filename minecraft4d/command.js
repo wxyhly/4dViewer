@@ -529,7 +529,7 @@ Command = {
 					HUD.blur2Game();
 					return 0;
 				}
-				if(result[2].length==1 && result[2]!=f){
+				if(result[2].length==1 && result[2]!='f'){
 					result[2] += "+";
 				}
 				var dir = Command.parseDir(result[2],HUD.faceToward);
