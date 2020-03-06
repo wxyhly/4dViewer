@@ -43,14 +43,18 @@
 
 ### 一些场景
 
-- 四维汽车 [physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html)
+- 正24胞体骰子[physique/dice.html](https://wxyhly.github.io/4dViewer/physique/dice.html)
+- 四维积木块[physique/cubes.html](https://wxyhly.github.io/4dViewer/physique/cubes.html)
+- 四维汽车 (以后会出教程)[physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html)
 - 圆锥锥陀螺[physique/gyro.html](https://wxyhly.github.io/4dViewer/physique/gyro.html)
 - 四维锁链
- + 球环-球环链（一动就会脱）[physique/unlink.html](https://wxyhly.github.io/4dViewer/physique/unlink.html)
- + 球环-环球链[physique/st_ts_link.html](https://wxyhly.github.io/4dViewer/physique/st_ts_link.html)
- + 球环-双圆环链[physique/st_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/st_tiger_link.html)
- + 环球-双圆环链[physique/tiger_ts_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_ts_link.html)
- + 双圆环-双圆环链（一大一小）[physique/tiger_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_tiger_link.html)
+    +  球环-球环链（一动就会脱）[physique/unlink.html](https://wxyhly.github.io/4dViewer/physique/unlink.html)
+    +  球环-环球链[physique/st_ts_link.html](https://wxyhly.github.io/4dViewer/physique/st_ts_link.html)
+    +  球环-双圆环链[physique/st_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/st_tiger_link.html)
+    +  环球-双圆环链[physique/tiger_ts_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_ts_link.html)
+    +  双圆环-双圆环链（一大一小）[physique/tiger_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_tiger_link.html)
+- 四维齿轮1:绝对垂直的齿轮相互传动[physique/cogwheel.html](https://wxyhly.github.io/4dViewer/physique/cogwheel.html)
+- 四维齿轮2:双旋转合成器[physique/cogwheel2.html](https://wxyhly.github.io/4dViewer/physique/cogwheel2.html)
 
 ## 参数调节
 ### 相机设置
