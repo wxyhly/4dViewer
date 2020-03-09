@@ -16,7 +16,6 @@ var diceP,physicsEngine,addGlome;
 var GJK;
 function start(){
 	var scene = new Scene();
-	var glomes = [];
 	var planeWidth = 10;
 	var R0 = 1, R1 = 1, R2 = 2;
 	//ground
@@ -33,22 +32,38 @@ function start(){
 	var cube = Mesh4.tesseract(2);
 
 	var camera = new Camera4(80,0.01,50);
-	camera.position = new Vec4(0,4,0,-5);
+	camera.position = new Vec4(0.1,4,0.1,-4.5);
 	
 	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera);
 	renderer.light4.t = 0.7;
+	renderer.bgColor4Flow = 0.4;
 	var controler = new Controler4.KeepUp(renderer);
 	controler.moveStep = 0.1;
 	var gui = new dat.GUI();
 	controler.addGUI(gui);
-	
+	controler.onmousedown = function(e){
+		if(!!document.pointerLockElement && e.button==2){
+			var gP = new Phy4d.Obj(
+				new Phy4d.Glome(0.3),
+			3,camera.position.clone());
+			gP.restitution = 0.9;
+			gP.friction = 0.9;
+			var emit_speed = 5.5;
+			gP.v = controler.t.mul(emit_speed,false);
+			gP.v.y += 1;
+			scene.add(gP.generateGeom({flow:5,color:Math.random()*0xFFFFFF,u:8,v:8,w:8}));
+			physicsEngine.addObj(gP);
+		}
+	}
 	physicsEngine = new Phy4d();
-	//physicsEngine.gravity = new Vec4(0,-0.1);
+	physicsEngine.gravity = new Vec4(0,-6.1);
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0.15,1,0,0).norm(),0),Infinity);
 		diceP  = new Phy4d.Obj(new Phy4d.Convex(cube),1,new Vec4(0.0,1,0.0,0.0));
 	var dice2P = new Phy4d.Obj(new Phy4d.Convex(cell16),1,new Vec4(0,4,0,0.001),[new Vec4(0.37976685510375163,-0.5514258197691032,0.14840651342568903,-0.7277926956416981),new Vec4(0.6005662916432893,-0.5704274108452806,-0.04824693090449129,0.5582158471026009)]);
 	var dice3P = new Phy4d.Obj(new Phy4d.Convex(Mesh4.duocylinder(1,1, 8,8)),1,new Vec4(0,7,0,0));
 	diceP.friction = 0.4;
+	dice2P.friction = 0.4;
+	dice3P.friction = 0.4;
 	physicsEngine.addObj(groundP);
 	scene.add(groundP.generateGeom({flow:0.2,color:0xAAAA66}));
 	physicsEngine.addObj(diceP);
@@ -65,7 +80,7 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,-1,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
-	addGlome = function (x,y,z,t,vx,vy,vz,vt){
+	/*addGlome = function (x,y,z,t,vx,vy,vz,vt){
 		var gP = new Phy4d.Obj(new Phy4d.Glome(0.6),1,new Vec4(x,y,z,t));
 		gP.v.x = vx||0;
 		gP.v.y = vy||0;
@@ -73,21 +88,22 @@ function start(){
 		gP.v.t = vt||0;
 		scene.add(gP.generateGeom({flow:5,color:0x3333FF}));
 		physicsEngine.addObj(gP);
-	}
+	}*/
 	var t = 0;
 	function loop(){
 		controler.update();
 		var step = 10;
-		physicsEngine.iterations = 5;
+		physicsEngine.iterations = 6;
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
+		//physicsEngine.dt = 0.1/step;
 		if(physicsEngine.pause!==true){
 			while(step--)
 				physicsEngine.next();
 		}
 		t++;
-		if(t%50==0 && t<50*6){
-			addGlome(5,4.6,0,0,-12);
-		}
+		//if(t%50==0 && t<50*6){
+			//addGlome(5,4.6,0,0,-12);
+		//}
 		
 		renderer.render();
 		window.requestAnimationFrame(loop);

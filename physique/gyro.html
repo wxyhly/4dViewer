@@ -1,4 +1,5 @@
 <html>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -12,10 +13,10 @@
 var gl$ = function (obj){
 	return document.getElementById(obj).getContext("experimental-webgl");
 }
-var diceP,physicsEngine,addGlome;
+var DICE,physicsEngine,addGlome,updateScene;
+var ADDGLOME = false;//pah glezf malu
 function start(){
 	var scene = new Scene();
-	var glomes = [];
 	var planeWidth = 15;
 	//ground
 	var groundM = Mesh3.cube(planeWidth).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
@@ -25,18 +26,6 @@ function start(){
 	wall.C.pop();
 	wall = wall.extrude(new Vec4(0,planeWidth,0,0));
 	scene.add(new Geom4(wall,null,null,0xEEEEEE));
-	
-	
-	var diceM = Mesh4.dicone(2,16,2,2).rotate(new Bivec(0,0,0,0,-Math.PI/2,0)).rotate(new Bivec(0,0,0,-Math.PI/4,0,0));
-	
-	for(var c in diceM.C){
-		if(!diceM.C[c].info) diceM.C[c].info = {};
-		diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
-	}
-	
-	var dice = new Geom4(diceM,null,null,0x3333FF);
-	dice.flow = 5;
-	scene.add(dice);
 
 	var camera = new Camera4(80,0.01,50);
 	camera.position = new Vec4(0,1.5,0,-3);
@@ -45,18 +34,28 @@ function start(){
 	
 	var controler = new Controler4.KeepUp(renderer);
 	controler.moveStep = 0.1;
+	controler.onmousedown = function(e){
+		if(!!document.pointerLockElement && e.button==2){
+			var gP = new Phy4d.Obj(
+				new Phy4d.Glome(0.3),
+			1,camera.position.clone());
+			gP.restitution = 0.9;
+			gP.friction = 0.9;
+			var emit_speed = 2.5;
+			gP.v = controler.t.mul(emit_speed,false);
+			gP.v.y += 1;
+			scene.add(gP.generateGeom({flow:5,color:Math.random()*0xFFFFFF,u:8,v:8,w:8}));
+			physicsEngine.addObj(gP);
+		}
+	}
 	var gui = new dat.GUI();
 	controler.addGUI(gui);
-	
+	addSceneGUI(gui);
 	physicsEngine = new Phy4d();
 	//physicsEngine.gravity = new Vec4();
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
-	diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
-	diceP.w.xt = 10;
-	diceP.restitution = 0.9;
-	diceP.friction = 0.9;
+	
 	physicsEngine.addObj(groundP);
-	physicsEngine.addObj(diceP);
 	//wall
 	
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
@@ -65,32 +64,30 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,-1,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
-	addGlome = function (x,y,z,t){
-		var gP = new Phy4d.Obj(
-			new Phy4d.Glome(0.3),
-		2,new Vec4(x,y,z,t));
-		gP.restitution = 0.9;
-		gP.friction = 0.9;
-		var g = new Geom4(
-			Mesh4.glome(gP.phyGeom.R,8,8,8), //shape
-			null,//position
-			null,
-			Math.floor(0xFF0000)//color
-		);
-		g.boundingPhy4dObj = gP;
-		g.flow = 5;
-		scene.add(g);
-		glomes.push(g);
-		physicsEngine.addObj(gP);
+
+	var diceIndex = scene.child.length;
+	var dicePIndex = physicsEngine.obj.length;
+	updateScene = function(geom, geomP){
+		//demo tou glezf(glomes)
+		DICE = geom;
+		scene.child.length = diceIndex+1;
+		physicsEngine.obj.length = dicePIndex+1;
+		//chhe dice
+		scene.child[diceIndex] = geom;
+		geom.mesh.update();
+		physicsEngine.obj[dicePIndex] = geomP;
+		geom.position = geomP.getPosition();
+		geom.rotation = geomP.getRotation();
+		//chhe ui pleler lita
+		camera.position = new Vec4(0.1,1.5,0.1,-3);
+		camera.rotation = [new Vec4(1),new Vec4(1)];
+		controler.updateCamera();
 	}
-	glomes = [];
 	var t=1;
+	sceneGleToggle["球柱"]();
 	function loop(){
 		controler.update();
 		t++;
-		if(t%(50*2)==0&&t<10000){
-			addGlome(0.5+dice.position.x,5,0.5+dice.position.z,0.1+dice.position.t);
-		}
 		var step = 5;
 		physicsEngine.iterations = 10;
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
@@ -98,18 +95,142 @@ function start(){
 			while(step--)
 				physicsEngine.next();
 		}
-		//Update position for display:
-		dice.position = diceP.getPosition();
-		dice.rotation = diceP.getRotation();
-		for(var g of glomes){
-			g.position = g.boundingPhy4dObj.getPosition();
-		}
 		renderer.render();
 		window.requestAnimationFrame(loop);
 	}
 	loop();
 	
 }
+function addSceneGUI(gui){
+	var gle=gui.addFolder("滚动场景");
+	gle.open();
+	for(var i in sceneGleToggle){
+		gle.add(sceneGleToggle,i);
+	}
+	var gyro=gui.addFolder("陀螺场景");
+	gyro.open();
+	for(var i in sceneGyroToggle){
+		gyro.add(sceneGyroToggle,i);
+	}
+}
+var sceneGleToggle = {
+	"球柱":function(){
+		var diceM = Mesh4.spherinder(1,16,16,1);
+		for(var c in diceM.C){
+			if(!diceM.C[c].info) diceM.C[c].info = {};
+			diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
+		}
+		var dice = new Geom4(diceM,null,null,0x3333FF);
+		dice.flow = 5;
+
+		var diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+		diceP.w.xy = 3;
+		diceP.restitution = 0.9;
+		diceP.friction = 0.9;
+		updateScene(dice,diceP);
+	},
+	"圆柱柱":function(){
+		var diceM = Mesh4.cubinder(1,24,1.5,1.5);
+		for(var c in diceM.C){
+			if(!diceM.C[c].info) diceM.C[c].info = {};
+			diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
+		}
+		var dice = new Geom4(diceM,null,null,0x3333FF);
+		dice.flow = 5;
+		var diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+		diceP.w.xy = 3;
+		diceP.restitution = 0.9;
+		diceP.friction = 0.9;
+		updateScene(dice,diceP);
+	},
+	"双圆柱":function(){
+		var diceM = Mesh4.duocylinder(1,1,24,24);
+		for(var c in diceM.C){
+			if(!diceM.C[c].info) diceM.C[c].info = {};
+			diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
+		}
+		var dice = new Geom4(diceM,null,null,0x3333FF);
+		dice.flow = 5;
+		var diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+		diceP.w.xy = 3;
+		diceP.restitution = 0.9;
+		diceP.friction = 0.9;
+		updateScene(dice,diceP);
+	}
+};
+var sceneGyroToggle = {
+	"圆锥锥":function(){
+		var diceM = Mesh4.dicone(2,16,2,2).rotate(new Bivec(0,0,0,0,-Math.PI/2,0)).rotate(new Bivec(0,0,0,-Math.PI/4,0,0));
+		for(var c in diceM.C){
+			if(!diceM.C[c].info) diceM.C[c].info = {};
+			diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
+		}
+		var dice = new Geom4(diceM,null,null,0x3333FF);
+		dice.flow = 5;
+		var diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+		diceP.w.xt = 10;
+		diceP.restitution = 0.9;
+		diceP.friction = 0.9;
+		updateScene(dice,diceP);
+	},
+	"圆锥柱":function(){
+		var diceM = Mesh4.coninder(1.5,32,1.3,1.4).rotate(new Bivec(0,0,0,-Math.PI/2,0,0)).rotate(new Bivec(0,0,0,0,0,-Math.PI/2));
+		for(var c in diceM.C){
+			if(!diceM.C[c].info) diceM.C[c].info = {};
+			diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
+		}
+		var dice = new Geom4(diceM,null,null,0x3333FF);
+		dice.flow = 5;
+		var diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+		diceP.w.xt = 10;
+		diceP.restitution = 0.9;
+		diceP.friction = 0.9;
+		updateScene(dice,diceP);
+	},
+	"球锥":function(){
+		var diceM = Mesh4.sphone(1.5,16,16,1.5).rotate(new Bivec(0,0,0,0,-Math.PI/2,0));
+		for(var c in diceM.C){
+			if(!diceM.C[c].info) diceM.C[c].info = {};
+			diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
+		}
+		var dice = new Geom4(diceM,null,null,0x3333FF);
+		dice.flow = 5;
+		var diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+		diceP.w.xt = 10;
+		diceP.restitution = 0.9;
+		diceP.friction = 0.9;
+		updateScene(dice,diceP);
+	},
+	"双圆锥":function(){
+		var diceM = Mesh4.duocone(1.5,1.5,32,32).rotate(new Bivec(0,0,0,0,-Math.PI/2,0));
+		for(var c in diceM.C){
+			if(!diceM.C[c].info) diceM.C[c].info = {};
+			diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
+		}
+		var dice = new Geom4(diceM,null,null,0x3333FF);
+		dice.flow = 5;
+		var diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+		diceP.w.xt = 10;
+		diceP.restitution = 0.9;
+		diceP.friction = 0.9;
+		updateScene(dice,diceP);
+	},
+	"圆柱锥":function(){
+		var diceM = Mesh4.cylindrone(1.5,32,1.4,1.3).rotate(new Bivec(0,0,0,0,-Math.PI/2,0));
+		for(var c in diceM.C){
+			if(!diceM.C[c].info) diceM.C[c].info = {};
+			diceM.C[c].info.color = (Math.floor(c/32)%4<=1 ^ c%4<=1)?0xFFFF00:0x3333FF;
+		}
+		var dice = new Geom4(diceM,null,null,0x3333FF);
+		dice.flow = 5;
+		var diceP = new Phy4d.Obj(new Phy4d.Convex(diceM, new Vec4(0,2,0,0)), 2);
+		diceP.w.xt = 10;
+		diceP.restitution = 0.9;
+		diceP.friction = 0.9;
+		updateScene(dice,diceP);
+	}
+};
+
 </script>
 <body onload="start()">
 <canvas id="glCanvas" width="1600" height="800"></canvas>

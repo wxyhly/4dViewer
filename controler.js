@@ -419,6 +419,12 @@ Controler4.KeepUp = function(renderer,hitTest){
 			_this.needUpdate = true;
 		}
 	});
+	document.addEventListener('mousedown', function( ev ) {
+		//canvas onmousedown 在soor鼠标后就失效了，所以还要写document
+		if(!!document.pointerLockElement){
+			if(_this.onmousedown)_this.onmousedown(ev);
+		}
+	});
 	this.canvas.addEventListener('click', function( ev ) {
 		if(ev.button == 0){
 			document.body.requestPointerLock();

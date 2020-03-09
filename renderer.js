@@ -30,7 +30,13 @@ Scene.prototype.add = function(s){
 				update(i);
 			}
 		}
-		if(s.mesh) s.mesh.update();
+		if(s.mesh){
+			if(!(s.mesh.C[0].info && s.mesh.C[0].info.normal)){
+				s.mesh.update();
+			}else{
+				s.mesh.getBoundingObjs();
+			}
+		} 
 		if(s instanceof Obj4.Group) s.update();
 	}
 }
