@@ -354,8 +354,8 @@ Vec4.prototype.dot = function (v4){
 	return this.x*v4.x + this.y*v4.y + this.z*v4.z + this.t*v4.t;
 }
 Vec2.prototype.len = function (flag){
-	if(flag == 1) return Math.abs(this.x) + Math.abs(this.y);
-	if(flag == Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y));
+	if(flag === 1) return Math.abs(this.x) + Math.abs(this.y);
+	if(flag === Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y));
 	var L = this.x*this.x + this.y*this.y;
 	if(flag === false){
 		return L;
@@ -363,8 +363,8 @@ Vec2.prototype.len = function (flag){
 	return Math.sqrt(L);
 }
 Vec3.prototype.len = function (flag){
-	if(flag == 1) return Math.abs(this.x) + Math.abs(this.y) + Math.abs(this.z);
-	if(flag == Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
+	if(flag === 1) return Math.abs(this.x) + Math.abs(this.y) + Math.abs(this.z);
+	if(flag === Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
 	var L = this.x*this.x + this.y*this.y + this.z*this.z;
 	if(flag === false){
 		return L;
@@ -372,8 +372,8 @@ Vec3.prototype.len = function (flag){
 	return Math.sqrt(L);
 }
 Vec4.prototype.len = function(flag){
-	if(flag == 1) return Math.abs(this.x) + Math.abs(this.y) + Math.abs(this.z) + Math.abs(this.t);
-	if(flag == Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z), Math.abs(this.t));
+	if(flag === 1) return Math.abs(this.x) + Math.abs(this.y) + Math.abs(this.z) + Math.abs(this.t);
+	if(flag === Infinity) return Math.max(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z), Math.abs(this.t));
 	var L = this.x*this.x + this.y*this.y + this.z*this.z + this.t*this.t;
 	if(flag === false){
 		return L;
@@ -638,6 +638,8 @@ Bivec.prototype.dot = function (biv){
 	return this.xy*biv.xy + this.yz*biv.yz + this.zt*biv.zt + this.xt*biv.xt + this.xz*biv.xz + this.yt*biv.yt;
 }
 Bivec.prototype.len = function(flag){
+	if(flag === 1) return Math.abs(this.xy) + Math.abs(this.xz) + Math.abs(this.xt) + Math.abs(this.yz) + Math.abs(this.yt) + Math.abs(this.zt);
+	if(flag === Infinity) return Math.max(Math.abs(this.xy),Math.abs(this.xz),Math.abs(this.xt), Math.abs(this.yz),Math.abs(this.yt), Math.abs(this.zt));
 	var L = this.xy*this.xy + this.xz*this.xz + this.yz*this.yz + this.yt*this.yt + this.zt*this.zt + this.xt*this.xt;
 	if(flag === false){
 		return L;
@@ -1181,18 +1183,23 @@ PMat5.prototype.lookAt = function(pos,up){
 //Quanternion version of PMat5
 
 var PMat5Q = function(l,r,v4){
-	if(!l){
-		l = new Vec4(1);//Identity
-		r = new Vec4(1);//Identity
-	}
-	if(!v4){
-		this.position = new Vec4();//null Vector4
+	if(l && l.length){
+		this.rotation = l;
+		this.position = v4 || new Vec4();
 	}else{
-		this.position = v4.clone();
+		if(!l){
+			l = new Vec4(1);//Identity
+			r = new Vec4(1);//Identity
+		}
+		if(!v4){
+			this.position = new Vec4();//null Vector4
+		}else{
+			this.position = v4.clone();
+		}
+		this.rotation = [l, r];
 	}
-	this.rotation = [l, r];
 }
-PMat5Q.clone = function(){
+PMat5Q.prototype.clone = function(){
 	return new PMat5Q(this.rotation[0].clone(),this.rotation[1].clone(),this.position.clone());
 }
 
@@ -1212,6 +1219,17 @@ PMat5Q.prototype.mul = function (pm5,flag){
 		pm5.rotation[1].mul(this.rotation[1],false),
 		this.rotation[0].mul(pm5.position,false).mul(this.rotation[1]).add(this.position)
 	);
+}
+PMat5Q.prototype.move = function (v4,flag){
+	if(flag===false){
+		return new PMat5Q(
+			this.rotation[0],
+			this.rotation[1],
+			this.position.add(v4,false)
+		);
+	}
+	this.position.add(v4);
+	return this;
 }
 PMat5Q.prototype.lookAt = function(pos,up){
 	var rayon = pos.sub(this.position,false).norm();

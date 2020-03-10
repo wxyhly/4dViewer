@@ -4,14 +4,18 @@ Phy4d.prototype.GJK = {
 		var list = [[],[]];
 		var c1 = c1O.phyGeom;
 		var c2 = c2O.phyGeom;
+		var c1r = c1O.getRotation(true);
+		var c2r = c2O.getRotation(true);
+		var c1o = c1O.getPosition(true);
+		var c2o = c2O.getPosition(true);
 		for(var v1 of c1.mesh.V){
-			list[0].push(c1.r[0].mul(v1,false).mul(c1.r[1]).add(c1.o));
+			list[0].push(c1r[0].mul(v1,false).mul(c1r[1]).add(c1o));
 		}
 		for(var v2 of c2.mesh.V){
-			list[1].push(c2.r[0].mul(v2,false).mul(c2.r[1]).add(c2.o).add(offset));
+			list[1].push(c2r[0].mul(v2,false).mul(c2r[1]).add(c2o).add(offset));
 		}
-		//var list = this._minkowskiDiff(c1O,c2O);
 		var result = this._O2Convex(list);
+		return result;
 		if(!result||!result.n) return 0;
 		list[0].sort((a,b)=>(a.sub(b,false).dot(result.n)));
 		list[1].sort((a,b)=>(-a.sub(b,false).dot(result.n)));
@@ -21,22 +25,6 @@ Phy4d.prototype.GJK = {
 			result.o = list[1][0];
 		}
 		return result;
-	},
-	_minkowskiDiff : function (c1O,c2O){
-		var c1 = c1O.phyGeom;
-		var c2 = c2O.phyGeom;
-		
-		//var worldv1 = [];
-		//var worldv2 = [];
-		var list = [];
-		for(var v1 of c1.mesh.V){
-			var worldv1 = c1.r[0].mul(v1,false).mul(c1.r[1]).add(c1.o);
-			for(var v2 of c2.mesh.V){
-				var worldv2 = c2.r[0].mul(v2,false).mul(c2.r[1]).add(c2.o).add(offset);
-				list.push(worldv1.sub(worldv2,false));
-			}
-		}
-		return list;
 	},
 	_O2Convex : function (list){
 		var supports = [new Vec4(1),new Vec4(-1),new Vec4(0,1),new Vec4(0,0,1)];
@@ -80,6 +68,7 @@ Phy4d.prototype.GJK = {
 				norms[i] = {n:cn,t:ct};//for estimating the closest cell
 			}
 			if(foundInside){
+				return this._convexhull(list,simplex);
 				var dirs = [
 					new Vec4(-1),new Vec4(1),new Vec4(0,-1),new Vec4(0,1),new Vec4(0,0,-1),new Vec4(0,0,1),new Vec4(0,0,0,-1),new Vec4(0,0,0,1),
 					new Vec4(1,1,1,1),
@@ -227,116 +216,229 @@ Phy4d.prototype.GJK = {
 	},
 	_support : function (list,support,check){
 		var pa = null, pb = null;
+		var Pa = null, Pb = null;
 		var sup = -Infinity;
-		for(var P of list[0]){
+		for(var p in list[0]){
+			var P = list[0][p];
 			var nsup = P.dot(support);
 			if(nsup>sup){
 				pa = P;
+				Pa = p;
 				sup = nsup;
 			}
 		}
 		var sub = Infinity;
-		for(var P of list[1]){
+		for(var p in list[1]){
+			var P = list[1][p];
 			var nsub = P.dot(support);
 			if(nsub<sub){
 				pb = P;
+				Pb = p;
 				sub = nsub;
 			}
 		}
 		if(check!==false && sup-sub<0){//O is outside
 			return null;//terminer
 		}
-		return pa.sub(pb,false);
+		var sV = pa.sub(pb,false);
+		//record infomation to be used in finding contact point
+		sV.a = Pa;
+		sV.b = Pb;
+		return sV;
 	},
 	_convexhull : function(list,simplex,normals){
-		var center = simplex.reduce((a,b)=>a.add(b,false)).div(simplex.length);
-		var sie = false;
-		var listConvexs = [];
-		var sc = [
-			[simplex[0],simplex[1],simplex[2],simplex[3], normals[4],[3,2,1,0]],
-			[simplex[0],simplex[1],simplex[2],simplex[4], normals[3],[6,5,4,0]],
-			[simplex[0],simplex[1],simplex[4],simplex[3], normals[2],[8,7,1,4]],
-			[simplex[0],simplex[4],simplex[2],simplex[3], normals[1],[9,2,7,5]],
-			[simplex[4],simplex[1],simplex[2],simplex[3], normals[0],[3,9,8,6]]
-		];//tetrahedral cells
-		var border = [];
-		while(sc.length){
-			sc.sort((a,b)=>(a[4].t-b[4].t));
-			var c = sc.shift();
-				
-			
-			var newV = this._support(list,c[4].n,false);
-			var borderFlag = false;
-			var dot = newV.sub(c[0],false).dot(c[4].n);
-			console.log(dot);
-			var toRemove = [c];
-			if(dot<0.001){
-				borderFlag = true;
-				border.push({V:c,n:c[4].n,t:c[4].t});
+		var hull = new Mesh4({
+			V:simplex,
+			E:[[0,1],[0,2],[1,2],[0,3],[1,3],[0,4],[1,4],[2,3],[2,4],[3,4]],
+			F:[[0,1,2],[0,3,4],[0,5,6],[1,3,7],[1,5,8],[2,4,7],[2,6,8],[3,5,9],[4,6,9],[7,8,9]],
+			C:[[0,1,3,5],[0,2,4,6],[1,2,7,8],[3,4,7,9],[5,6,8,9]]
+		});
+		var N;
+		var foo = false;
+		var threshold = 0.0000000000001;
+		var center = hull.V.reduce((a,b)=>a.add(b,false)).div(5);
+		hull.C.forEach((c)=>calculeInfo(hull,c));
+		for(var f of hull.F){
+			f.seenTime = 0;
+		}
+		for(var e of hull.E){
+			e.seenTime = 0;
+		}
+		for(var v of hull.V){
+			v.seenTime = 0;
+		}
+		var minC = null;
+		var minT = Infinity;
+		for(var c of hull.C){
+			if(c.info.t<minT){
+				minC = c;
+				minT = c.info.t;
 			}
-			listConvexs.push(newV);
-			var faceSeenTime = [];
-			for(var s=0; s<sc.length; s++){
-				if(newV.sub(sc[s][0],false).dot(sc[s][4].n)>0){
-					for(var f of sc[s][5]){
-						faceSeenTime[f] = (++faceSeenTime[f]) || 1;
+		}
+		while(true){
+			var nv = this._support(list,minC.info.normal,false);
+			if(!nv) continue;
+			var inside = true;
+			//check whether v is inside
+			for(var c of hull.C){
+				var cn = c.info.normal;
+				var ct = c.info.t;
+				if(nv.dot(cn)>=ct){
+					inside = false;
+					c.remove = true;
+					for(var F of c){
+						var f = hull.F[F];
+						f.seenTime++;
 					}
-					toRemove.push(sc.splice(s,1));
-					s--;
 				}
 			}
-			if(sie) return "sie";
-			if(borderFlag) continue;
-			var cellPyramidedByFace = [];
+			if(inside) return minC;
+			for(var f of hull.F){
+				if(f.seenTime!=1) continue;
+				for(var E of f){
+					var e = hull.E[E];
+					e.seenTime = 1;
+					for(var V of e){
+						var v = hull.V[V];
+						v.seenTime = 1;
+					}
+				}
+			}
+			var Iv = hull.V.length;
+			var Ie = hull.E.length;
+			var If = hull.F.length;
+			hull.V.push(nv);
+			var ecount = Ie;
+			var fcount = If;
+			for(var V in hull.V){
+				var v = hull.V[V];
+				V = Number(V);
+				if(v.seenTime != 1) continue;
+				var ne = [Iv,V];
+				v.E = ecount++;
+				hull.E.push(ne);
+			}
+			for(var E in hull.E){
+				var e = hull.E[E];
+				E = Number(E);
+				if(e.seenTime != 1) continue;
+				var nf = [E,hull.V[e[0]].E, hull.V[e[1]].E];
+				e.F = fcount++;
+				hull.F.push(nf);
+			}
 			
-			for(var tR of toRemove){
-				if(faceSeenTime[tR[5][3]]==1)
-					this._insertCell([tR[0],tR[1],tR[2],newV],sc,center,tR));
-				if(faceSeenTime[tR[5][2]]==1)
-					this._calculateNormalForCell([tR[0],tR[1],newV,tR[3]],center,tR,faceSeenTime));
-				if(faceSeenTime[tR[5][1]]==1)
-					this._calculateNormalForCell([tR[0],newV,tR[2],tR[3]],center,tR,faceSeenTime));
-				if(faceSeenTime[tR[5][0]]==1)
-					sc.unshift(this._calculateNormalForCell([newV,tR[1],tR[2],tR[3]],center,tR,faceSeenTime));
+			for(var F in hull.F){
+				var f = hull.F[F];
+				if(f.seenTime != 1) continue;
+				F = Number(F);
+				var nc = [F,hull.E[f[0]].F, hull.E[f[1]].F,hull.E[f[2]].F];
+				if(calculeInfo(hull,nc)){
+					hull.C.push(nc);
+				}
 			}
-		}
-	},
-	_insertCell: function(c,sc,center,pc,ft){
-		
-		var cv = null, cn = null;
-		for(var j=0; j<4; j++){//4 vertices of that cell
-			if(!cv) {
-				cv = c[j];
-			}else if(!cn){
-				cn = c[j].sub(cv,false);
-			}else{
-				cn = cn.cross(c[j].sub(cv,false));
+			for(var C=0; C<hull.C.length; C++){
+				var c = hull.C[C];
+				if(c.remove){
+					hull.C.splice(C,1);
+					C--;
+				}else{
+					for(var F of c){
+						hull.F[F].seenTime = -1;
+					}
+				}
 			}
+			for(var f of hull.F){
+				if(f.seenTime != -1) continue;
+				for(var E of f){
+					hull.E[E].seenTime = -1;
+				}
+			}
+			for(var e of hull.E){
+				if(e.seenTime != -1) continue;
+				for(var V of e){
+					hull.V[V].seenTime = -1;
+				}
+			}
+			var mapreduce = Mesh4._util.mapreduce;
+			var mapV = [];
+			for(var V in hull.V){
+				V = Number(V);
+				var v = hull.V[V];
+				mapV.push((v.seenTime==-1)?V:-1);
+				v.seenTime = 0;
+				delete v.E;
+			}
+			mapreduce(hull.V,mapV,hull.E);
+			var mapE = [];
+			for(var E in hull.E){
+				E = Number(E);
+				var e = hull.E[E];
+				mapE.push((e.seenTime==-1)?E:-1);
+				e.seenTime = 0;
+				delete e.F;
+			}
+			mapreduce(hull.E,mapE,hull.F);
+			var mapF = [];
+			for(var F in hull.F){
+				F = Number(F);
+				var f = hull.F[F];
+				mapF.push((f.seenTime==-1)?F:-1);
+				f.seenTime = 0;
+			}
+			mapreduce(hull.F,mapF,hull.C);
+			nminC = null;
+			nminT = Infinity;
+			for(var c of hull.C){
+				if(c.info.t<nminT){
+					nminC = c;
+					nminT = c.info.t;
+				}
+			}
+			if(nminT>=minT) return minC;
+			minT = nminT;
+			minC = nminC;
 		}
-		//if(cn.len(false)<1e-10)continue;
-		var ct = cv.dot(cn);
-		if(ct<0){
-			cn.sub();
-			ct = -ct;
-		}
-		if(ct==0){
-			var temp = center.dot(cn);
+		function calculeInfo(hull,c){
+			var cv = null, cn = null;
+			if(!c.info) c.info = {};
+			if(!c.info.V){
+				c.info.V = new Set();
+				for(var F of c){
+					var f = hull.F[F];
+					for(var E of f){
+						var e = hull.E[E];
+						var v1 = hull.V[e[0]];
+						var v2 = hull.V[e[1]];
+						c.info.V.add(v1);
+						c.info.V.add(v2);
+					}
+				}
+				c.info.V = [...c.info.V];
+			}
+			if(c.info.normal) return 0;
+			for(var j=0; j<4; j++){//4 vertices of that cell
+				if(!cv) {
+					cv = c.info.V[j];
+				}else if(!cn){
+					cn = c.info.V[j].sub(cv,false);
+				}else{
+					cn = cn.cross(c.info.V[j].sub(cv,false));
+				}
+			}
+			cn.norm();
+			var ct = cv.dot(cn);
+			var temp = cv.sub(center,false).dot(cn);
 			if(temp!=0){
-				if(temp>0){
+				if(temp<0){
 					cn.sub();
 					ct = -ct;
 				}
-			}else{return "sooor"}
-		}
-		c[4] = {n:cn,t:ct};
-		for(var s of sc){
-			if(Math.abs(s[4].t-c[4].t)<0.0001){
-				if(s[4].n.sub(c[4].n).len(Infinity)<0.0001){
-					return 0;
-				}
+			}else{
+				return false;//this face is degraded, it will be aborted later
 			}
+			c.info.normal = cn;
+			c.info.t = ct;
+			return true;
 		}
-		sc.push(c);
-		return c;
 	}
 }

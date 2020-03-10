@@ -34,6 +34,7 @@ Phy4d.Plane.prototype.getRotation = function(){
 	return null;
 }
 Phy4d.Plane.prototype.generateGeom = function(data){
+	if(!data) data={};
 	var planeWidth = data.size || data.r || 20;
 	var m = Mesh3.cube(planeWidth).embed(true).move(new Vec4(0,0,0,this.t)).rotate(new PMat5Q().lookAt(this.n).rotation);
 	return new Geom4(m,null,null,data.color);
@@ -48,6 +49,7 @@ Phy4d.Glome = function(R){//|x - o| = r
 	this.R = R;
 }
 Phy4d.Glome.prototype.generateGeom = function(data){
+	if(!data) data={};
 	var m = Mesh4.glome(this.R,data.u||8,data.v||8,data.w||8);
 	return new Geom4(m,null,null,data.color);
 }
@@ -61,6 +63,7 @@ Phy4d.Spheritorus = function(R1,R2){//default orientation: xOt (same as shape Me
 	this.R2 = R2;
 }
 Phy4d.Spheritorus.prototype.generateGeom = function(data){
+	if(!data) data={};
 	var m = Mesh4.spheritorus(this.R1,this.R2,data.u||8,data.v||8,data.w||16);
 	return new Geom4(m,null,null,data.color);
 }
@@ -74,6 +77,7 @@ Phy4d.Torisphere = function(R1,R2){//default orientation: t (same as shape Mesh4
 	this.R2 = R2;
 }
 Phy4d.Torisphere.prototype.generateGeom = function(data){
+	if(!data) data={};
 	var m = Mesh4.torisphere(this.R1,this.R2,data.u||8,data.v||16,data.w||16);
 	return new Geom4(m,null,null,data.color);
 }
@@ -88,6 +92,7 @@ Phy4d.Tiger = function(R,R1,R2){//default orientation: R1:xy R2:zt (same as shap
 	this.R2 = R2;
 }
 Phy4d.Tiger.prototype.generateGeom = function(data){
+	if(!data) data={};
 	var m = Mesh4.tiger(this.R,this.R1,this.R2,data.u||8,data.v||16,data.w||16);
 	return new Geom4(m,null,null,data.color);
 }
@@ -120,11 +125,24 @@ Phy4d.Convex = function(mesh4){//from mesh4 convex hull
 	}
 	for(var f of mesh4.F){
 		f.info.normal.norm();
+		var e1 = mesh4.E[f[0]];
+		var e2 = mesh4.E[f[1]];
+		var A = mesh4.V[e1[0]];
+		var B = mesh4.V[e1[1]];
+		var C = (e2[0] != e1[0] && e2[0] != e1[1])?mesh4.V[e2[0]]:mesh4.V[e2[1]];
+		var AB = B.sub(A,false);
+		var AC = C.sub(A,false);
+		f.info.ABAC = AB.cross(AC).norm();
+		f.info.A = A;
+		f.info.B = B;
+		f.info.C = C;
+		f.info.AB = AB;
+		f.info.AC = AC;
 	}
 }
 Phy4d.Convex.prototype.generateGeom = function(data){
 	var m = this.mesh;
-	return new Geom4(m,null,null,data.color);
+	return new Geom4(m,null,null,data?data.color:data);
 }
 Phy4d.Convex.prototype.getAABB = function(){
 	var o = this.Obj.getPosition(true);
@@ -170,9 +188,9 @@ Phy4d.Union.prototype.generateGeom = function(data){
 	//todo
 	var list = [];
 	var datas;
-	if(data.length == this.objs.length){
+	if(data && data.length == this.objs.length){
 		datas = data;
-	}else if(!data.length){
+	}else if(!data || !data.length){
 		datas = new Array(this.objs.length).fill(data);
 	}else{
 		console.error("data length doesn't match the number of objs in the union");
@@ -182,8 +200,8 @@ Phy4d.Union.prototype.generateGeom = function(data){
 		data = datas[obj];
 		var g = o.generateGeom(data);
 		if(!(o.phyGeom instanceof Phy4d.Union)){
-			if(data.flow) g.flow = data.flow;
-			if(data.glow) g.glow = data.glow;
+			if(data&&data.flow) g.flow = data.flow;
+			if(data&&data.glow) g.glow = data.glow;
 		}
 		list.push(g);
 	}
@@ -266,8 +284,8 @@ Phy4d.Obj.prototype.generateGeom = function(data){
 	if(this.phyGeom instanceof Phy4d.Union){
 		return g;
 	}
-	if(data.flow) g.flow = data.flow;
-	if(data.glow) g.glow = data.glow;
+	if(data && data.flow) g.flow = data.flow;
+	if(data && data.glow) g.glow = data.glow;
 	return g;
 }
 Phy4d.Obj.prototype.getlinearVelocity = function(worldP){
@@ -867,9 +885,9 @@ Phy4d.prototype.next = function (){
 			this.sleepList.push(obj);
 			continue;
 		}
-		this.awakeList.push(obj);
-		
+		//this.awakeList.push(obj);
 		obj.energy = Math.min(obj.sleepEpsilon*10,(obj.energy + obj.w.len(false)+obj.v.len(false))/2);
+		
 		if(obj.energy<obj.sleepEpsilon){
 			obj.sleep = true;
 			obj.w = new Bivec();
@@ -879,6 +897,7 @@ Phy4d.prototype.next = function (){
 		obj.v.add(obj.a.mul(this.dt,false));
 		var p = obj.getPosition();
 		if(p) p.add(obj.v.mul(this.dt,false).add(obj.a.mul(dt2,false)));
+		if(obj.v.len(1)==0 && obj.w.len(1)==0)obj.changed = false;
 		//angulaire:
 		var r = obj.getRotation();
 		obj.w.add(obj.b.mul(this.dt,false));
@@ -1034,17 +1053,17 @@ Phy4d.prototype.detectCollision_Glome_Convex = function(glomeO, convexO){
 		return list[0];
 	}
 	for(var f of convex.mesh.F){
-		var e1 = convex.mesh.E[f[0]];
-		var e2 = convex.mesh.E[f[1]];
+		//var e1 = convex.mesh.E[f[0]];
+		//var e2 = convex.mesh.E[f[1]];
 		
-		var A = convex.mesh.V[e1[0]];
-		var B = convex.mesh.V[e1[1]];
-		var C = (e2[0] != e1[0] && e2[0] != e1[1])?convex.mesh.V[e2[0]]:convex.mesh.V[e2[1]];
+		var A = f.info.A;//convex.mesh.V[e1[0]];
+		var B = f.info.B;//convex.mesh.V[e1[1]];
+		var C = f.info.C;//(e2[0] != e1[0] && e2[0] != e1[1])?convex.mesh.V[e2[0]]:convex.mesh.V[e2[1]];
 		
-		var AB = B.sub(A,false);
-		var AC = C.sub(A,false);
+		var AB = f.info.AB;//B.sub(A,false);
+		var AC = f.info.AC;//C.sub(A,false);
 		
-		var AB_AC = AB.cross(AC).norm();
+		var AB_AC = f.info.ABAC;//AB.cross(AC).norm();
 		var OA = A.sub(gOlocal,false);
 		var d = OA.cross(AB_AC).len(false);
 		if(d>R2) continue;
@@ -1087,6 +1106,10 @@ Phy4d.prototype.detectCollision_Glome_Convex = function(glomeO, convexO){
 }
 Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 	//return 0;
+	if(this.GJK){
+		var testResult = this.GJK.test(c1O,c2O);
+		if(!testResult) return 0;
+	}
 	var c1 = c1O.phyGeom;
 	var c2 = c2O.phyGeom;
 	var c1_o = c1O.getPosition(true);
@@ -1174,6 +1197,18 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 			}
 		}
 	}
+	/*if(this.GJK){
+		var vs = testResult.info.V;
+		var na = [... new Set(vs.map((v)=>(v.a)))];
+		var nb = [... new Set(vs.map((v)=>(v.b)))];
+		//console.log(na.length+"|"+nb.length);
+		if(na.length==2&&nb.length==3){
+			
+		}
+	}*/
+	/*if(list.length) {
+		return list;
+	}else{return 0;}*/
 	//c1.E vs c2.F: convert c1.e into c2's local coordinate to reduce sre
 	for(var i=0; i<2; i++){
 		if(i){
@@ -1194,21 +1229,23 @@ Phy4d.prototype.detectCollision_Convex_Convex = function(c1O, c2O){
 		for(var c2f of c2.mesh.F){
 			if(c2f.info.normal.dot(O2O1)<0) continue;
 			var faceContacted = null;
-			var e1 = c2.mesh.E[c2f[0]];
-			var e2 = c2.mesh.E[c2f[1]];
 			
-			var A = c2.mesh.V[e1[0]];
-			var B = c2.mesh.V[e1[1]];
-			var C = (e2[0] != e1[0] && e2[0] != e1[1])?c2.mesh.V[e2[0]]:c2.mesh.V[e2[1]];
-							
-			var AB = B.sub(A,false);
-			var AC = C.sub(A,false);
-			var ABAC = AB.cross(AC);
+			var A = c2f.info.A;
+			var B = c2f.info.B;
+			var C = c2f.info.C;
+			var AB = c2f.info.AB;
+			var AC = c2f.info.AC;
+			var ABAC = c2f.info.ABAC;
+			
 			for(var ee of c1.mesh.E){
 				var P1 = c2V1[ee[0]];
 				var P2 = c2V1[ee[1]];
 				var P1P2 = P2.sub(P1,false);
 				var n = P1P2.cross(ABAC,false).norm();
+				/*if(this.GJK){
+					continue;
+					//if(Math.abs(n.dot(testResult.info.normal))>0.01)continue;
+				}*/
 				//if(n.dot(O2O1)<0) n.sub();
 				var mA = this._projectConvex(c2V1,n);
 				var mB = this._projectConvex(c2.mesh.V,n);

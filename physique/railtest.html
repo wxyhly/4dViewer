@@ -1,0 +1,188 @@
+<html>
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../renderer.js"></script>
+<script src="../controler.js"></script>
+<script src="../polychora.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
+<script src="phy4d.js"></script>
+<script src="GJK.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var diceP,physicsEngine,addGlome;
+var scene, gjk;
+Spline.prototype.loftSegment = function(h,cross,loop,keepUp){
+	if (!this._curve) {
+		this._generateCurve(h);
+		this._generateTetrad(h);
+	}
+	var curve = this._curve;
+	var N = this._tetrad;
+	var offset = 1;
+	var f = function (m,P){
+		P.set(N[m+offset].mul(P).add(curve[m+offset]));
+	}
+	var list = [];
+	for(var i=0; i<curve.length-3; i++){
+		var mesh4 = cross.loft(f,2,loop==true?false:null);
+		mesh4.update();
+		offset++;
+		mesh4.move(mesh4.boundingSphere.center.sub(false));
+		list.push(new Geom4(mesh4,mesh4.boundingSphere.center.clone()));
+	}
+	var O = new Obj4.Group(list);
+	return O;
+}
+Phy4d.prototype.convexFromGeom4 = function(o4,add){
+	var o;
+	if(o4 instanceof Geom4){
+		o = new Phy4d.Obj(new Phy4d.Convex(o4.mesh),Infinity,o4);
+	}
+	if(o4 instanceof Obj4.Group){
+		var list = o4.child.map((c)=>this.convexFromGeom4(c));
+		o = new Phy4d.Obj(new Phy4d.Union(list),null,o4);
+	}
+	if(add){
+		this.addObj(o);
+	}
+	return o;
+}
+function start(){
+	scene = new Scene();
+	var glomes = [];
+	var planeWidth = 65;
+	var R0 = 1, R1 = 1, R2 = 2;
+	//ground
+	var groundM = Mesh3.cube(planeWidth).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
+	//wall
+	var wall = groundM.clone();
+	wall.C.pop();
+	wall = wall.extrude(new Vec4(0,planeWidth,0,0));
+	var wallG = new Geom4(wall,new Vec4(0,-2,0,0),null,0x999999);
+	scene.add(wallG);
+	wallG.flow = 0.2;
+	
+	var railCross = Mesh3.cube(0.5).embed(false);
+	var spline = new Spline([new Vec4(0,0,0,-70),new Vec4(50,0,0,50)],[new Vec4(0,0,0,250),new Vec4(100,0,0,100)]);
+	//scene.add(new Geom4(spline.loft(10,railCross),new Vec4(0,2)));
+	var r1 = (spline.loftSegment(100,railCross.clone().move(new Vec4(-1.53))).move(new Vec4(0,1)));
+	var r2 = (spline.loftSegment(100,railCross.clone().move(new Vec4(1.53))).move(new Vec4(0,1)));
+	var r3 = (spline.loftSegment(100,railCross.clone().move(new Vec4(0,0,-1.53))).move(new Vec4(0,1)));
+	var r4 = (spline.loftSegment(100,railCross.clone().move(new Vec4(0,0,1.53))).move(new Vec4(0,1)));
+	r1.color = 0xFF0000;
+	r2.color = 0x00FF00;
+	r3.color = 0xFFFF00;
+	r4.color = 0x0000FF;
+	r1.flow = 5;
+	r2.flow = 5;
+	r3.flow = 5;
+	r4.flow = 5;
+	scene.add(r1);
+	scene.add(r2);
+	scene.add(r3);
+	scene.add(r4);
+	var camera = new Camera4(80,0.01,50);
+	camera.position = new Vec4(0,4,0,-50);
+	
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera);
+	renderer.light4.t = 0.7;
+	var controler = new Controler4.KeepUp(renderer);
+	controler.moveStep = 0.1;
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	
+	physicsEngine = new Phy4d();
+	physicsEngine.gravity = new Vec4(0,-9.8);
+	physicsEngine.convexFromGeom4(r1,true);
+	physicsEngine.convexFromGeom4(r2,true);
+	physicsEngine.convexFromGeom4(r3,true);
+	physicsEngine.convexFromGeom4(r4,true);
+	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
+	groundP.friction = 0.5;
+	physicsEngine.addObj(groundP);
+	scene.add(groundP.generateGeom({flow:0.2,color:0xAAAA66,size:50}));
+	var rail = Mesh4.cuboid(0.5,0.5,0.5,20);
+	var wheel = Mesh4.cubinder(0.8,16,0.5,0.5).rotate(new Bivec(0,0,Math.PI/2));
+	var wheel2 = Mesh4.cubinder(1.5,4,0.5,0.5).rotate(new Bivec(0,0,Math.PI/2));
+	var wheelP = new Phy4d.Obj(new Phy4d.Union([
+		new Phy4d.Obj(new Phy4d.Convex(wheel),1,new Vec4(-1.4)),
+		new Phy4d.Obj(new Phy4d.Convex(wheel),1,new Vec4(1.4)),
+		new Phy4d.Obj(new Phy4d.Convex(wheel2),1,new Vec4(-1)),
+		new Phy4d.Obj(new Phy4d.Convex(wheel2),1,new Vec4(1)),
+		
+		new Phy4d.Obj(new Phy4d.Convex(wheel),1,new Vec4(0,0,-1.4)),
+		new Phy4d.Obj(new Phy4d.Convex(wheel),1,new Vec4(0,0,1.4)),
+		new Phy4d.Obj(new Phy4d.Convex(wheel2),1,new Vec4(0,0,-1)),
+		new Phy4d.Obj(new Phy4d.Convex(wheel2),1,new Vec4(0,0,1)),
+	]
+	),null,new Vec4(0,2,0,-50));
+	//wheelP.firction = 0;
+	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),2);
+	var M = new Bivec(0,0,0,0,-1);
+	physicsEngine.addForce(new Phy4d.Motor(wheelP, M,0, wheelP));
+	gui.add(M,"yt",-10,10);
+	/*	diceP  = new Phy4d.Obj(new Phy4d.Convex(rail),Infinity,new Vec4(-1.6,1,0.0,0.0));
+	var dice2P  = new Phy4d.Obj(new Phy4d.Convex(rail),Infinity,new Vec4(1.6,1,0.0,0.0));
+	var dice3P  = new Phy4d.Obj(new Phy4d.Convex(rail),Infinity,new Vec4(0,1,1.6,0.0));
+	var dice4P  = new Phy4d.Obj(new Phy4d.Convex(rail),Infinity,new Vec4(0,1,-1.6,0.0));
+
+	physicsEngine.addObj(diceP);
+	scene.add(diceP.generateGeom({flow:5,color:0x00FF00}));
+	physicsEngine.addObj(dice2P);
+	scene.add(dice2P.generateGeom({flow:5,color:0xFF0000}));
+	physicsEngine.addObj(dice3P);
+	scene.add(dice3P.generateGeom({flow:5,color:0xFFFF00}));
+	physicsEngine.addObj(dice4P);
+	scene.add(dice4P.generateGeom({flow:5,color:0xFF00FF}));*/
+	physicsEngine.addObj(wheelP);
+	wheelP.friction = 0;
+	scene.add(wheelP.generateGeom({flow:5,color:0x233333}));
+	//wall
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4(-1,0,0,0),-planeWidth),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0, 1,0),-planeWidth),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,-1,0),-planeWidth),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth),Infinity));
+	addGlome = function (x,y,z,t,vx,vy,vz,vt){
+		var gP = new Phy4d.Obj(
+			new Phy4d.Glome(
+				1.2
+			),
+		1.2,new Vec4(x,y,z,t));
+		gP.v.x = vx||0;
+		gP.v.y = vy||0;
+		gP.v.z = vz||0;
+		gP.v.t = vt||0;
+		scene.add(gP.generateGeom({flow:5,color:0x3333FF}));
+		physicsEngine.addObj(gP);
+	}
+	var t = 0,count = 5;
+	
+	function loop(){
+		controler.update();
+		var step = 8;
+		physicsEngine.iterations = 3;
+		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
+		if(true && physicsEngine.pause!==true){
+			while(step--)
+				physicsEngine.next();
+		}
+		t++;
+
+		
+		renderer.render();
+		window.requestAnimationFrame(loop);
+	}
+	loop();
+	
+}
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>

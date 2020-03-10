@@ -49,9 +49,8 @@ function start(){
 	
 	function addGlome(){
 		var gP = new Phy4d.Obj(new Phy4d.Glome(
-			new Vec4((Math.random()-0.5)*planeWidth,Math.random()*planeWidth+1,(Math.random()-0.5)*planeWidth,(Math.random()-0.5)*planeWidth),
 			1
-		),1);
+		),1,new Vec4((Math.random()-0.5)*planeWidth,Math.random()*planeWidth+1,(Math.random()-0.5)*planeWidth,(Math.random()-0.5)*planeWidth));
 		
 		var g = new Geom4(
 			Mesh4.glome(gP.phyGeom.R,8,8,8), //shape
@@ -72,12 +71,12 @@ function start(){
 		if(count++<maxCount){
 			addGlome();
 		}
+		var step = 10;
 		controler.update();
 		physicsEngine.iterations = 15*7;
-		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/4;
+		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
 		cameraP.v = camera.position.sub(cameraPrevP,false).div(physicsEngine.dt);
-		physicsEngine.next();
-		physicsEngine.next();
+		while(step--) physicsEngine.next();
 		cameraPrevP = camera.position.clone();
 		//Update position for display:
 		for(var g of glomes){
