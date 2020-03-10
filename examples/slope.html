@@ -1,4 +1,4 @@
- <html>
+ <html><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -19,6 +19,7 @@ var $ = function (obj){
 function start(){
 	var scene = new Scene();
 	var gnd = new Geom4(Mesh4.cuboid(30,2,30,30)).move(new Vec4(0,-0.5002,0,0));
+	gnd.color = 0x00FF00;
 	scene.add(gnd);
 	var sun = new Geom4(Mesh3.sphere(50,10,10,10).embed(true)).move(new Vec4(0,500,0,0));
 	sun.color = 0xFFFFFF;
@@ -52,7 +53,7 @@ function start(){
 	var camera = new Camera4(90,0.01,550);
 	camera.position = new Vec4(2,2,2,2);
 	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(1.4,1,2.2,1.7));
-	
+	renderer.bgColor4Flow = 0.5;
 	var controler = new Controler4.KeepUp(renderer,(pos)=>((pos.y>0.5)?world.hitTest(pos):true));
 	controler.gravity = true;
 	

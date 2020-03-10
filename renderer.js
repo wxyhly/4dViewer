@@ -30,7 +30,13 @@ Scene.prototype.add = function(s){
 				update(i);
 			}
 		}
-		if(s.mesh) s.mesh.update();
+		if(s.mesh){
+			if(!(s.mesh.C[0] && s.mesh.C[0].info && s.mesh.C[0].info.normal)){
+				s.mesh.update();
+			}else{
+				s.mesh.getBoundingObjs();
+			}
+		} 
 		if(s instanceof Obj4.Group) s.update();
 	}
 }
@@ -97,7 +103,7 @@ var Renderer4 = function(ctxt,scene4,camera4,light4){
 	this.thickness = 0.08;
 	this.thumbSize = 3;
 	this.flow = 1.0;
-	this.bgColor4Flow = 1.0;
+	this.bgColor4Flow = 0.8;
 	this.wireFrameMode = false;
 	this.lineWidth = 1;
 	this.resolution = 1;

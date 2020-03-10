@@ -1,4 +1,5 @@
 <html>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -113,8 +114,8 @@ function start(){
 	physicsEngine.addForce(new Phy4d.Motor(union2, M1,0.1,union2));
 	physicsEngine.addForce(new Phy4d.Motor(union3, M2,0.1,union3));
 	//wall
-	gui.add(M1,"xy",-0.2,0.2);
-	gui.add(M2,"xy",-0.2,0.2);
+	gui.add(M1,"xy",-0.2,0.2).name(window.location.search.indexOf("?en")!=-1?"Torque 1":"转矩1");
+	gui.add(M2,"xy",-0.2,0.2).name(window.location.search.indexOf("?en")!=-1?"Torque 2":"转矩2");
 	var t=0;
 	function loop(){
 		t+=0.001;

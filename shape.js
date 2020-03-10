@@ -56,7 +56,21 @@ Mesh: (Mesh2 || Mesh3 || Mesh4)
 		Mesh3.grid(int m, n[, Function f(int x,y):Vec3]);
 		
 		Mesh4.tesseract(Number r);
-		Mesh4.cuboid(Number a,N umber b, Number c, Number d);		Mesh4.glome(Number r, int u, int v, int w);		Mesh4.spherinder(Number r, int u, int v, Number h);		Mesh4.sphone(Number r, int u, int v, Number h);		Mesh4.duocylinder(Number R1, Number R2, int u, int v);		Mesh4.cubinder(Number r, int n, Number h1, Number h2);		Mesh4.cylindrone(Number r, int n, Number h, Number hc);		Mesh4.dicone(Number r, int n, Number h1, Number h2);		Mesh4.duocone(Number R1, Number R2, int u, int v);		Mesh4.coninder(Number r, int n, Number h, Number hc);		Mesh4.torinder(Number r, Number R, int u, int v, Number h);		Mesh4.spheritorus(Number r, Number R, int u, int v, int w);		Mesh4.torisphere(Number r, Number R, int u, int v, int w);		Mesh4.ditorus(Number r, Number Rr, Number R, int u, int v, int w);		Mesh4.tiger(Number r, Number R1, Number R2, int u, int v, int w);
+		Mesh4.cuboid(Number a,N umber b, Number c, Number d);
+		Mesh4.glome(Number r, int u, int v, int w);
+		Mesh4.spherinder(Number r, int u, int v, Number h);
+		Mesh4.sphone(Number r, int u, int v, Number h);
+		Mesh4.duocylinder(Number R1, Number R2, int u, int v);
+		Mesh4.cubinder(Number r, int n, Number h1, Number h2);
+		Mesh4.cylindrone(Number r, int n, Number h, Number hc);
+		Mesh4.dicone(Number r, int n, Number h1, Number h2);
+		Mesh4.duocone(Number R1, Number R2, int u, int v);
+		Mesh4.coninder(Number r, int n, Number h, Number hc);
+		Mesh4.torinder(Number r, Number R, int u, int v, Number h);
+		Mesh4.spheritorus(Number r, Number R, int u, int v, int w);
+		Mesh4.torisphere(Number r, Number R, int u, int v, int w);
+		Mesh4.ditorus(Number r, Number Rr, Number R, int u, int v, int w);
+		Mesh4.tiger(Number r, Number R1, Number R2, int u, int v, int w);
 		Mesh4.grid(int m, n, o[, Function f(int x,y,z):Vec4]);
 		//todo: polytopes and polytwisters
 	
@@ -136,8 +150,9 @@ Obj4.Group = function(child,pos,rot){
 	this.getBoundingObjs();
 }
 Obj4.Group.prototype = Object.create(Obj4.prototype);
+
 Obj4.Group.prototype.add = function(s){
-	if(s.mesh)s.mesh.update();
+	if(s.mesh && !(s.mesh.C[0].info && s.mesh.C[0].info.normal))s.mesh.update();
 	this.child.push(s);
 	s.parent = this;
 	this.getBoundingObjs();

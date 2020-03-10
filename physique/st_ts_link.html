@@ -1,4 +1,4 @@
-<html>
+<html><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -58,6 +58,20 @@ function start(){
 	
 	var controler = new Controler4.KeepUp(renderer);
 	controler.moveStep = 0.1;
+	controler.onmousedown = function(e){
+		if(!!document.pointerLockElement && e.button==2){
+			var gP = new Phy4d.Obj(
+				new Phy4d.Glome(0.6),
+			3,camera.position.clone());
+			gP.restitution = 0.9;
+			gP.friction = 0.9;
+			var emit_speed = 6.5;
+			gP.v = controler.t.mul(emit_speed,false);
+			gP.v.y += 1;
+			scene.add(gP.generateGeom({flow:5,color:Math.random()*0xFFFFFF,u:8,v:8,w:8}));
+			physicsEngine.addObj(gP);
+		}
+	}
 	var gui = new dat.GUI();
 	controler.addGUI(gui);
 	
@@ -96,7 +110,7 @@ function start(){
 		t++;
 		//diceP.w = new Bivec(0,0,Math.sin(t*0.05)*5,0,0,0,0);
 		var step = 10;
-		physicsEngine.iterations = 5;
+		physicsEngine.iterations = 6;
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.1)/step;
 		if(physicsEngine.pause!==true){
 			while(step--)

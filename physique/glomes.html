@@ -1,4 +1,4 @@
-<html>
+<html><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -36,7 +36,7 @@ function start(){
 	controler.moveStep = 0.01;
 	var physicsEngine = new Phy4d();
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
-	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),5);
+	var cameraP = new Phy4d.Obj(new Phy4d.Glome(0.8),5,camera.position);
 	physicsEngine.addObj(cameraP);
 	physicsEngine.addObj(groundP);
 	//wall
@@ -48,9 +48,7 @@ function start(){
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
 	
 	function addGlome(){
-		var gP = new Phy4d.Obj(new Phy4d.Glome(
-			1
-		),1,new Vec4((Math.random()-0.5)*planeWidth,Math.random()*planeWidth+1,(Math.random()-0.5)*planeWidth,(Math.random()-0.5)*planeWidth));
+		var gP = new Phy4d.Obj(new Phy4d.Glome(1),1,new Vec4((Math.random()-0.5)*planeWidth,Math.random()*planeWidth+1,(Math.random()-0.5)*planeWidth,(Math.random()-0.5)*planeWidth));
 		
 		var g = new Geom4(
 			Mesh4.glome(gP.phyGeom.R,8,8,8), //shape

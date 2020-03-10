@@ -97,16 +97,32 @@ Planet4.prototype.setTime = function(time){
 }
 Planet4.prototype.addGUI = function(gui){
 	this.gui = gui;
-	var p = this.gui.addFolder("Sun");
-	p.add(this.location,"NS",0,90);
-	p.add(this.time,"southernTime",0,24);
-	p.add(this.time,"northernTime",0,24);
-	p.add(this.time,"season",0,360);
-	p.add(this.sun,"southernTropic",0,90);
-	p.add(this.sun,"northernTropic",0,90);
-	p.add(this.sun,"MGPeriod",0);
-	p.add(this.sun,"WEPeriod",0);
-	p.add(this.guiData,"sunAngle",-90,90);
-	p.add(this.guiData,"sunNS",0,90);
+	var tr = function(i){
+		if(window.location.search.indexOf("en")!=-1)return i;
+		return {
+			"Sun":"太阳",
+			"Latitude":"纬度",
+			"southernTime":"南方时",
+			"northernTime":"北方时",
+			"Season":"季节",
+			"SouthernTropic":"南回归线",
+			"NorthernTropic":"北回归线",
+			"M-G Period":"阴阳自转周期",
+			"W-E Period":"东西自转周期",
+			"sunAngle":"太阳高度角",
+			"sunLatitude":"直射点纬度",
+		}[i]||i;
+	};
+	var p = this.gui.addFolder(tr("Sun"));
+	p.add(this.location,"NS",0,90).name(tr("Latitude"));
+	p.add(this.time,"southernTime",0,24).name(tr("southernTime"));
+	p.add(this.time,"northernTime",0,24).name(tr("northernTime"));
+	p.add(this.time,"season",0,360).name(tr("Season"));
+	p.add(this.sun,"southernTropic",0,90).name(tr("SouthernTropic"));
+	p.add(this.sun,"northernTropic",0,90).name(tr("NorthernTropic"));
+	p.add(this.sun,"MGPeriod",0).name(tr("M-G Period"));
+	p.add(this.sun,"WEPeriod",0).name(tr("W-E Period"));
+	p.add(this.guiData,"sunAngle",-90,90).name(tr("sunAngle"));
+	p.add(this.guiData,"sunNS",0,90).name(tr("sunLatitude"));
 	p.open();
 }

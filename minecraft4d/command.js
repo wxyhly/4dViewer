@@ -54,9 +54,12 @@ Command = {
 			$("CMD").selectionEnd = $("CMD").value.length;
 		}
 	},
-	parse: function(str){
-		Command.addToCMDList(str);
-		Command.CMDListPointer = Command.CMDList.split("%%").length-1;
+	parse: function(str,byMacro){
+		//wa ozilek macro? nanj: soor 套娃
+		if(!byMacro){
+			Command.addToCMDList(str);
+			Command.CMDListPointer = Command.CMDList.split("%%").length-1;
+		}
 		var command = str.match(/[a-z|0-9]+/)[0];
 		switch(command){
 			case "tp":
@@ -526,7 +529,7 @@ Command = {
 					HUD.blur2Game();
 					return 0;
 				}
-				if(result[2].length==1 && result[2]!=f){
+				if(result[2].length==1 && result[2]!='f'){
 					result[2] += "+";
 				}
 				var dir = Command.parseDir(result[2],HUD.faceToward);
@@ -535,6 +538,7 @@ Command = {
 				HUD.info("Region flipped");
 				break;
 			case "save":
+				if(byMacro)return 0;
 				var result = str.match(/save(\s+(clipboard|clip|sel|selection))?\s*$/);
 				HUD.pause = true;
 				if(result[2]){
@@ -564,6 +568,7 @@ Command = {
 				}
 				break;
 			case "load":
+				if(byMacro)return 0;
 				var result = str.match(/load(\s+(-c|clip|clipboard))?\s*$/);
 				MCWorld.Schema.onload = function(schema){
 					if(result[2]){
@@ -582,9 +587,65 @@ Command = {
 					HUD.info("Region loaded ("+schema.sizeX+" * "+schema.sizeY+" * "+schema.sizeZ+" * "+schema.sizeT+")");
 				}
 				$("schemaLoader").click();
-				break;	
+				break;
+			case "loadmacro": case"macro":
+				if(byMacro)return 0;
+				var result = str.match(/(loadmacro|macro)\s*(prev)?\s*$/);
+				if(result && result[2]=="prev"){
+					MCWorld.Macro.execute();
+				}else{
+					$("macroLoader").click();
+				}
+				break;
 			case "open":
+				if(byMacro)return 0;
 				$("loader").click();
+				break;
+			case "pos1":
+				var result = str.match(/pos1\s+(~\-?[\.|0-9]*|-?[\.|0-9]+)\s+(~\-?[\.|0-9]*|-?[\.|0-9]+)\s+(~\-?[\.|0-9]*|-?[\.|0-9]+)\s+(~\-?[\.|0-9]*|-?[\.|0-9]+)/);
+				if(!result){
+					HUD.info("Syntax Error: pos1 <x> <y> <z> <t>");
+					HUD.blur2Game();
+					return 0;
+				}
+				var player = HUD.controler.camera4;
+				var x = player.position.x;
+				var y = player.position.y;
+				var z = player.position.z;
+				var t = player.position.t;
+				var p = new Vec4();
+				if(result[1][0]!="~") p.x = Number(result[1]);
+				else p.x = player.position.x + Number(result[1].substr(1));
+				if(result[2][0]!="~") p.y = Number(result[2]);
+				else p.y = player.position.y + Number(result[2].substr(1));
+				if(result[3][0]!="~") p.z = Number(result[3]);
+				else p.z = player.position.z + Number(result[3].substr(1));
+				if(result[4][0]!="~") p.t = Number(result[4]);
+				else p.t = player.position.t + Number(result[4].substr(1));
+				HUD.setWandPos1(p);
+				break;
+			case "pos2":
+				var result = str.match(/pos2\s+(~\-?[\.|0-9]*|-?[\.|0-9]+)\s+(~\-?[\.|0-9]*|-?[\.|0-9]+)\s+(~\-?[\.|0-9]*|-?[\.|0-9]+)\s+(~\-?[\.|0-9]*|-?[\.|0-9]+)/);
+				if(!result){
+					HUD.info("Syntax Error: pos2 <x> <y> <z> <t>");
+					HUD.blur2Game();
+					return 0;
+				}
+				var player = HUD.controler.camera4;
+				var x = player.position.x;
+				var y = player.position.y;
+				var z = player.position.z;
+				var t = player.position.t;
+				var p = new Vec4();
+				if(result[1][0]!="~") p.x = Number(result[1]);
+				else p.x = player.position.x + Number(result[1].substr(1));
+				if(result[2][0]!="~") p.y = Number(result[2]);
+				else p.y = player.position.y + Number(result[2].substr(1));
+				if(result[3][0]!="~") p.z = Number(result[3]);
+				else p.z = player.position.z + Number(result[3].substr(1));
+				if(result[4][0]!="~") p.t = Number(result[4]);
+				else p.t = player.position.t + Number(result[4].substr(1));
+				HUD.setWandPos2(p);
 				break;
 			default:
 				if(command.length){

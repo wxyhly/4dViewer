@@ -38,7 +38,7 @@ var $ = function (obj){
 }
 function start(){
 	HUD.drawLoadingInfo("Loading..");
-	var search = window.location.search.length?window.location.search.substr(1):"";
+	var search = window.location.search.length?window.location.search.replace(/\?en/g,"?").substr(1):"";
 	var terrainGen;
 	if(search=="flat"){
 		terrainGen = new TerrainFlat(Math.random()*1000000);
@@ -207,6 +207,7 @@ function initSun(laTerre,seed){
 <input id="CMD" width="1100" style="color:#FFF;display:none;background-color:rgba(0,0,0,0.5); border:0;"/><br>
 <input id="loader" type="file" onchange="MCLoader.load(this)" onclick="HUD.togglePause(true);" style="display:none"/>
 <input id="schemaLoader" type="file" onchange="MCWorld.Schema.load(this)" onclick="HUD.togglePause(true);" style="display:none"/>
+<input id="macroLoader" type="file" onchange="MCWorld.Macro.load(this)" onclick="HUD.togglePause(true);" style="display:none"/>
 <style>
 #hudCanvas {
 	position: absolute;

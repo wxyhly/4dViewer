@@ -1,0 +1,122 @@
+# Please use /macro to load this in flat world
+# by wxyhly(hqak)
+# 2020/02/28
+# 盖房子
+
+def floor 4
+def size 10
+def h 5
+
+/tp 0 h+1 0 0
+/pos1 0 floor 0 0
+/pos2 size floor size size
+/set 1
+/shift h u
+/set smooth_stone
+/expand h-1 d
+/shift 1 d
+/wall planks
+
+# 开窗：
+def wtop floor+3
+def wbas floor+2
+fn windowlines:
+    /pos1 3 wtop wline w_wpos
+    /pos2 4 wbas wline+1 w_wpos
+    /set glass
+    /pos1 6 wtop wline w_wpos
+    /pos2 7 wbas wline+1 w_wpos
+    /set glass
+endfn
+
+fn windowface:
+    def wline 2
+    windowlines
+    def wline 5
+    windowlines
+    def wline 8
+    windowlines
+endfn
+
+def w_wpos 0
+windowface
+
+def w_wpos size
+windowface
+
+# 开门、地毯
+def gatetop floor+3
+def gatebas floor+1
+/pos1 6 gatetop 0 4
+/pos2 4 gatebas size 6
+/set 0
+/pos1 6 floor 0 4
+/pos2 4 floor size 6
+/set red_concrete
+/pos1 8 floor 0 2
+/pos2 2 floor size 8
+/wall yellow_concrete
+
+# 复制房间
+/pos1 0 floor 0 0
+/pos2 size floor+h size size
+/tp 0 h+3 -1 0
+/copy
+
+def distX 20
+def distW 20
+def distZ 20
+fn arrayX:
+    /paste
+    /tp ~distX ~ ~ ~
+    /paste
+    /tp ~distX ~ ~ ~
+    /paste
+    /tp ~(-2*distX) ~ ~ ~
+endfn
+
+fn arrayW:
+    arrayX
+    /tp ~ ~ ~ ~distW
+    arrayX
+    /tp ~ ~ ~ ~distW
+    arrayX
+    /tp ~ ~ ~ ~(-2*distW)
+endfn
+
+arrayW
+/tp ~ ~ ~distZ ~
+arrayW
+/tp ~ ~ ~ ~distZ ~
+arrayW
+
+def ct 25
+/tp ct floor ct ct
+def rad size
+def floor floor+1
+/glome white_concrete rad
+/glome 0 rad-2
+/tiger purple_concrete rad-4 4 2
+/pos1 ct-rad floor ct-1 ct-1
+/pos2 ct+rad floor+2 ct+1 ct+1
+/set 0
+/pos1 ct-1 floor ct-rad ct-1
+/pos2 ct+1 floor+2 ct+rad ct+1
+/set 0
+/pos1 ct-1 floor ct-1 ct-rad
+/pos2 ct+1 floor+2 ct+1 ct+rad
+/set 0
+
+/pos1 ct-rad 1 ct-rad ct-rad
+/pos2 ct+rad 1 ct+rad ct+rad
+/set water
+def floor floor-1
+/pos1 ct-rad floor ct-1 ct-1
+/pos2 ct+rad floor ct+1 ct+1
+/set stone_brick
+/pos1 ct-1 floor ct-rad ct-1
+/pos2 ct+1 floor ct+rad ct+1
+/set stone_brick
+/pos1 ct-1 floor ct-1 ct-rad
+/pos2 ct+1 floor ct+1 ct+rad
+/set stone_brick

@@ -13,31 +13,24 @@ var gl$ = function (obj){
 function start(){
 	var scene = new Scene();
 	var r = 2;
-	var cube = new Geom4(Mesh4.tesseract(2*r),null,null,0xFFFFFF);
-	scene.add(cube);
-	cube.flow = 0.7;
-	var cyl = Mesh4.spherinder(1,16,16,0.001);
-	scene.add(new Geom4(cyl,new Vec4(0,0,0,r),false,0xFF0000));
-	scene.add(new Geom4(cyl,new Vec4(0,0,0,-r),false,0xFFAA00));
-	scene.add(new Geom4(cyl,new Vec4(0,0,r,0),false,0xFFFF00).lookAt(new Vec4(0,0,1,0)));
-	scene.add(new Geom4(cyl,new Vec4(0,0,-r,0),false,0x00FFFF).lookAt(new Vec4(0,0,1,0)));
-	scene.add(new Geom4(cyl,new Vec4(0,r,0,0),false,0x0000FF).lookAt(new Vec4(0,1,0,0)));
-	scene.add(new Geom4(cyl,new Vec4(0,-r,0,0),false,0x00FF00).lookAt(new Vec4(0,1,0,0)));
-	scene.add(new Geom4(cyl,new Vec4(r,0,0,0),false,0xFF00FF).lookAt(new Vec4(1,0,0,0)));
-	scene.add(new Geom4(cyl,new Vec4(-r,0,0,0),false,0xAAFF00).lookAt(new Vec4(1,0,0,0)));
+	var shell = new Geom4(Mesh3.sphere(r,16,16).apply((v)=>(v.x*=1.5,v)).embed(true),null,null,0xAA6600);
+	var white = new Geom4(Mesh3.sphere(r,16,16).apply((v)=>(v.x*=1.5,v.x+=0.2,v.mul(0.95))).embed(true).move(new Vec4(-0.2,0,0,-0.005)),null,null,0xFFFFFF);
+	var core = new Geom4(Mesh3.sphere(r*0.7,16,16).embed(true).move(new Vec4(-0.2,0,0,-0.01)),null,null,0xDDCC00);
+	scene.add(shell);
+	scene.add(white);
+	scene.add(core);
+	shell.flow = 0.6;
+	white.flow = 0.6;
 	var camera = new Camera4(120,0.01,30);
 	camera.position = new Vec4(0,0,0,-1.9);
 	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera,new Vec4(0.4,1,0.1,0.7));
 	renderer.ambientLight = 0.5;
 	renderer.bgColor4Flow = 0.2;
 	var controler = new Controler4.Trackball(renderer);
+	controler.enablePan = true;
+	controler.restrict3d = true;
 	var gui = new dat.GUI();
 	controler.addGUI(gui);
-	if(window.location.search=="?duupon"){
-		controler.enablePan = false;
-		controler.restrict3d = true;
-		controler.enableZoom = false;
-	}
 	function loop(){
 		controler.update(renderer.render.bind(renderer));
 		window.requestAnimationFrame(loop);

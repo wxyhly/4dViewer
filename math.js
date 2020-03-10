@@ -75,7 +75,7 @@ Bivector: Bivec (only 4d Bivec)
 		
 		Bivec.exp(Number angle):Mat4;
 		Bivec.expQ(Number angle):Vec4[2]; quaternion representation
-		Bivec.getAngle(Bivec b):Number[2]; calculate planar angle between Bivec and b
+		Bivec.getAngle(Bivec b, bool flag):Number[2]; calculate planar angle between Bivec and b; return wilder angle range when flag=false
 		Bivec.getAngle(Vec4 b):Number; calculate angle between plane Bivec and vector b
 	
 Vector: Vec (Vec2||Vec3||Vec4)
@@ -757,10 +757,13 @@ Bivec.prototype.decompose = function (){
 		return [fa.add(fb,false).mul((A+B)/2),fa.sub(fb).mul((A-B)/2)];
 	}
 }
-Bivec.prototype.getAngle = function (W) {
+Bivec.prototype.getAngle = function (W,flag) {
 	if (W instanceof Bivec){
 		var M = 1 / (this.len() * W.len())*0.99999999999999999;
-		var P = Math.abs(this.dot(W)), Q = Math.abs(this.cross(W));
+		var P = this.dot(W), Q = this.cross(W);
+		if(flag !== false){
+			P = Math.abs(P); Q = Math.abs(Q);
+		}
 		var cmm = Math.acos(Math.min(1,(P + Q) * M));
 		var cpp = Math.acos((P - Q) * M);
 		return [(cpp+cmm)*90/Math.PI,(cpp-cmm)*90/Math.PI];

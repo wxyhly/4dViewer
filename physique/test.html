@@ -1,4 +1,4 @@
-<html>
+<html><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -79,7 +79,7 @@ function start(){
 	physicsEngine.gravity = new Vec4(0,-9.8);
 	var domino = Mesh4.cuboid(0.2,1.2,0.8,0.8);
 	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
-	var cameraP = new Phy4d.Obj(new Phy4d.Glome(camera.position,0.8),2);
+	var cameraP = new Phy4d.Obj(new Phy4d.Glome(0.8),2,camera.position);
 		diceP  = new Phy4d.Obj(new Phy4d.Convex(domino),1,new Vec4(0.0,1,0.0,0.0));
 	var dice2P = new Phy4d.Obj(new Phy4d.Convex(domino),1,new Vec4(-1,1,0,0));
 	var dice3P = new Phy4d.Obj(new Phy4d.Convex(domino),1,new Vec4(-2,1,0,0));
@@ -130,7 +130,7 @@ function start(){
 	function loop(){
 		controler.update();
 		var step = 5;
-		/*physicsEngine.iterations = Math.floor(count*count*count);
+		physicsEngine.iterations = Math.floor(count*count*count);
 		physicsEngine.dt = Math.min(controler.dTime*0.001,0.5)/step;
 		if(physicsEngine.pause!==true){
 			while(step--)
@@ -145,7 +145,7 @@ function start(){
 			addDomino(0,4,0,0);
 			count++
 		}
-		*/
+		
 		renderer.render();
 		window.requestAnimationFrame(loop);
 	}
