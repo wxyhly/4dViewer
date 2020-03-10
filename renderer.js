@@ -31,7 +31,7 @@ Scene.prototype.add = function(s){
 			}
 		}
 		if(s.mesh){
-			if(!(s.mesh.C[0].info && s.mesh.C[0].info.normal)){
+			if(!(s.mesh.C[0] && s.mesh.C[0].info && s.mesh.C[0].info.normal)){
 				s.mesh.update();
 			}else{
 				s.mesh.getBoundingObjs();

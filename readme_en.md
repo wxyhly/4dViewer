@@ -5,12 +5,12 @@ The poor 3D creatures (we) only have 2D visions, 3D images can only be seen by m
 
 ## First meet
 
-### A simple example: Hypercube [examples/hypercube.html](https://wxyhly.github.io/4dViewer/examples/hypercube.html)
+### A simple example: Hypercube [examples/hypercube.html](https://wxyhly.github.io/4dViewer/examples/hypercube.html?en)
 
 Use left and right button to drag to rotate camera, scroll mouse wheel to zoom in / out. Now you are inside the hypercube. Try to zoom out to get out of it and you can see the entire hypercube from outside.
 Hypercube(Also called tesseract) is made of 8 equillavent cubic cells(3D face). There are different spherical patterns painted at the center of each cell in order to distinguish them.
 
-### Regular polychora and other fundamental 4D shapes [examples/polychora.html](https://wxyhly.github.io/4dViewer/examples/polychora.html)
+### Regular polychora and other fundamental 4D shapes [examples/polychora.html](https://wxyhly.github.io/4dViewer/examples/polychora.html?en)
 
 You can select different shapes from the control panel.
 
@@ -27,12 +27,12 @@ After understanding some basical 4D shapes, let us experience *First-person pers
 
 **Examples：**
 
-### Slope [examples/slope.html](https://wxyhly.github.io/4dViewer/examples/slope.html)
+### Slope [examples/slope.html](https://wxyhly.github.io/4dViewer/examples/slope.html?en)
 
 This is a simple scene with some slopes, a platform and a tunel.
 - Goal: Walk up to the platform, get through to the other side of the tunel.
 
-### Game Tetraspace remake [examples/tetraspace.html](https://wxyhly.github.io/4dViewer/examples/tetraspace.html)
+### Game Tetraspace remake [examples/tetraspace.html](https://wxyhly.github.io/4dViewer/examples/tetraspace.html?en)
 ([Tetraspace](https://rantonels.itch.io/brane) is a free 4D game. Here I remade first 12 levels from tetraspace in the example.
 
 + Primary goal: Find the small white hypercube floating in the air without jumping, and touch it to get to the next level. Note: The blue hypercube block can be pushed by walking toward it, and the green hypercube is a laser emitter. You cannot touch the emitter and the laser beam.
@@ -40,7 +40,7 @@ This is a simple scene with some slopes, a platform and a tunel.
 
 ## Make progress in 4D
 
-### 4D version of Minecraft [minecraft4d/](https://wxyhly.github.io/4dViewer/minecraft4d/)
+### 4D version of Minecraft [minecraft4d/](https://wxyhly.github.io/4dViewer/minecraft4d/?en)
 
 ### [Minecraft4D detail tutorial(in Chinese)](https://wxyhly.github.io/programs/mc4tutorial.html)
 
@@ -50,14 +50,14 @@ infinity 4D Minecraft world based on random seeds, in which you can explore diff
 
 ### Some scenes
 
-- 4D car [physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html)
-- Dicone gyro[physique/gyro.html](https://wxyhly.github.io/4dViewer/physique/gyro.html)
+- 4D car [physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html?en)
+- Dicone gyro[physique/gyro.html](https://wxyhly.github.io/4dViewer/physique/gyro.html?en)
 - 4D chains
- + Spheritorus-Spheritorus link（Can be broken by moving easily）[physique/unlink.html](https://wxyhly.github.io/4dViewer/physique/unlink.html)
- + Spheritorus-Torisphere link[physique/st_ts_link.html](https://wxyhly.github.io/4dViewer/physique/st_ts_link.html)
- + Spheritorus-Tiger link[physique/st_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/st_tiger_link.html)
- + Torisphere-Tiger link[physique/tiger_ts_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_ts_link.html)
- + Tiger-Tiger link (one biger and one smaller)[physique/tiger_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_tiger_link.html)
+ + Spheritorus-Spheritorus link（Can be broken by moving easily）[physique/unlink.html](https://wxyhly.github.io/4dViewer/physique/unlink.html?en)
+ + Spheritorus-Torisphere link[physique/st_ts_link.html](https://wxyhly.github.io/4dViewer/physique/st_ts_link.html?en)
+ + Spheritorus-Tiger link[physique/st_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/st_tiger_link.html?en)
+ + Torisphere-Tiger link[physique/tiger_ts_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_ts_link.html?en)
+ + Tiger-Tiger link (one biger and one smaller)[physique/tiger_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_tiger_link.html?en)
 
 ## Parameters in control panel
 ### Camera settings
@@ -77,13 +77,13 @@ Note: In 4DViewer, the 3D retina is actually realised by layers of 2D cross sect
 
 ### Solar control
 
-- ***NS*** Set latitude value from 0 to 90 degree (in Hopf coordination)
+- ***Latitude*** Set latitude value from 0 to 90 degree (in Hopf coordination)
 - ***SouthernTime*** and ***NorthernTime*** Two different timing systems related to 2 longitude values in Hopf coordination. 
 - ***Season*** The orbit phase angle of the planet；
 - ***SouthernTropic*** and ***NorthernTropic*** 
 the minimum and the maximum latitude value on which sunlight can cast perpendicularly. eg. two obliquities of the ecliptic.
-- ***MGPeriode***  and ***WEPeriode***  are hours for one rotation at south and north pole respectively.
-- ***SunAngle*** and ***SunNS*** are only readable.
+- ***M-G Periode***  and ***W-E Periode***  are hours for one rotation at south and north pole respectively.
+- ***SunAngle*** and ***SunLatitude*** are only readable.
 - ***TimeStep***  adjust the time passing speed.
 
 ## Inspiration (Thanks to)

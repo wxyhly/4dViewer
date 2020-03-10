@@ -1,4 +1,5 @@
 <html>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -108,7 +109,7 @@ function start(){
 	var M = new Bivec(0.01);
 	physicsEngine.addForce(new Phy4d.Motor(union1, M, 0.1));
 	//wall
-	gui.add(M,"xy",-0.2,0.2);
+	gui.add(M,"xy",-0.2,0.2).name(window.location.search.indexOf("?en")!=-1?"Torque":"转矩");
 	/*physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4(-1,0,0,0),-planeWidth/2),Infinity));
 	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0, 1,0),-planeWidth/2),Infinity));

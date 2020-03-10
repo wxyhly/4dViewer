@@ -1,4 +1,4 @@
- <html>
+ <html><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <script src="../math.js"></script>
 <script src="../shape.js"></script>
 <script src="../webgl.js"></script>
@@ -32,7 +32,7 @@ tetraspaceLevel.next = function(){
 		//tetraspaceLevel.levels[0]
 	}
 }
-tetraspaceLevel.currentLevel = Number(location.search.substr(1)) || 0;
+tetraspaceLevel.currentLevel = Number(location.search.replace(/\?en/g,"?").substr(1)) || 0;
 tetraspaceLevel.emitters = [];
 tetraspaceLevel.hitTestLightStreams = function(pos){
 	for(var l of tetraspaceLevel.emitters){

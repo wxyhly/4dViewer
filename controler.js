@@ -213,26 +213,44 @@ Controler4.prototype.addGUI = function(gui,show){
 	if(!show)gui.close();
 	var change = function(){_this.needUpdate = true};
 	var renderer = this.renderer;
-	var rend = gui.addFolder('Renderer');
-	rend.add(renderer,"thickness",0.01,1).onChange(change);
-	rend.add(renderer,"flow",0,10).onChange(change);
-	rend.add(renderer,"thumbSize",1.8,22).onChange(change);
-	rend.add(renderer,"wireFrameMode").onChange(change);
-	rend.addColor(renderer,"bgColor4").onChange(change);
-	rend.add(renderer,"bgColor4Flow",0,1).onChange(change);
-	rend.addColor(renderer,"bgColor3").onChange(change);
-	var trans = rend.addFolder('Transparency');
-	trans.addColor(renderer.opaqueColors[0],"color").onChange(change);
-	trans.add(renderer.opaqueColors[0],"tolerance").onChange(change);
-	trans.addColor(renderer.opaqueColors[1],"color").onChange(change);
-	trans.add(renderer.opaqueColors[1],"tolerance").onChange(change);
-	trans.addColor(renderer.opaqueColors[2],"color").onChange(change);
-	trans.add(renderer.opaqueColors[2],"tolerance").onChange(change);
-	trans.addColor(renderer.opaqueColors[3],"color").onChange(change);
-	trans.add(renderer.opaqueColors[3],"tolerance").onChange(change);
+	var tr = function(i){
+		if(window.location.search.indexOf("?en")!=-1)return i;
+		return {
+			"Renderer":"渲染",
+			"Thickness":"层距",
+			"Flow":"流量",
+			"ThumbSize":"缩略图",
+			"Wireframe Mode":"线框模式",
+			"BgColor4":"4D背景色",
+			"BgColor4Flow":"4D背景色流量",
+			"BgColor3":"3D背景色",
+			"Transparency":"透明度",
+			"Color":"颜色",
+			"Tolerance":"容差",
+			"Camera4":"4D相机",
+			"Fov":"视野"
+		}[i]||i;
+	};
+	var rend = gui.addFolder(tr('Renderer'));
+	rend.add(renderer,"thickness",0.01,1).onChange(change).name(tr('Thickness'));
+	rend.add(renderer,"flow",0,10).onChange(change).name(tr('Flow'));
+	rend.add(renderer,"thumbSize",1.8,22).onChange(change).name(tr('ThumbSize'));
+	rend.add(renderer,"wireFrameMode").onChange(change).name(tr('Wireframe Mode'));
+	rend.addColor(renderer,"bgColor4").onChange(change).name(tr('BgColor4'));
+	rend.add(renderer,"bgColor4Flow",0,1).onChange(change).name(tr('BgColor4Flow'));
+	rend.addColor(renderer,"bgColor3").onChange(change).name(tr('BgColor3'));
+	var trans = rend.addFolder(tr('Transparency'));
+	trans.addColor(renderer.opaqueColors[0],"color").onChange(change).name(tr('Color'));
+	trans.add(renderer.opaqueColors[0],"tolerance").onChange(change).name(tr('Tolerance'));
+	trans.addColor(renderer.opaqueColors[1],"color").onChange(change).name(tr('Color'));
+	trans.add(renderer.opaqueColors[1],"tolerance").onChange(change).name(tr('Tolerance'));
+	trans.addColor(renderer.opaqueColors[2],"color").onChange(change).name(tr('Color'));
+	trans.add(renderer.opaqueColors[2],"tolerance").onChange(change).name(tr('Tolerance'));
+	trans.addColor(renderer.opaqueColors[3],"color").onChange(change).name(tr('Color'));
+	trans.add(renderer.opaqueColors[3],"tolerance").onChange(change).name(tr('Tolerance'));
 	
-	var cam4 = gui.addFolder('Camera4');
-	cam4.add(this,"fov",10,170).onChange(function(fov){_this.camera4.setProjectMat4(fov);_this.needUpdate = true;});
+	var cam4 = gui.addFolder(tr('Camera4'));
+	cam4.add(this,"fov",10,170).onChange(function(fov){_this.camera4.setProjectMat4(fov);_this.needUpdate = true;}).name(tr('Fov'));
 }
 Controler4.Trackball = function(renderer){
 	Controler4.call(this,renderer);
@@ -299,10 +317,19 @@ Controler4.Trackball = function(renderer){
 Controler4.Trackball.prototype = Object.create(Controler4.prototype);
 Controler4.Trackball.prototype.addGUI = function(gui){
 	Controler4.prototype.addGUI.call(this,gui);
-	var con = gui.addFolder("Control");
-	con.add(this,"damp",0,1);
-	con.add(this,"panKeyStep",0.01,2);
-	con.add(this,"panMouseStep",0.1,10);
+	var tr = function(i){
+		if(window.location.search.indexOf("?en")!=-1)return i;
+		return {
+			"Control":"控制",
+			"Damp":"阻尼",
+			"panKeyStep":"键盘速度",
+			"panMouseStep":"鼠标速度",
+		}[i]||i;
+	};
+	var con = gui.addFolder(tr("Control"));
+	con.add(this,"damp",0,1).name(tr("Damp"));
+	con.add(this,"panKeyStep",0.01,2).name(tr("panKeyStep"));
+	con.add(this,"panMouseStep",0.1,10).name(tr("panMouseStep"));
 }
 Controler4.Trackball.prototype._needDamping = function(){
 	return this.resRot.len(false)>0.00001 || Math.abs(this.resZoom)>0.00001;
@@ -466,8 +493,15 @@ Controler4.KeepUp.prototype.updateCamera = function(){
 }
 Controler4.KeepUp.prototype.addGUI = function(gui){
 	Controler4.prototype.addGUI.call(this,gui);
-	var con = gui.addFolder("Control");
-	con.add(this,"moveStep");
+	var tr = function(i){
+		if(window.location.search.indexOf("?en")!=-1)return i;
+		return {
+			"Control":"控制",
+			"moveStep":"移动速度",
+		}[i]||i;
+	};
+	var con = gui.addFolder(tr("Control"));
+	con.add(this,"moveStep").name("moveStep");
 }
 Controler4.KeepUp.prototype._rotateHorizontal = function(x,y){
 	var xt = this.x.cross(this.t).mul(x);

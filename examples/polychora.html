@@ -33,84 +33,136 @@ function start(){
 	var controler = new Controler4.Trackball(renderer);
 	var gui = new dat.GUI();
 	controler.addGUI(gui);
-	
-	gui["显示"] = 3; //"Both"
+	var tr = function(i){
+		if(window.location.search.indexOf("?en")==-1)return i;
+		return {
+			"显示":"Display",
+			"胞":"Cell",
+			"胞数":"Cells",
+			"面数":"Faces",
+			"边":"Edge",
+			"两者":"Both",
+			"选择形状":"Object",
+			"预设":"Presets",
+			"默认":"Default",
+			"线框":"Wireframe",
+			"胞与线框":"Cell&frame",
+			"胞(除雾)":"Cell(less fog)",
+			"对偶":"Dual",
+			"正多胞体":"Reg. Polychoron",
+			"正多面体":"Reg. Polyhedron",
+			"超球":"Glome",
+			"柱体":"Prism",
+			"锥体":"Pyramid",
+			"旋转体":"Pyramid",
+			"旋转体":"Pyramid",
+			"直积形":"Duoprism",
+			"高":"Height",
+			"底胞":"Base Cell",
+			"底面":"Base Face",
+			"偏移距离":"Offset",
+			"分段":"Segment",
+			"旋转方向 xt":"Rotation xt",
+			"旋转方向 yt":"Rotation yt",
+			"旋转方向 zt":"Rotation zt",
+			"旋转胞":"Cell to be rotated",
+			"XY图形":"XY Figure",
+			"ZW图形":"ZW Figure",
+			"球":"Sphere",
+			"圆环":"Torus",
+			"半径":"Radius",
+			"正多边形":"Reg. Polygon",
+			"矩形":"Rectangle",
+			"环形":"Ring",
+			"L形":"L Shape",
+			"工形":"H Shape",
+			"U形":"U Shape",
+			"十字":"Cross",
+			"边数":"Edges",
+			"长":"Length",
+			"宽":"Width",
+			"厚":"Thickness",
+			"边颜色":"Edge Color",
+			"胞颜色":"Cell Color",
+		}[i]||i;
+	}
+	gui[tr("显示")] = tr("两者"); //"Both"
 	var displayOnChange = function(v){
-		polytope["obj"].visible = v & 1;
-		polytope["edge"].visible = v >> 1;
+		polytope["obj"].visible = v == tr("胞") || v == tr("两者");//v & 1;
+		polytope["edge"].visible = v == tr("边") || v == tr("两者");//v >> 1;
 		controler.needUpdate = true;
 	};
-	gui.add(gui,"显示",{"胞":1,"边":2,"两者":3}).onChange(displayOnChange);
-	gui.addColor(polytope["obj"],"color").onChange(change);
-	gui.addColor(polytope["edge"],"color").onChange(change);
+	gui.add(gui,tr("显示"),[tr("胞"),tr("边"),tr("两者")]).onChange(displayOnChange);
+	gui.addColor(polytope["obj"],"color").onChange(change).name(tr("胞颜色"));
+	gui.addColor(polytope["edge"],"color").onChange(change).name(tr("边颜色"));
 	
-	gui["选择形状"] = "正多胞体";
-	gui["预设 presets"] = 1;
-	gui.add(gui,"预设 presets",{"默认 default":1,"线框 Frame":2,"胞与线框Cell Frame":3,"胞(除雾) Cell(no fog)":4}).onChange(function(v){
+	gui[tr("选择形状")] = tr("正多胞体");
+	gui[tr("预设")] = tr("默认");
+	gui.add(gui,tr("预设"),[tr("默认"),tr("线框"),tr("胞与线框"),tr("胞(除雾)")]).onChange(function(v){
 		switch(v){
-			case "1":
+			case tr("默认"):
 				renderer.flow = 1;
 				renderer.bgColor4Flow = 0.2;
 				renderer.wireFrameMode = false;
-				gui["显示"] = 3;
+				gui[tr("显示")] = tr("两者");
 				break;
-			case "2":
+			case tr("线框"):
 				renderer.flow = 20;
 				renderer.bgColor4Flow = 0.01;
 				renderer.wireFrameMode = false;
-				gui["显示"] = 2;
+				gui[tr("显示")] = tr("边");
 				break;
-			case "3":
+			case tr("胞与线框"):
 				renderer.flow = 1;
 				renderer.bgColor4Flow = 0.2;
 				renderer.wireFrameMode = true;
-				gui["显示"] = 1;
+				gui[tr("显示")] = tr("胞");
 				break;	
-			case "4":
+			case tr("胞(除雾)"):
 				renderer.flow = 1.4;
 				renderer.bgColor4Flow = 0.005;
 				renderer.wireFrameMode = false;
-				gui["显示"] = 1;
+				gui[tr("显示")] = tr("胞");
 				break;	
 		}
-		displayOnChange(gui["显示"]);
+		displayOnChange(gui[tr("显示")]);
 		controler.needUpdate = true;
 	});
-	gui["对偶 Dual"] = false;
-	gui.add(gui,"选择形状",["正多胞体","超球","柱体","锥体","旋转体","直积形"]).onChange(function(v){
+	gui[tr("对偶")] = false;
+	gui.add(gui,tr("选择形状"),[tr("正多胞体"),tr("超球"),tr("柱体"),tr("锥体"),tr("旋转体"),tr("直积形")]).onChange(function(v){
 		gui.removeFolder(gui.ShapePanel);
 		switch(v){
-			case "正多胞体":
+			case tr("正多胞体"):
 				addFolder_RegularPolychoron();
 			break;
-			case "超球":
+			case tr("超球"):
 				addFolder_Glome();
 			break;
-			case "柱体":
+			case tr("柱体"):
 				addFolder_Prism();
 			break;
-			case "锥体":
+			case tr("锥体"):
 				addFolder_Pyramid();
 			break;
-			case "旋转体":
+			case tr("旋转体"):
 				addFolder_Rotate();
 			break;
-			case "直积形":
+			case tr("直积形"):
 				addFolder_Duoprism();
 			break;
 			
 		}
 	});
-	gui.add(gui,"对偶 Dual").onChange(function(){
+	gui.add(gui,tr("对偶")).onChange(function(){
 		setPolytope(polytope["mesh"]);
 	});
 	addFolder_RegularPolychoron();
 	
 	function addFolder_RegularPolychoron(){
-		gui.ShapePanel = gui.addFolder("正多胞体 Regular Polychoron");
+		gui.ShapePanel = gui.addFolder(tr("正多胞体"));
 		gui.ShapePanel.open();
-		gui.ShapePanel["胞数"] = 24;
-		gui.ShapePanel.add(gui.ShapePanel,"胞数",[5,8,16,24,120,600]).onChange(onchange);
+		gui.ShapePanel[tr("胞数")] = 24;
+		gui.ShapePanel.add(gui.ShapePanel,tr("胞数"),[5,8,16,24,120,600]).onChange(onchange);
 		function onchange(v){
 			if(!polytope[v]){
 				polytope[v] = Mesh4.regularPolychoron(Number(v));
@@ -121,7 +173,7 @@ function start(){
 		onchange(24);
 	}
 	function addFolder_Glome(){
-		gui.ShapePanel = gui.addFolder("超球 Glome");
+		gui.ShapePanel = gui.addFolder(tr("超球"));
 		gui.ShapePanel.open();
 		gui.ShapePanel["U"] = 8;
 		gui.ShapePanel["V"] = 8;
@@ -135,53 +187,53 @@ function start(){
 		onchange();
 	}
 	function addFolder_Prism(){
-		gui.ShapePanel = gui.addFolder("柱体 Prism");
+		gui.ShapePanel = gui.addFolder(tr("柱体"));
 		gui.ShapePanel.open();
-		gui.ShapePanel["高"] = 1;
-		gui.ShapePanel.add(gui.ShapePanel,"高",0,5).
+		gui.ShapePanel[tr("高")] = 1;
+		gui.ShapePanel.add(gui.ShapePanel,tr("高"),0,5).
 		onChange(onchange);
 		function onchange(){
-			setPolytope(gui.ShapePanel.celledMesh3.extrude(new Vec4(0,0,0,gui.ShapePanel["高"])).move(new Vec4(0,0,0,-gui.ShapePanel["高"]/2)));
+			setPolytope(gui.ShapePanel.celledMesh3.extrude(new Vec4(0,0,0,gui.ShapePanel[tr("高")])).move(new Vec4(0,0,0,-gui.ShapePanel[tr("高")]/2)));
 		}
-		add3D(gui.ShapePanel,"底胞",onchange);
+		add3D(gui.ShapePanel,tr("底胞"),onchange);
 	}
 	function addFolder_Pyramid(){
-		gui.ShapePanel = gui.addFolder("锥体 Pyramid");
+		gui.ShapePanel = gui.addFolder(tr("锥体"));
 		gui.ShapePanel.open();
-		gui.ShapePanel["高"] = 1;
-		gui.ShapePanel.add(gui.ShapePanel,"高",0,5).onChange(onchange);
+		gui.ShapePanel[tr("高")] = 1;
+		gui.ShapePanel.add(gui.ShapePanel,tr("高"),0,5).onChange(onchange);
 		function onchange(){
-			setPolytope(gui.ShapePanel.celledMesh3.pyramid(new Vec4(0,0,0,gui.ShapePanel["高"])).move(new Vec4(0,0,0,-gui.ShapePanel["高"]/2)));
+			setPolytope(gui.ShapePanel.celledMesh3.pyramid(new Vec4(0,0,0,gui.ShapePanel[tr("高")])).move(new Vec4(0,0,0,-gui.ShapePanel[tr("高")]/2)));
 		}
-		add3D(gui.ShapePanel,"底胞",onchange);
+		add3D(gui.ShapePanel,tr("底胞"),onchange);
 	}
 	function addFolder_Rotate(){
-		gui.ShapePanel = gui.addFolder("旋转体");
+		gui.ShapePanel = gui.addFolder(tr("旋转体"));
 		gui.ShapePanel.open();
-		gui.ShapePanel["偏移距离"] = 2;
-		gui.ShapePanel.add(gui.ShapePanel,"偏移距离",0,10).onChange(onchange);
-		gui.ShapePanel["分段"] = 8;
-		gui.ShapePanel.add(gui.ShapePanel,"分段",4,32,1).onChange(onchange);
-		gui.ShapePanel["旋转方向 xt"] = 1;
-		gui.ShapePanel["旋转方向 yt"] = 0;
-		gui.ShapePanel["旋转方向 zt"] = 0;
-		gui.ShapePanel.add(gui.ShapePanel,"旋转方向 xt",0,1).onChange(onchange);
-		gui.ShapePanel.add(gui.ShapePanel,"旋转方向 yt",0,1).onChange(onchange);
-		gui.ShapePanel.add(gui.ShapePanel,"旋转方向 zt",0,1).onChange(onchange);
+		gui.ShapePanel[tr("偏移距离")] = 2;
+		gui.ShapePanel.add(gui.ShapePanel,tr("偏移距离"),0,10).onChange(onchange);
+		gui.ShapePanel[tr("分段")] = 8;
+		gui.ShapePanel.add(gui.ShapePanel,tr("分段"),4,32,1).onChange(onchange);
+		gui.ShapePanel[tr("旋转方向 xt")] = 1;
+		gui.ShapePanel[tr("旋转方向 yt")] = 0;
+		gui.ShapePanel[tr("旋转方向 zt")] = 0;
+		gui.ShapePanel.add(gui.ShapePanel,tr("旋转方向 xt"),0,1).onChange(onchange);
+		gui.ShapePanel.add(gui.ShapePanel,tr("旋转方向 yt"),0,1).onChange(onchange);
+		gui.ShapePanel.add(gui.ShapePanel,tr("旋转方向 zt"),0,1).onChange(onchange);
 		function onchange(){
-			var xt = Number(gui.ShapePanel["旋转方向 xt"]);
-			var yt = Number(gui.ShapePanel["旋转方向 yt"]);
-			var zt = Number(gui.ShapePanel["旋转方向 zt"]);
+			var xt = Number(gui.ShapePanel[tr("旋转方向 xt")]);
+			var yt = Number(gui.ShapePanel[tr("旋转方向 yt")]);
+			var zt = Number(gui.ShapePanel[tr("旋转方向 zt")]);
 			gui.ShapePanel.celledMesh3.C = [];
-			setPolytope(gui.ShapePanel.celledMesh3.clone().move(new Vec4(xt,yt,zt,0).norm().mul(gui.ShapePanel["偏移距离"])).turning(new Bivec(0,0,xt,0,yt,zt).norm(),Math.round(gui.ShapePanel["分段"])));
+			setPolytope(gui.ShapePanel.celledMesh3.clone().move(new Vec4(xt,yt,zt,0).norm().mul(gui.ShapePanel[tr("偏移距离")])).turning(new Bivec(0,0,xt,0,yt,zt).norm(),Math.round(gui.ShapePanel[tr("分段")])));
 		}
-		add3D(gui.ShapePanel,"旋转胞",onchange);
+		add3D(gui.ShapePanel,tr("旋转胞"),onchange);
 	}
 	function addFolder_Duoprism(){
-		gui.ShapePanel = gui.addFolder("直积形 Duoprism");
+		gui.ShapePanel = gui.addFolder(tr("直积形"));
 		gui.ShapePanel.open();
-		var xy = gui.ShapePanel.addFolder("XY图形");
-		var zt = gui.ShapePanel.addFolder("ZW图形");
+		var xy = gui.ShapePanel.addFolder(tr("XY图形"));
+		var zt = gui.ShapePanel.addFolder(tr("ZW图形"));
 		xy.open();
 		zt.open();
 		function onchange(){
@@ -199,45 +251,45 @@ function start(){
 				mzt = zt.currentMesh2.embed(4,true,new Vec4(0,0,1,0),new Vec4(0,0,0,1));
 			setPolytope(mxy.directProduct(mzt));
 		}
-		add2D(xy,"XY图形",onchange);
-		add2D(zt,"ZW图形",onchange);
+		add2D(xy,tr("XY图形"),onchange);
+		add2D(zt,tr("ZW图形"),onchange);
 	}
 	
 	function add3D(folder,name,cb){
 		folder.currentMesh3 = null;
-		folder[name] = "正多面体";
-		folder.add(folder,name,["正多面体","球","圆环","柱体","锥体"]).
+		folder[name] = tr("正多面体");
+		folder.add(folder,name,[tr("正多面体"),tr("球"),tr("圆环"),tr("柱体"),tr("锥体")]).
 		onChange(onchange);
 		function onchange(v){
 			folder.removeFolder(folder.ShapePanel);
 			folder.celledMesh3 = null;
 			switch(v){
-				case "正多面体":
+				case tr("正多面体"):
 					add3D_RegularPolyhedral(folder,cb);
 				break;
-				case "球":
+				case tr("球"):
 					add3D_Sphere(folder,cb);
 				break;
-				case "圆环":
+				case tr("圆环"):
 					add3D_Torus(folder,cb);
 				break;
-				case "柱体":
+				case tr("柱体"):
 					add3D_Prism(folder,cb);
 				break;
-				case "锥体":
+				case tr("锥体"):
 					add3D_Pyramid(folder,cb);
 				break;
 			}
 			cb();
 		}
 		add3D_RegularPolyhedral(folder,cb);
-		onchange("正多面体");
+		onchange(tr("正多面体"));
 	}
 	function add3D_RegularPolyhedral(folder,cb){
-		folder.ShapePanel = folder.addFolder("正多面体 Regular Polyhedron");
+		folder.ShapePanel = folder.addFolder(tr("正多面体"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["面数"] = 12;
-		folder.ShapePanel.add(folder.ShapePanel,"面数",[4,6,8,12,20]).onChange(onchange);
+		folder.ShapePanel[tr("面数")] = 12;
+		folder.ShapePanel.add(folder.ShapePanel,tr("面数"),[4,6,8,12,20]).onChange(onchange);
 		onchange(12);
 		function onchange(v){
 			folder.celledMesh3 = Mesh3.regularPolyhedron(Number(v)).embed(true);
@@ -245,22 +297,22 @@ function start(){
 		}
 	}
 	function add3D_Sphere(folder,cb){
-		folder.ShapePanel = folder.addFolder("球 Sphere");
+		folder.ShapePanel = folder.addFolder(tr("球"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["U"] = 8;
-		folder.ShapePanel["V"] = 8;
-		folder.ShapePanel["半径"] = 1;
-		folder.ShapePanel.add(folder.ShapePanel,"U",2,32,1).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"V",2,32,1).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"半径",0,10).onChange(onchange);
+		folder.ShapePanel[tr("U")] = 8;
+		folder.ShapePanel[tr("V")] = 8;
+		folder.ShapePanel[tr("半径")] = 1;
+		folder.ShapePanel.add(folder.ShapePanel,tr("U"),2,32,1).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("V"),2,32,1).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("半径"),0,10).onChange(onchange);
 		onchange();
 		function onchange(){
-			folder.celledMesh3 = Mesh3.sphere(Number(folder.ShapePanel["半径"]),Number(folder.ShapePanel["U"]),Number(folder.ShapePanel["V"])).embed(true);
+			folder.celledMesh3 = Mesh3.sphere(Number(folder.ShapePanel[tr("半径")]),Number(folder.ShapePanel[tr("U")]),Number(folder.ShapePanel[tr("V")])).embed(true);
 			cb();
 		}
 	}
 	function add3D_Torus(folder,cb){
-		folder.ShapePanel = folder.addFolder("圆环 Torus");
+		folder.ShapePanel = folder.addFolder(tr("圆环"));
 		folder.ShapePanel.open();
 		folder.ShapePanel["U"] = 8;
 		folder.ShapePanel["V"] = 8;
@@ -278,102 +330,102 @@ function start(){
 		}
 	}
 	function add3D_Prism(folder,cb){
-		folder.ShapePanel = folder.addFolder("柱体 Prism");
+		folder.ShapePanel = folder.addFolder(tr("柱体"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["高"] = 1;
-		folder.ShapePanel.add(folder.ShapePanel,"高",0,5).onChange(onchange);
+		folder.ShapePanel[tr("高")] = 1;
+		folder.ShapePanel.add(folder.ShapePanel,tr("高"),0,5).onChange(onchange);
 		function onchange(){
-			folder.celledMesh3 = folder.ShapePanel.facedMesh2.embed(false).extrude(new Vec4(0,0,folder.ShapePanel["高"]),0).move(new Vec4(0,0,-folder.ShapePanel["高"]/2,0));
+			folder.celledMesh3 = folder.ShapePanel.facedMesh2.embed(false).extrude(new Vec4(0,0,folder.ShapePanel[tr("高")]),0).move(new Vec4(0,0,-folder.ShapePanel[tr("高")]/2,0));
 			cb();
 		}
-		add2D(folder.ShapePanel,"底面",onchange);
+		add2D(folder.ShapePanel,tr("底面"),onchange);
 	}
 	function add3D_Pyramid(folder,cb){
-		folder.ShapePanel = folder.addFolder("锥体 Pyramid");
+		folder.ShapePanel = folder.addFolder(tr("锥体"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["高"] = 1;
-		folder.ShapePanel.add(folder.ShapePanel,"高",0,5).onChange(onchange);
+		folder.ShapePanel[tr("高")] = 1;
+		folder.ShapePanel.add(folder.ShapePanel,tr("高"),0,5).onChange(onchange);
 		function onchange(){
-			folder.celledMesh3 = folder.ShapePanel.facedMesh2.embed(false).pyramid(new Vec4(0,0,folder.ShapePanel["高"]),0).move(new Vec4(0,0,-folder.ShapePanel["高"]/2,0));
+			folder.celledMesh3 = folder.ShapePanel.facedMesh2.embed(false).pyramid(new Vec4(0,0,folder.ShapePanel[tr("高")]),0).move(new Vec4(0,0,-folder.ShapePanel[tr("高")]/2,0));
 			cb();
 		}
-		add2D(folder.ShapePanel,"底面",onchange);
+		add2D(folder.ShapePanel,tr("底面"),onchange);
 	}
 	//todo: 空心化、旋转体3、对偶、截角？？
 	
 	function add2D(folder,name,cb){
 		folder.currentMesh2 = null;
-		folder[name] = "正多边形";
-		folder.add(folder,name,["正多边形","矩形","环形","L形","工形","U形","十字"]).onChange(onchange);
+		folder[name] = tr("正多边形");
+		folder.add(folder,name,[tr("正多边形"),tr("矩形"),tr("环形"),tr("L形"),tr("工形"),tr("U形"),tr("十字")]).onChange(onchange);
 		function onchange(v){
 			folder.removeFolder(folder.ShapePanel);
 			folder.facedMesh2 = null;
 			switch(v){
-				case "正多边形":
+				case tr("正多边形"):
 					add2D_RegularPolygon(folder,cb);
 				break;
-				case "矩形":
+				case tr("矩形"):
 					add2D_Rectangle(folder,cb);
 				break;
-				case "环形":
+				case tr("环形"):
 					add2D_Ring(folder,cb);
 				break;
-				case "L形":
+				case tr("L形"):
 					add2D_L(folder,cb);
 				break;
-				case "工形":
+				case tr("工形"):
 					add2D_I(folder,cb);
 				break;
-				case "U形":
+				case tr("U形"):
 					add2D_U(folder,cb);
 				break;
-				case "十字":
+				case tr("十字"):
 					add2D_Cross(folder,cb);
 				break;
 			}
 			cb();
 		}
 		add2D_RegularPolygon(folder,cb);
-		onchange("正多边形");
+		onchange(tr("正多边形"));
 	}
 	function add2D_RegularPolygon(folder,cb){
-		folder.ShapePanel = folder.addFolder("正多边形 Regular Polygon");
+		folder.ShapePanel = folder.addFolder(tr("正多边形"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["边数"] = 6;
-		folder.ShapePanel["半径"] = 1;
-		folder.ShapePanel.add(folder.ShapePanel,"边数",3,32,1).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"半径",0,5).onChange(onchange);
+		folder.ShapePanel[tr("边数")] = 6;
+		folder.ShapePanel[tr("半径")] = 1;
+		folder.ShapePanel.add(folder.ShapePanel,tr("边数"),3,32,1).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("半径"),0,5).onChange(onchange);
 		onchange();
 		function onchange(){
-			folder.facedMesh2 = Mesh2.polygon(Number(folder.ShapePanel["半径"]),Number(folder.ShapePanel["边数"])).embed(3,true);
+			folder.facedMesh2 = Mesh2.polygon(Number(folder.ShapePanel[tr("半径")]),Number(folder.ShapePanel[tr("边数")])).embed(3,true);
 			cb();
 		}
 	}
 	function add2D_Rectangle(folder,cb){
-		folder.ShapePanel = folder.addFolder("矩形 Rectangle");
+		folder.ShapePanel = folder.addFolder(tr("矩形"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["W"] = 2;
-		folder.ShapePanel["H"] = 1;
-		folder.ShapePanel.add(folder.ShapePanel,"W",0,5).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"H",0,5).onChange(onchange);
+		folder.ShapePanel[tr("W")] = 2;
+		folder.ShapePanel[tr("H")] = 1;
+		folder.ShapePanel.add(folder.ShapePanel,tr("W"),0,5).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("H"),0,5).onChange(onchange);
 		onchange();
 		function onchange(){
-			folder.facedMesh2 = Mesh2.rectangle(Number(folder.ShapePanel["W"]),Number(folder.ShapePanel["H"])).embed(3,true);
+			folder.facedMesh2 = Mesh2.rectangle(Number(folder.ShapePanel[tr("W")]),Number(folder.ShapePanel[tr("H")])).embed(3,true);
 			cb();
 		}
 	}
 	function add2D_Ring(folder,cb){
-		folder.ShapePanel = folder.addFolder("环形 Ring");
+		folder.ShapePanel = folder.addFolder(tr("环形"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["边数"] = 6;
+		folder.ShapePanel[tr("边数")] = 6;
 		folder.ShapePanel["R"] = 1;
 		folder.ShapePanel["r"] = 0.2;
-		folder.ShapePanel.add(folder.ShapePanel,"边数",3,32,1).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("边数"),3,32,1).onChange(onchange);
 		folder.ShapePanel.add(folder.ShapePanel,"R",0,10).onChange(onchange);
 		folder.ShapePanel.add(folder.ShapePanel,"r",0,5).onChange(onchange);
 		onchange();
 		function onchange(){
-			folder.facedMesh2 = Mesh2.polygon(folder.ShapePanel["R"],folder.ShapePanel["边数"]).embed(3,false).loft(function(n,p){
+			folder.facedMesh2 = Mesh2.polygon(folder.ShapePanel["R"],folder.ShapePanel[tr("边数")]).embed(3,false).loft(function(n,p){
 				if(n==1)
 					p.norm().mul(folder.ShapePanel["R"]-folder.ShapePanel["r"]);
 				else
@@ -383,19 +435,19 @@ function start(){
 		}
 	}
 	function add2D_L(folder,cb){
-		folder.ShapePanel = folder.addFolder("L形");
+		folder.ShapePanel = folder.addFolder(tr("L形"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["长"] = 1.5;
-		folder.ShapePanel["宽"] = 1;
-		folder.ShapePanel["厚"] = 0.2;
-		folder.ShapePanel.add(folder.ShapePanel,"长",0,10).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"宽",0,10).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"厚",0,5).onChange(onchange);
+		folder.ShapePanel[tr("长")] = 1.5;
+		folder.ShapePanel[tr("宽")] = 1;
+		folder.ShapePanel[tr("厚")] = 0.2;
+		folder.ShapePanel.add(folder.ShapePanel,tr("长"),0,10).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("宽"),0,10).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("厚"),0,5).onChange(onchange);
 		onchange();
 		function onchange(){
-			var w = folder.ShapePanel["长"];
-			var h = folder.ShapePanel["宽"];
-			var l = folder.ShapePanel["厚"];
+			var w = folder.ShapePanel[tr("长")];
+			var h = folder.ShapePanel[tr("宽")];
+			var l = folder.ShapePanel[tr("厚")];
 			folder.facedMesh2 = new Mesh2({
 				V:[
 					new Vec2(-l,l),
@@ -417,19 +469,19 @@ function start(){
 		}
 	}
 	function add2D_U(folder,cb){
-		folder.ShapePanel = folder.addFolder("U形");
+		folder.ShapePanel = folder.addFolder(tr("U形"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["长"] = 1.5;
-		folder.ShapePanel["宽"] = 1;
-		folder.ShapePanel["厚"] = 0.2;
-		folder.ShapePanel.add(folder.ShapePanel,"长",0,10).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"宽",0,10).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"厚",0,5).onChange(onchange);
+		folder.ShapePanel[tr("长")] = 1.5;
+		folder.ShapePanel[tr("宽")] = 1;
+		folder.ShapePanel[tr("厚")] = 0.2;
+		folder.ShapePanel.add(folder.ShapePanel,tr("长"),0,10).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("宽"),0,10).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("厚"),0,5).onChange(onchange);
 		onchange();
 		function onchange(){
-			var w = folder.ShapePanel["长"];
-			var h = folder.ShapePanel["宽"];
-			var l = folder.ShapePanel["厚"];
+			var w = folder.ShapePanel[tr("长")];
+			var h = folder.ShapePanel[tr("宽")];
+			var l = folder.ShapePanel[tr("厚")];
 			folder.facedMesh2 = new Mesh2({
 				V:[
 					new Vec2(-l,l),
@@ -454,19 +506,19 @@ function start(){
 		}
 	}
 	function add2D_Cross(folder,cb){
-		folder.ShapePanel = folder.addFolder("十字 Cross");
+		folder.ShapePanel = folder.addFolder(tr("十字 Cross"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["长"] = 1.5;
-		folder.ShapePanel["宽"] = 1;
-		folder.ShapePanel["厚"] = 0.2;
-		folder.ShapePanel.add(folder.ShapePanel,"长",0,10).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"宽",0,10).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"厚",0,5).onChange(onchange);
+		folder.ShapePanel[tr("长")] = 1.5;
+		folder.ShapePanel[tr("宽")] = 1;
+		folder.ShapePanel[tr("厚")] = 0.2;
+		folder.ShapePanel.add(folder.ShapePanel,tr("长"),0,10).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("宽"),0,10).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("厚"),0,5).onChange(onchange);
 		onchange();
 		function onchange(){
-			var w = folder.ShapePanel["长"];
-			var h = folder.ShapePanel["宽"];
-			var l = folder.ShapePanel["厚"];
+			var w = folder.ShapePanel[tr("长")];
+			var h = folder.ShapePanel[tr("宽")];
+			var l = folder.ShapePanel[tr("厚")];
 			folder.facedMesh2 = new Mesh2({
 				V:[
 					new Vec2(-l-w/2,l),
@@ -497,19 +549,19 @@ function start(){
 		}
 	}
 	function add2D_I(folder,cb){
-		folder.ShapePanel = folder.addFolder("工形");
+		folder.ShapePanel = folder.addFolder(tr("工形"));
 		folder.ShapePanel.open();
-		folder.ShapePanel["长"] = 1.5;
-		folder.ShapePanel["宽"] = 1;
-		folder.ShapePanel["厚"] = 0.2;
-		folder.ShapePanel.add(folder.ShapePanel,"长",0,10).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"宽",0,10).onChange(onchange);
-		folder.ShapePanel.add(folder.ShapePanel,"厚",0,5).onChange(onchange);
+		folder.ShapePanel[tr("长")] = 1.5;
+		folder.ShapePanel[tr("宽")] = 1;
+		folder.ShapePanel[tr("厚")] = 0.2;
+		folder.ShapePanel.add(folder.ShapePanel,tr("长"),0,10).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("宽"),0,10).onChange(onchange);
+		folder.ShapePanel.add(folder.ShapePanel,tr("厚"),0,5).onChange(onchange);
 		onchange();
 		function onchange(){
-			var w = folder.ShapePanel["长"];
-			var h = folder.ShapePanel["宽"];
-			var l = folder.ShapePanel["厚"];
+			var w = folder.ShapePanel[tr("长")];
+			var h = folder.ShapePanel[tr("宽")];
+			var l = folder.ShapePanel[tr("厚")];
 			//folder.facedMesh2 = new Mesh3({V:[new Vec3(0,0),new Vec3(0,1),new Vec3(0.8,0.8),new Vec3(1,0)],E:[[0,1],[1,2],[2,3],[3,0],[1,3]],F:[[1,2,4],[0,3,4]]})
 			folder.facedMesh2 = Mesh2.rectangle(w,l).move(new Vec2(0,h/2+l/2)).embed(3,true);
 			folder.facedMesh2.join(Mesh2.rectangle(w,l).move(new Vec2(0,-h/2-l/2)).embed(3,true));
@@ -523,7 +575,7 @@ function start(){
 	
 	function setPolytope(mesh4){
 		polytope["mesh"] = mesh4;
-		if(gui["对偶 Dual"])
+		if(gui[tr("对偶")])
 			polytope["obj"].mesh = polytope["mesh"].dual().update();
 		else
 			polytope["obj"].mesh = polytope["mesh"].update();

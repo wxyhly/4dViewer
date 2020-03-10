@@ -102,15 +102,25 @@ function start(){
 	
 }
 function addSceneGUI(gui){
-	var gle=gui.addFolder("滚动场景");
+	var gle=gui.addFolder(window.location.search.indexOf("?en")!=-1?"Rollings":"滚动场景");
 	gle.open();
-	for(var i in sceneGleToggle){
-		gle.add(sceneGleToggle,i);
+	var trans_en = {
+		"球柱":"Spherinder",
+		"圆柱柱":"Cubinder",
+		"双圆柱":"Duocylinder",
+		"圆锥锥":"Dicone",
+		"圆锥柱":"Coninder",
+		"球锥":"Sphone",
+		"双圆锥":"Duocone",
+		"圆柱锥":"Cylindrone"
 	}
-	var gyro=gui.addFolder("陀螺场景");
+	for(var i in sceneGleToggle){
+		gle.add(sceneGleToggle,i).name(window.location.search.indexOf("?en")!=-1?trans_en[i]:i);
+	}
+	var gyro=gui.addFolder(window.location.search.indexOf("?en")!=-1?"Gyros":"陀螺场景");
 	gyro.open();
 	for(var i in sceneGyroToggle){
-		gyro.add(sceneGyroToggle,i);
+		gyro.add(sceneGyroToggle,i).name(window.location.search.indexOf("?en")!=-1?trans_en[i]:i);
 	}
 }
 var sceneGleToggle = {

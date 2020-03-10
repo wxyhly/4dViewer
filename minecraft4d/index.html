@@ -38,7 +38,7 @@ var $ = function (obj){
 }
 function start(){
 	HUD.drawLoadingInfo("Loading..");
-	var search = window.location.search.length?window.location.search.substr(1):"";
+	var search = window.location.search.length?window.location.search.replace(/\?en/g,"?").substr(1):"";
 	var terrainGen;
 	if(search=="flat"){
 		terrainGen = new TerrainFlat(Math.random()*1000000);
