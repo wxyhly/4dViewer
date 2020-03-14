@@ -1,7 +1,7 @@
-Imagine that you are a person live in 4D, your eyes can see 3D images instead of 2D because the additional 4th direction makes your retina 3 dimensional.
-The poor 3D creatures (we) only have 2D visions, 3D images can only be seen by making voxels transparent, and this is what 4DViewer does. But we face a problem: Too many overlapping colors could make all things very blur, like a fog cluster. In order to solve this, we can select some cross sections(eg. cross sections in the direction of x, y and z through retina's center) to cut the 3D retina, and show those cross sections separetly.
+Imagine that you are a person living in 4D, your eyes can see 3D images instead of 2D because the additional 4th direction makes your retina 3 dimensional.
+The poor 3D creatures (we) only have 2D visions, 3D images can only be seen by making voxels transparent, and this is what 4DViewer does. And we face another problem: Too many overlapping colors could make all things very blur, like a fog cluster. In order to solve this, we can select some cross sections(e.g. cross sections in the direction of x, y and z through retina's center) to cut the 3D retina, and show those cross sections separetly.
 
-## Guide：[Experience 4Der's visions and sence of direction (in Chinese)](https://wxyhly.github.io/archives/eye3d/)
+## Guide：[Tutorial of 4D Viewer](https://wxyhly.github.io/programs/4dviewertutorial_en.html)
 
 ## First meet
 
@@ -42,7 +42,7 @@ This is a simple scene with some slopes, a platform and a tunel.
 
 ### 4D version of Minecraft [minecraft4d/](https://wxyhly.github.io/4dViewer/minecraft4d/?en)
 
-### [Minecraft4D detail tutorial(in Chinese)](https://wxyhly.github.io/programs/mc4tutorial.html)
+### [Minecraft4D detailed tutorial](https://wxyhly.github.io/programs/mc4tutorial.html)
 
 infinity 4D Minecraft world based on random seeds, in which you can explore different biomes, build and destroy blocks.
 
@@ -51,13 +51,13 @@ infinity 4D Minecraft world based on random seeds, in which you can explore diff
 ### Some scenes
 
 - 4D car [physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html?en)
-- Dicone gyro[physique/gyro.html](https://wxyhly.github.io/4dViewer/physique/gyro.html?en)
+- Wheels and Gyros [physique/gyro.html](https://wxyhly.github.io/4dViewer/physique/gyro.html?en)
 - 4D chains
- + Spheritorus-Spheritorus link（Can be broken by moving easily）[physique/unlink.html](https://wxyhly.github.io/4dViewer/physique/unlink.html?en)
- + Spheritorus-Torisphere link[physique/st_ts_link.html](https://wxyhly.github.io/4dViewer/physique/st_ts_link.html?en)
- + Spheritorus-Tiger link[physique/st_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/st_tiger_link.html?en)
- + Torisphere-Tiger link[physique/tiger_ts_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_ts_link.html?en)
- + Tiger-Tiger link (one biger and one smaller)[physique/tiger_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_tiger_link.html?en)
+ + Spheritorus-Spheritorus link (Can be broken by moving easily) [physique/unlink.html](https://wxyhly.github.io/4dViewer/physique/unlink.html?en)
+ + Spheritorus-Torisphere link [physique/st_ts_link.html](https://wxyhly.github.io/4dViewer/physique/st_ts_link.html?en)
+ + Spheritorus-Tiger link [physique/st_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/st_tiger_link.html?en)
+ + Torisphere-Tiger link [physique/tiger_ts_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_ts_link.html?en)
+ + Tiger-Tiger link (one biger and one smaller) [physique/tiger_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_tiger_link.html?en)
 
 ## Parameters in control panel
 ### Camera settings
@@ -75,6 +75,30 @@ Note: In 4DViewer, the 3D retina is actually realised by layers of 2D cross sect
 - ***Transparency***  When the scene is complex, we hope that some part of the 3D image could be more transparent. Hold on `Alt+1`, `Alt+2`, `Alt+3` or `Alt+4`, and right click the color you want.(There aree 4 color slots to be transparent) Click anywhere while holding `Alt` will remove all the transparent colors.
 - if the FPS is too low, you can adjust the resolution by key`Ctrl+,` or `Alt+,` (decrease) and `Ctrl+.` or `Alt+.` (increase).
 
+Here's a summary of shortcuts of rendering settings:(`Alt` can be replaced by `Ctrl`)
+
+|Shortcut|Function|
+|-----|-----|
+|`=`   |Increase 2D cross section layers|
+|`-`   |Decrease 2D cross section layers|
+|`]`   |Increase opacity of voxels in 3D retina|
+|`[`   |Decrease opacity of voxels in 3D retina|
+|`;`   |Decrease the size of cross sections|
+|`'`   |Increase the size of cross sections|
+|`,`   |Make background darker|
+|`.`   |Make background brighter|
+|`9`   |Decrease camera FOV|
+|`0`   |Increase camera FOV|
+|`C`   |Wireframe mode|
+|`Alt+[`   |Decrease wireframe width (Wireframe mode)|
+|`Alt+]`   |Increase wireframe width (Wireframe mode)|
+|`Alt+,`   |Decrease resolution|
+|`Alt+.`   |Increase resolution|
+|`Alt+1`   |Use default rendering preset|
+|`Alt+2`   |Use preset for 3D retina (No cross sections, more layers and low resolution)|
+|`Alt+3`   |Use preset for cross sections (No 3D retina, big cross sections)|
+|Arrow keys   |Rotate the 3D retina slightly|
+
 ### Solar control
 
 - ***Latitude*** Set latitude value from 0 to 90 degree (in Hopf coordination)
@@ -82,9 +106,9 @@ Note: In 4DViewer, the 3D retina is actually realised by layers of 2D cross sect
 - ***Season*** The orbit phase angle of the planet；
 - ***SouthernTropic*** and ***NorthernTropic*** 
 the minimum and the maximum latitude value on which sunlight can cast perpendicularly. eg. two obliquities of the ecliptic.
-- ***M-G Periode***  and ***W-E Periode***  are hours for one rotation at south and north pole respectively.
+- ***M-G Periode***  and ***W-E Periode*** are hours for one rotation at south and north pole respectively.
 - ***SunAngle*** and ***SunLatitude*** are only readable.
-- ***TimeStep***  adjust the time passing speed.
+- ***TimeStep*** adjust the time passing speed.
 
 ## Inspiration (Thanks to)
 - [4DToys](http://4dtoys.com/)
