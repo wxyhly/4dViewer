@@ -3,14 +3,16 @@ reserved:
 	Vec2, Vec3, Vec4, Bivec, Mat2, Mat3, Mat4, PMat5
 	fft, ifft
 
-Matrix: Mat (Mat2||Mat3||Mat4)
+Matrix: Mat (Mat2||Mat3||Mat4||MatBivec||Mat46)
 
 	Construct Matrices:
 	
 		Mat2(a,b,c,d);
 		Mat3(a,b,c,d..i);
 		Mat4(a,b,c,d.....p);
-		
+		MatBivec(m[6][6]);
+		Mat46(m[4][6]);
+		Mat46(m[6][4]);
 	1-variable operations:
 	
 		Note: Set flag to false can avoid modification of source matrix, i.e. return a new matrix.
@@ -21,6 +23,10 @@ Matrix: Mat (Mat2||Mat3||Mat4)
 		Mat.mul(Vec v):Vec;
 		Mat.mul(Mat m):Mat; Attention no flag needed
 		Mat.div(Number n, bool flag):Mat;
+		MatBivec.mul(Bivec b):Bivec;
+		Mat46.mul(Bivec b):Vec4;
+		Mat46.mul(Vec4 b):Bivec;
+		MatBivec.invMul(Bivec b):Bivec; use LU decomposition instead of matrix inverse
 	
 	non-variable operations:
 	
@@ -565,6 +571,15 @@ var Mat4 = function(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p){
 }
 Mat4.prototype.d = 4;
 
+Bivec.prototype.set = function (bivec){
+	this.xy = bivec.xy;
+	this.xz = bivec.xz;
+	this.xt = bivec.xt;
+	this.yz = bivec.yz;
+	this.yt = bivec.yt;
+	this.zt = bivec.zt;
+}
+
 Bivec.prototype.add = function (bv,flag){
 	if(flag === false){
 		return new Bivec(
@@ -769,7 +784,7 @@ Bivec.prototype.getAngle = function (W,flag) {
 		return [(cpp+cmm)*90/Math.PI,(cpp-cmm)*90/Math.PI];
 	}else if (W instanceof Vec4){
 		var P = 1 / (this.len() * W.len());
-		return Math.asin(this.cross(W).length() * P)*180/Math.PI;
+		return Math.asin(this.cross(W).len() * P)*180/Math.PI;
 	}
 }
 
@@ -1269,6 +1284,23 @@ var MatBivec = function(m){
 	];
 	this._LUDecomp = null;
 }
+var Mat46 = function(m){
+	if(m && m.length == 6 && m[0].length == 4){
+		this.array = [
+			[m[0][0],m[1][0],m[2][0],m[3][0],m[4][0],m[5][0]],
+			[m[0][1],m[1][1],m[2][1],m[3][1],m[4][1],m[5][1]],
+			[m[0][2],m[1][2],m[2][2],m[3][2],m[4][2],m[5][2]],
+			[m[0][3],m[1][3],m[2][3],m[3][3],m[4][3],m[5][3]]
+		];
+	}else{
+		this.array = m || [
+			[0,0,0,0,0,0],
+			[0,0,0,0,0,0],
+			[0,0,0,0,0,0],
+			[0,0,0,0,0,0]
+		];
+	}
+}
 
 Mat4.prototype.toMatBivec = function(){
 	var a = this.array;
@@ -1308,9 +1340,9 @@ MatBivec.prototype.t = function(flag){
 	this._LUDecomp = null;
 	return this;
 }
-MatBivec.prototype.clone = function(){
+MatBivec.prototype.clone = Mat46.prototype.clone = function(){
 	var a = this.array;
-	var mb = new MatBivec();
+	var mb = new this.constructor();
 	var c = mb.array;
 	for(var i in c){
 		for(var j in c[i]){
@@ -1319,11 +1351,11 @@ MatBivec.prototype.clone = function(){
 	}
 	return mb;
 }
-MatBivec.prototype.add = function(M,flag){
+MatBivec.prototype.add = Mat46.prototype.add = function(M,flag){
 	var a = this.array;
 	var b = M.array;
 	if(flag === false){
-		var mb = new MatBivec();
+		var mb = new this.constructor();
 		var c = mb.array;
 		for(var i in c){
 			for(var j in c[i]){
@@ -1339,7 +1371,7 @@ MatBivec.prototype.add = function(M,flag){
 	}
 	return this;
 }
-MatBivec.prototype.sub = function(M,flag){
+MatBivec.prototype.sub = Mat46.prototype.sub = function(M,flag){
 	var a = this.array;
 	if(!M){
 		for(var i in a){
@@ -1351,7 +1383,7 @@ MatBivec.prototype.sub = function(M,flag){
 	}
 	var b = M.array;
 	if(flag === false){
-		var mb = new MatBivec();
+		var mb = new this.constructor();
 		var c = mb.array;
 		for(var i in c){
 			for(var j in c[i]){
@@ -1474,4 +1506,44 @@ MatBivec.prototype.invMul = function(b) {
         }
     }
     return new Bivec(x[0],x[1],x[2],x[3],x[4],x[5]);
+}
+
+
+Mat46.prototype.mul = function(b,flag){
+	var a = this.array;
+	if(typeof b == "number"){
+		if(flag === false){
+			var mb = new Mat46();
+			var c = mb.array;
+			for(var i in c){
+				for(var j in c[i]){
+					c[i][j] = a[i][j]*b;
+				}
+			}
+			return mb;
+		}
+		for(var i in a){
+			for(var j in a[i]){
+				a[i][j] *= b;
+			}
+		}
+	}
+	if(b instanceof Bivec){
+		return new Vec4(
+			a[0][0]*b.xy + a[0][1]*b.xz + a[0][2]*b.xt + a[0][3]*b.yz + a[0][4]*b.yt + a[0][5]*b.zt,
+			a[1][0]*b.xy + a[1][1]*b.xz + a[1][2]*b.xt + a[1][3]*b.yz + a[1][4]*b.yt + a[1][5]*b.zt,
+			a[2][0]*b.xy + a[2][1]*b.xz + a[2][2]*b.xt + a[2][3]*b.yz + a[2][4]*b.yt + a[2][5]*b.zt,
+			a[3][0]*b.xy + a[3][1]*b.xz + a[3][2]*b.xt + a[3][3]*b.yz + a[3][4]*b.yt + a[3][5]*b.zt,
+		);
+	}
+	if(b instanceof Vec4){
+		return new Bivec(
+			a[0][0]*b.x + a[1][0]*b.y + a[2][0]*b.z + a[3][0]*b.t,
+			a[0][1]*b.x + a[1][1]*b.y + a[2][1]*b.z + a[3][1]*b.t,
+			a[0][2]*b.x + a[1][2]*b.y + a[2][2]*b.z + a[3][2]*b.t,
+			a[0][3]*b.x + a[1][3]*b.y + a[2][3]*b.z + a[3][3]*b.t,
+			a[0][4]*b.x + a[1][4]*b.y + a[2][4]*b.z + a[3][4]*b.t,
+			a[0][5]*b.x + a[1][5]*b.y + a[2][5]*b.z + a[3][5]*b.t	
+		);
+	}
 }

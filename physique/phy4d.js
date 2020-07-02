@@ -288,6 +288,10 @@ Phy4d.Obj.prototype.generateGeom = function(data){
 	if(data && data.glow) g.glow = data.glow;
 	return g;
 }
+Phy4d.Obj.prototype.bindGeom = function(g){
+	g.position = this.getPosition();
+	g.rotation = this.getRotation();
+}
 Phy4d.Obj.prototype.getlinearVelocity = function(worldP){
 	var localP = worldP.sub(this.getPosition(true),false);
 	return this.w.dual(false).cross(localP).sub().add(this.v);
@@ -397,7 +401,12 @@ Phy4d.Obj.prototype.wake = function(){
 	this.sleep = false;
 	this.energy = this.sleepEpsilon*2;
 }
-
+Phy4d.Obj.prototype.applyForce = function(F,p,t){
+	this.a.add(F.mul(this.invMass,false));
+	var torque = (p)?F.cross(p.sub(this.getPosition(true),false)):new Bivec();
+	if(t) torque.add(t);
+	this.b.add(this.inertie.invMul(torque));
+}
 Phy4d.AABB = function(min,max,obj){
 	this.min = min;
 	this.max = max;
@@ -867,45 +876,193 @@ Phy4d.prototype.clearState = function (){
 		o.b = new Bivec();
 	}
 }
+Phy4d.prototype._forceIterer = function (){
+	
+}
 Phy4d.prototype.next = function (){
 	this.clearState();
 	
 	//force accumulator:
-	
-	for(var f of this.force){
-		if(f.enable) f._apply();
-	}
-	
-	var dt2 = this.dt*this.dt/2;
-	//this.sleepList = [];
-	//this.awakeList = [];
-	for(var obj of this.obj){
-		obj.changed = true;
-		/*if(obj.sleep){ 
-			this.sleepList.push(obj);
-			continue;
+	if(!this.forceAccumulaterMethod){
+		for(var f of this.force){
+			if(f.enable) f._apply();
 		}
-		//this.awakeList.push(obj);
-		obj.energy = Math.min(obj.sleepEpsilon*10,(obj.energy + obj.w.len(false)+obj.v.len(false))/2);
-		
-		if(obj.energy<obj.sleepEpsilon){
-			obj.sleep = true;
-			obj.w = new Bivec();
+		var dt2 = this.dt*this.dt/2;
+		for(var obj of this.obj){
+			obj.changed = true;
+			//linaire:
+			var p = obj.getPosition();
+			obj.v.add(obj.a.mul(this.dt,false));
+			if(p) p.add(obj.v.mul(this.dt,false).add(obj.a.mul(dt2,false)));
+			if(obj.v.len(1)==0 && obj.w.len(1)==0)obj.changed = false;
+			//angulaire:
+			var r = obj.getRotation();
+			if(r){
+				obj.w.add(obj.b.mul(this.dt,false));
+				var dr = obj.w.mul(this.dt,false).add(obj.b.mul(dt2,false));
+				dr = dr.expQ();
+				r[0].set(dr[0].mul(r[0],false).norm());
+				r[1].set(r[1].mul(dr[1]).norm());
+			}
+		}
+	}else if(this.forceAccumulaterMethod == "RK2"){
+		for(var f of this.force){
+			if(f.enable) f._apply();
+		}
+		var dtd2 = this.dt/2;
+		var dt2 = this.dt*dtd2;
+		var dt2d4 = this.dt*this.dt/8;
+		for(var obj of this.obj){
+			obj.changed = true;
+			obj._v0 = obj.v.clone();
+			obj._w0 = obj.w.clone();
+			var p = obj.getPosition();
+			var r = obj.getRotation();
+			if(p) {
+				obj._p0 = p.clone();
+				p.add(obj.v.mul(this.dtd2,false).add(obj.a.mul(dt2d4,false)));
+			}
+			obj.v.add(obj.a.mul(this.dtd2,false));
+			if(r){
+				obj._r0 = [r[0].clone(),r[1].clone()];
+				var dr = obj.w.mul(this.dtd2,false).add(obj.b.mul(dt2d4,false));
+				dr = dr.expQ();
+				r[0].set(dr[0].mul(r[0],false).norm());
+				r[1].set(r[1].mul(dr[1]).norm());
+				obj.w.add(obj.b.mul(this.dtd2,false));
+			}
+			obj.a = new Vec4();
+			obj.b = new Bivec();
+		}
+		for(var f of this.force){
+			if(f.enable) f._apply();
+		}
+		for(var obj of this.obj){
+			var p = obj.getPosition();
+			if(p) {
+				p.set(obj._p0.add(obj.v.mul(this.dt,false)));
+			}
+			obj.v.set(obj._v0.add(obj.a.mul(this.dt,false)));
+			var r = obj.getRotation();
+			if(r){
+				var dr = obj._w0.mul(this.dt,false);
+				dr = dr.expQ();
+				r[0].set(dr[0].mul(obj._r0[0],false).norm());
+				r[1].set(obj._r0[1].mul(dr[1]).norm());
+				obj.w.set(obj._w0.add(obj.b.mul(this.dt,false)));
+			}
+			if(obj.v.len(1)==0 && obj.w.len(1)==0)obj.changed = false;
+		}
+	}else if(this.forceAccumulaterMethod == "RK4"){
+		for(var f of this.force){
+			//sre K1:
+			if(f.enable) f._apply();
+		}
+		var dt = this.dt;
+		var dtd2 = dt/2;
+		for(var obj of this.obj){
+			obj.changed = true;
+			var p = obj.getPosition();
+			var r = obj.getRotation();
+			if(p){
+				obj._p1 = p.clone();
+				obj._v1 = obj.v.clone();
+				obj._a1 = obj.a.clone();
+			}
+			if(r){
+				obj._r1 = [r[0].clone(),r[1].clone()];
+				obj._w1 = obj.w.clone();
+				obj._b1 = obj.b.clone();
+			}
+			//sre K2:
+			if(p) p.add(obj._v1.mul(dtd2,false));
+			if(r) {
+				var dr = obj._w1.mul(dtd2,false).expQ();
+				r[0].set(dr[0].mul(r[0],false).norm());
+				r[1].set(r[1].mul(dr[1]).norm());
+			}
+			obj.a = new Vec4();
+			obj.b = new Bivec();
+		}
+		for(var f of this.force){
+			if(f.enable) f._apply();
+		}
+		for(var obj of this.obj){
+			var p = obj.getPosition();
+			var r = obj.getRotation();
+			if(p){
+				obj._v2 = obj._a1.mul(dtd2,false).add(obj._v1);
+				obj._a2 = obj.a.clone();
+				obj.v.set(obj._v2);
+			}
+			if(r){
+				obj._w2 = obj._b1.mul(dtd2,false).add(obj._w1);
+				obj._b2 = obj.b.clone();
+				obj.w.set(obj._w2);
+			}
+			//sre K3:
+			if(p) p.set(obj._p1.add(obj._v2.mul(dtd2,false),false));
+			if(r){
+				var dr = obj._w2.mul(dtd2,false).expQ();
+				r[0].set(dr[0].mul(obj._r1[0],false).norm());
+				r[1].set(obj._r1[1].mul(dr[1]).norm());
+			}
+			obj.a = new Vec4();
+			obj.b = new Bivec();
+		}
+		for(var f of this.force){
+			if(f.enable) f._apply();
+		}
+		for(var obj of this.obj){
+			var p = obj.getPosition();
+			var r = obj.getRotation();
+			if(p){
+				obj._v3 = obj._a2.mul(dtd2,false).add(obj._v1);
+				obj._a3 = obj.a.clone();
+				obj.v.set(obj._v3);
+			}
+			if(r){
+				obj._w3 = obj._b2.mul(dtd2,false).add(obj._w1);
+				obj._b3 = obj.b.clone();
+				obj.w.set(obj._w3);
+			}
+			//sre K4:
+			if(p) p.set(obj._p1.add(obj._v3.mul(dt,false),false));
+			if(r){
+				var dr = obj._w3.mul(dt,false).expQ();
+				r[0].set(dr[0].mul(obj._r1[0],false).norm());
+				r[1].set(obj._r1[1].mul(dr[1]).norm());
+			}
+			obj.a = new Vec4();
+			obj.b = new Bivec();
+		}
+		for(var f of this.force){
+			if(f.enable) f._apply();
+		}
+		for(var obj of this.obj){
+			var p = obj.getPosition();
+			var r = obj.getRotation();
+			if(p){
+				obj._v4 = obj._a3.mul(dt,false).add(obj._v1);
+				obj._a4 = obj.a.clone();
+			}
+			if(r){
+				obj._w4 = obj._b3.mul(dt,false).add(obj._w1);
+				obj._b4 = obj.b.clone();
+			}
+			//sre Total:
+			if(p){
+				p.set(obj._p1.add(obj._v4.add(obj._v1).add(obj._v2.add(obj._v3).mul(2)).mul(dt/6)));
+				obj.v.set(obj._v1.add(obj._a4.add(obj._a1).add(obj._a2.add(obj._a3).mul(2)).mul(dt/6)));
+			}
+			if(r){
+				var dr = obj._w4.add(obj._w1).add(obj._w2.add(obj._w3).mul(2)).mul(dt/6).expQ();
+				r[0].set(dr[0].mul(obj._r1[0]).norm());
+				r[1].set(obj._r1[1].mul(dr[1]).norm());
+				obj.w.set(obj._w1.add(obj._b4.add(obj._b1).add(obj._b2.add(obj._b3).mul(2)).mul(dt/6)));
+			}
 			obj.v = new Vec4();
-		}*/
-		//linaire:
-		obj.v.add(obj.a.mul(this.dt,false));
-		var p = obj.getPosition();
-		if(p) p.add(obj.v.mul(this.dt,false).add(obj.a.mul(dt2,false)));
-		if(obj.v.len(1)==0 && obj.w.len(1)==0)obj.changed = false;
-		//angulaire:
-		var r = obj.getRotation();
-		obj.w.add(obj.b.mul(this.dt,false));
-		if(r){
-			var dr = obj.w.mul(this.dt,false).add(obj.b.mul(dt2,false));
-			dr = dr.expQ();
-			r[0].set(dr[0].mul(r[0],false).norm());
-			r[1].set(r[1].mul(dr[1]).norm());
+			if(obj.v.len(1)==0 && obj.w.len(1)==0) obj.changed = false;
 		}
 	}
 	
@@ -2391,5 +2548,250 @@ Phy4d.Spring.prototype._apply = function(){
 		var torque2 = F.cross(worldP2.sub(p2,false));
 		obj2.wake();
 		obj2.b.sub(obj2.inertie.invMul(torque2));
+	}
+}
+Phy4d.Damp = function(obj, linear, angular){
+	this.obj = obj;
+	this.linear = linear;
+	this.angular = angular;
+	this.enable = true;
+}
+Phy4d.Damp.prototype._apply = function(){
+	var force = this.obj.v.mul(-this.linear,false);
+	var torque = this.obj.w.mul(-this.angular,false);
+	this.obj.applyForce(force,null,torque);
+}
+
+Phy4d.ElectricCharge = function(obj, point, q){//q:Number
+	this.obj = obj;
+	this.point = point;//rel to obj if obj is not null
+	this.q = q;
+	this.updateWorldCoord();//needless
+}
+Phy4d.ElectricCharge.prototype.updateWorldCoord = function(){//p in world coord
+	var obj = this.obj;
+	if(!obj){
+		this.p0 = this.point;
+	}else{
+		var r = obj.getRotation(true);
+		var x = obj.getPosition(true);
+		this.p0 = r[0].mul(this.point,false).mul(r[1]).add(x);
+	}
+}
+
+Phy4d.ElectricCharge.prototype._Field = function(p){//p in world coord
+	var obj = this.obj;
+	var k = p.sub(this.p0,false);
+	var rr = 1/k.len(false);
+	if(rr>1e20) return [0,0];
+	var rr2 = rr*rr;
+	var qr2 = this.q*rr2;
+	var qr34 = -4*qr2*rr;
+	var qrk = k.mul(qr34,false);
+	var xy = qrk.x*k.y, xz = qrk.x*k.z, xt = qrk.x*k.t, yz = qrk.y*k.z, yt = qrk.y*k.t, zt = qrk.z*k.t;
+	return [
+		k.mul(qr2,false),//E
+		new Mat4(
+			qr2+qrk.x*k.x, xy, xz, xt,
+			xy, qr2+qrk.y*k.y, yz, yt,
+			xz, yz, qr2+qrk.z*k.z, zt,
+			xt, yt, zt, qr2+qrk.t*k.t
+		)//dE
+	];
+}
+Phy4d.ElectricCharge.prototype._apply = function(E,B){
+	var obj = this.obj;
+	var force = E.mul(this.q,false);
+	obj.applyForce(force,this.p0);
+}
+
+Phy4d.ElectricDipole = function(obj, point, q){//q:Vec4
+	this.obj = obj;
+	this.point = point;//rel to obj if obj is not null
+	this.q = q;
+}
+Phy4d.ElectricDipole.prototype.updateWorldCoord = function(){//p in world coord
+	var obj = this.obj;
+	if(!obj){
+		this.p0 = this.point;
+		this.q0 = this.q;
+	}else{
+		var r = obj.getRotation(true);
+		var x = obj.getPosition(true);
+		this.p0 = r[0].mul(this.point,false).mul(r[1]).add(x);
+		this.q0 = r[0].mul(this.q,false).mul(r[1]);
+	}
+}
+Phy4d.ElectricDipole.prototype._Field = function(p){//p in world coord
+	var obj = this.obj;
+	var p0 = this.p0;
+	var q = this.q0;
+	var k = p.sub(p0,false);
+	var xx = k.x*k.x, yy = k.y*k.y, zz = k.z*k.z, tt = k.t*k.t;
+	var r2 = xx+yy+zz+tt;
+	if(r2<1e-20) return [0,0];
+	var rr = 1/r2;
+	var rr2 = rr*rr;
+	var pxx = q.x*k.x, pyy = q.y*k.y, pzz = q.z*k.z, ptt = q.t*k.t;
+	var pk = pxx+pyy+pzz+ptt;
+	var pr4rr = 4*pk*rr;
+	var rr4m4 = -4*rr2*rr2;
+	var pk6 = pk*6;
+
+	var xy = rr4m4*((q.x*k.y+q.y*k.x)*r2-pk6*k.x*k.y),
+		xz = rr4m4*((q.x*k.z+q.z*k.x)*r2-pk6*k.x*k.z),
+		xt = rr4m4*((q.x*k.t+q.t*k.x)*r2-pk6*k.x*k.t),
+		yz = rr4m4*((q.y*k.z+q.z*k.y)*r2-pk6*k.y*k.z),
+		yt = rr4m4*((q.y*k.t+q.t*k.y)*r2-pk6*k.y*k.t),
+		zt = rr4m4*((q.z*k.t+q.t*k.z)*r2-pk6*k.z*k.t);
+	return [
+		new Vec4(
+			rr2*(q.x - pr4rr*k.x),
+			rr2*(q.y - pr4rr*k.y),
+			rr2*(q.z - pr4rr*k.z),
+			rr2*(q.t - pr4rr*k.t)
+		),
+		new Mat4(
+			(pk*(r2-6*xx)+2*pxx*r2)*rr4m4, xy, xz, xt,
+			xy, (pk*(r2-6*yy)+2*pyy*r2)*rr4m4, yz, yt,
+			xz, yz, (pk*(r2-6*zz)+2*pzz*r2)*rr4m4, zt,
+			xt, yt, zt, (pk*(r2-6*tt)+2*ptt*r2)*rr4m4
+		)
+	];
+}
+Phy4d.ElectricDipole.prototype._apply = function(E,B,dE){
+	var obj = this.obj;
+	var force = dE.mul(this.q0,false);
+	obj.applyForce(force.sub(),this.p0,this.q0.cross(E));
+}
+
+Phy4d.MagneticDipole = function(obj, point, q){//q:Bivec
+	this.obj = obj;
+	this.point = point;//rel to obj if obj is not null
+	this.q = q;
+}
+Phy4d.MagneticDipole.prototype.updateWorldCoord = function(){//p in world coord
+	var obj = this.obj;
+	if(!obj){
+		this.p0 = this.point;
+		this.q0 = this.q;
+	}else{
+		var r = obj.getRotation(true);
+		var x = obj.getPosition(true);
+		this.p0 = r[0].mul(this.point,false).mul(r[1]).add(x);
+		var M1 = r[0].toMatL().mul(r[1].toMatR());
+		var MW1 = M1.toMatBivec();
+		this.q0 = MW1.mul(this.q);
+	}
+}
+Phy4d.MagneticDipole.prototype._Field = function(p){//p in world coord
+	var obj = this.obj;
+	var p0 = this.p0;
+	var q = this.q0;
+	var k = p.sub(p0,false);
+	var x = k.x, y = k.y, z = k.z, t = k.t;
+	var xx = x*x, yy = y*y, zz = z*z, tt = t*t;
+	var kxy = q.xy, kxz = q.xz, kxt = q.xt, kyz = q.yz, kyt = q.yt, kzt = q.zt;
+	var kyx =-q.xy, kzx =-q.xz, ktx =-q.xt, kzy =-q.yz, kty =-q.yt, ktz =-q.zt;
+	var r2 = xx+yy+zz+tt;
+	var kxy2 = kzt*(-xx-yy+zz+tt);
+	var kxz2 = kyt*(-xx+yy-zz+tt);
+	var kxt2 = kyz*(-xx+yy+zz-tt);
+	var kyz2 = kxt*( xx-yy-zz+tt);
+	var kyt2 = kxz*( xx-yy+zz-tt);
+	var kzt2 = kxy*( xx+yy-zz-tt);
+
+	var rr = 1/r2;
+	var rr2 = rr*rr;
+	var rr34 = 4*rr2*rr;
+	var rr4 = rr34*rr;
+	var xy = x*y,
+		xz = x*z,
+		xt = x*t,
+		yz = y*z,
+		yt = y*t,
+		zt = z*t;
+	
+	return [
+		new Bivec(
+			rr34*((-kxz*xt-kyz*yt+kxt*xz+kyt*yz)+0.5*kxy2),
+			-rr34*((-kxy*xt-kzy*zt+kxt*xy+kzt*yz)+0.5*kxz2),
+			-rr34*((-kxz*xy-ktz*yt+kxy*xz+kty*zt)-0.5*kxt2),
+			rr34*((kxy*yt-kzx*zt+kyt*xy+kzt*xz)+0.5*kyz2),
+			-rr34*((kxy*yz-ktx*zt+kyz*xy-kzt*xt)+0.5*kyt2),
+			rr34*((kxz*yz-ktx*yt-kyz*xz-kyt*xt)+0.5*kzt2)
+		),
+		new Mat46([
+			[rr4*(6*xy*(kyz*t-kyt*z)+2*kzt*x*(xx+yy-2*(zz+tt))+(kxt*z-kxz*t)*(r2-6*xx)),
+			rr4*(6*xy*(kxz*t-kxt*z)+2*kzt*y*(xx+yy-2*(zz+tt))+(kyt*z-kyz*t)*(r2-6*yy)),
+			rr4*(6*zt*(kxz*x+kyz*y)-2*kzt*z*(zz+tt-2*(xx+yy))+(kxt*x+kyt*y)*(r2-6*zz)),
+			-rr4*(6*zt*(kxt*x+kyt*y)+2*kzt*t*(zz+tt-2*(xx+yy))+(kxz*x+kyz*y)*(r2-6*tt))],
+
+			[-rr4*(6*xz*(-kyz*t-kzt*y)+2*kyt*x*(xx+zz-2*(yy+tt))+(kxt*y-kxy*t)*(r2-6*xx)),
+			-rr4*(6*yt*(kxy*x+kzy*z)-2*kyt*y*(yy+tt-2*(xx+zz))+(kxt*x+kzt*z)*(r2-6*yy)),
+			-rr4*(6*xz*(kxy*t-kxt*y)+2*kyt*z*(xx+zz-2*(yy+tt))+(kzt*y-kzy*t)*(r2-6*zz)),
+			rr4*(6*yt*(kxt*x+kzt*z)+2*kyt*t*(yy+tt-2*(xx+zz))+(kxy*x+kzy*z)*(r2-6*tt))],
+
+			[-rr4*(6*xt*(ktz*y-kty*z)+2*kzy*x*(xx+tt-2*(zz+yy))+(kxy*z-kxz*y)*(r2-6*xx)),
+			rr4*(6*yz*(kxy*x+kty*t)+2*kzy*y*(zz+yy-2*(xx+tt))+(kxz*x+ktz*t)*(r2-6*yy)),
+			-rr4*(6*yz*(kxz*x+ktz*t)-2*kzy*z*(zz+yy-2*(xx+tt))+(kxy*x+kty*t)*(r2-6*zz)),
+			-rr4*(6*xt*(kxz*y-kxy*z)+2*kzy*t*(xx+tt-2*(zz+yy))+(kty*z-ktz*y)*(r2-6*tt))],
+
+			[rr4*(6*xt*(kyx*y+kzx*z)-2*kxt*x*(xx+tt-2*(yy+zz))+(kyt*y+kzt*z)*(r2-6*xx)),
+			rr4*(6*yz*(-kxz*t-kzt*x)+2*kxt*y*(yy+zz-2*(xx+tt))+(kyt*x-kyx*t)*(r2-6*yy)),
+			rr4*(6*yz*(kyx*t-kyt*x)+2*kxt*z*(yy+zz-2*(xx+tt))+(kzt*x-kzx*t)*(r2-6*zz)),
+			-rr4*(6*xt*(kyt*y+kzt*z)+2*kxt*t*(xx+tt-2*(yy+zz))+(kyx*y+kzx*z)*(r2-6*tt))],
+			
+			[-rr4*(6*xz*(kyx*y+ktx*t)-2*kxz*x*(xx+zz-2*(yy+tt))+(kyz*y+ktz*t)*(r2-6*xx)),
+			-rr4*(6*yt*(-kxt*z-ktz*x)+2*kxz*y*(yy+tt-2*(xx+zz))+(kyz*x-kyx*z)*(r2-6*yy)),
+			rr4*(6*xz*(kyz*y+ktz*t)+2*kxz*z*(xx+zz-2*(yy+tt))+(kyx*y+ktx*t)*(r2-6*zz)),
+			-rr4*(6*yt*(kyx*z-kyz*x)+2*kxz*t*(yy+tt-2*(xx+zz))+(ktz*x-ktx*z)*(r2-6*tt))],
+
+			[rr4*(6*xy*(kzx*z+ktx*t)-2*kxy*x*(xx+yy-2*(zz+tt))+(kzy*z+kty*t)*(r2-6*xx)),
+			-rr4*(6*xy*(kzy*z+kty*t)+2*kxy*y*(xx+yy-2*(zz+tt))+(kzx*z+ktx*t)*(r2-6*yy)),
+			rr4*(6*zt*(-kxt*y-kty*x)+2*kxy*z*(zz+tt-2*(xx+yy))+(kzy*x-kzx*y)*(r2-6*zz)),
+			rr4*(6*zt*(kzx*y-kzy*x)+2*kxy*t*(zz+tt-2*(xx+yy))+(kty*x-ktx*y)*(r2-6*tt))]
+		])
+	];
+}
+Phy4d.MagneticDipole.prototype._apply = function(E,B,dE,dB){
+	var obj = this.obj;
+	var force = dB.mul(this.q0.dual(false));
+	obj.applyForce(force.sub(),this.p0,this.q0.commutate(B).dual());
+}
+
+Phy4d.LorentzForce = function(source){
+	this.enable = true;
+	this.sources = source || [];
+}
+Phy4d.LorentzForce.prototype.addSource = function(s){
+	if(s instanceof Phy4d.ElectricCharge || s instanceof Phy4d.ElectricDipole || s instanceof Phy4d.MagneticDipole){
+		this.sources.push(s);
+	}else{
+		console.error("unsupported lorentz force source type");
+	}
+}
+Phy4d.LorentzForce.prototype._apply = function(){
+	for(var obj of this.sources){
+		obj.updateWorldCoord();
+	}
+	for(var obj of this.sources){
+		if(!obj.obj) continue;
+		var E = new Vec4(0);
+		var dE = new Mat4(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+		var B = new Bivec();
+		var dB = new Mat46();
+		var r = obj.obj.getRotation();
+		var x = obj.obj.getPosition();
+		var p0 = r[0].mul(obj.point,false).mul(r[1]).add(x);
+		for(var source of this.sources){
+			if(obj == source) continue;
+			var F = source._Field(p0);
+			if(F[0] instanceof Vec4) E.add(F[0]);
+			if(F[0] instanceof Bivec) B.add(F[0]);
+			if(F[1] instanceof Mat4) dE.add(F[1]);
+			if(F[1] instanceof Mat46) dB.add(F[1]);
+		}
+		obj._apply(E,B,dE,dB);
 	}
 }

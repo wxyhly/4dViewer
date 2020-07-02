@@ -1,0 +1,147 @@
+<html><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../renderer.js"></script>
+<script src="../controler.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
+<script src="phy4d.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var diceP,dice2P,physicsEngine,addGlome;
+var scene, list;
+function start(){
+	scene = new Scene();
+	var glomes = [];
+	var planeWidth = 10;
+	var R0 = 1, R1 = 1, R2 = 2;
+	//ground
+	var groundM = Mesh3.cube(planeWidth).embed(true,new Vec4(1,0,0,0),new Vec4(0,0,1,0),new Vec4(0,0,0,1));
+	//wall
+	var wall = groundM.clone();
+	wall.C.pop();
+	wall = wall.extrude(new Vec4(0,planeWidth,0,0));
+	var wallG = new Geom4(wall,new Vec4(0,-2,0,0),null,0x999999);
+	scene.add(wallG);
+	wallG.flow = 0.2;
+	list = [];
+	
+	var camera = new Camera4(80,0.01,50);
+	camera.position = new Vec4(0,4,0,-5);
+	
+	var renderer = new MeshRenderer4(gl$("glCanvas"),scene,camera);
+	renderer.light4.t = 0.7;
+	var controler = new Controler4.KeepUp(renderer);
+	controler.moveStep = 0.1;
+	var gui = new dat.GUI();
+	controler.addGUI(gui);
+	
+	physicsEngine = new Phy4d();
+	physicsEngine.forceAccumulaterMethod = "RK4";
+	physicsEngine.gravity = new Vec4(0,0);
+	
+	var Mduocylinder = Mesh4.duocylinder(0.8,0.8,32,32,0x0000FF);
+	var gdp = new Geom4(Mduocylinder,null,null,0xFF0000);
+	gdp.flow = 5;
+	var gdp2 = new Geom4(Mduocylinder,null,null,0xFF0000);
+	gdp2.flow = 5;
+	scene.add(gdp);
+	scene.add(gdp2);
+
+	var groundP = new Phy4d.Obj(new Phy4d.Plane(new Vec4(0,1,0,0),0),Infinity);
+	//var diceP  = new Phy4d.Obj(new Phy4d.Glome(1),1,new Vec4(0,2,0.0,0.0));
+	//var dice2P = new Phy4d.Obj(new Phy4d.Glome(1),1,new Vec4(0,5,0.0,0.0));
+
+	diceP  = new Phy4d.Obj(new Phy4d.Glome(1),1,new Vec4(-1.5,3,0.0,0.0));
+	diceP.friction = 0;
+	dice2P = new Phy4d.Obj(new Phy4d.Glome(1),1,new Vec4(1.5,3,0.0,0.0));
+
+	var dice3P = new Phy4d.Obj(new Phy4d.Glome(1),1,new Vec4(0,3,0,0.0));
+
+	groundP.friction = 0.6;
+	physicsEngine.addObj(groundP);
+	scene.add(groundP.generateGeom({flow:0.2,color:0xAAAA66}));
+	physicsEngine.addObj(diceP);
+	diceP.bindGeom(gdp);
+	dice2P.bindGeom(gdp2);
+	scene.add(diceP.generateGeom({flow:5,color:0xFFFFFF}));
+	physicsEngine.addObj(dice2P);
+	scene.add(dice2P.generateGeom({flow:5,color:0xFFFFFF}));
+	//physicsEngine.addObj(dice3P);
+	//scene.add(dice3P.generateGeom({flow:5,color:0xFFFFFF}));
+	//wall
+	
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 1,0,0,0),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4(-1,0,0,0),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0, 1,0),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,-1,0),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0, 1),-planeWidth/2),Infinity));
+	physicsEngine.addObj(new Phy4d.Obj(new Phy4d.Plane(new Vec4( 0,0,0,-1),-planeWidth/2),Infinity));
+	var lorentzForce = new Phy4d.LorentzForce();
+	//lorentzForce.addSource(new Phy4d.ElectricCharge(diceP,new Vec4(),10));
+	//lorentzForce.addSource(new Phy4d.ElectricCharge(dice2P,new Vec4(),-10));
+
+	//lorentzForce.addSource(new Phy4d.ElectricDipole(diceP,new Vec4(),new Vec4(10,0,0,0)));
+	//lorentzForce.addSource(new Phy4d.ElectricDipole(dice2P,new Vec4(),new Vec4(-10,-0,0,-0)));
+
+	//lorentzForce.addSource(new Phy4d.MagneticDipole(diceP,new Vec4(),new Bivec(Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10)));
+	//lorentzForce.addSource(new Phy4d.MagneticDipole(dice2P,new Vec4(),new Bivec(Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10)));
+	
+	lorentzForce.addSource(new Phy4d.MagneticDipole(diceP,new Vec4(),new Vec4(Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10).cross(new Vec4(Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10))));
+	lorentzForce.addSource(new Phy4d.MagneticDipole(dice2P,new Vec4(),new Vec4(Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10).cross(new Vec4(Math.random()*20-10,Math.random()*20-10,Math.random()*20-10,Math.random()*20-10))));
+	
+	//lorentzForce.addSource(new Phy4d.MagneticDipole(diceP,new Vec4(),new Bivec(0,0,0,0,0,10)));
+	//lorentzForce.addSource(new Phy4d.MagneticDipole(dice2P,new Vec4(),new Bivec(0,0,0,0,0,10)));
+	physicsEngine.addForce(lorentzForce);
+	physicsEngine.addForce(new Phy4d.Damp(diceP,5,5));
+	physicsEngine.addForce(new Phy4d.Damp(dice2P,5,5));
+	addGlome = function (x,y,z,t,vx,vy,vz,vt){
+		var gP = new Phy4d.Obj(
+			new Phy4d.Glome(
+				0.6
+			),
+		7,new Vec4(x,y,z,t));
+		gP.v.x = vx||0;
+		gP.v.y = vy||0;
+		gP.v.z = vz||0;
+		gP.v.t = vt||0;
+		scene.add(gP.generateGeom({flow:5,color:0x3333FF}));
+		physicsEngine.addObj(gP);
+		physicsEngine.addForce(new Phy4d.Damp(gP,1,1));
+		return gP;
+	}
+	var t = 0,count = 5;
+	function loop(){
+		controler.update();
+		var step = 200;
+		physicsEngine.iterations = 20;
+		physicsEngine.dt = 0.05/step*0.1;
+		if(physicsEngine.pause!==true){
+			while(step--)
+				physicsEngine.next();
+		}
+		t++;
+		
+		renderer.render();
+		window.requestAnimationFrame(loop);
+	}
+	loop();
+	
+}
+
+/*
+[
+    physicsEngine.force[0].sources[0].q0.getAngle(diceP.getPosition().sub(dice2P.getPosition(),false)),
+    physicsEngine.force[0].sources[1].q0.getAngle(diceP.getPosition().sub(dice2P.getPosition(),false)),
+    physicsEngine.force[0].sources[0].q0.getAngle(physicsEngine.force[0].sources[1].q0,false)[0],
+    physicsEngine.force[0].sources[0].q0.getAngle(physicsEngine.force[0].sources[1].q0,false)[1]
+]
+*/
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>
