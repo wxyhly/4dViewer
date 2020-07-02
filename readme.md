@@ -1,4 +1,4 @@
-[English Version]()
+[English Version](https://github.com/wxyhly/4dViewer/blob/master/readme_en.md)
 
 设想你是一个四维人，你的眼睛看到的图像是三维的，因为除了上下左右前后，还多出了两个新方向。
 由于可怜的三维生物（我们）只有二维视觉，所以只好把四维人眼中的三维视野图像做成半透明的给三维生物们观看，这就是4DViewer所做的。但三维视野图像感觉上就是看一团雾，我们可以选择一些截面去截这个视野。比如我们可以抽取过三维图像中心的x、y、z三个方向的截面，单独放到三个角落上一边观察。
@@ -42,11 +42,13 @@
 
 ## 四维刚体物理引擎
 
+### 请看[教程讲解](https://wxyhly.github.io/archives/newton4/)
+
 ### 一些场景
 
 - 正24胞体骰子[physique/dice.html](https://wxyhly.github.io/4dViewer/physique/dice.html)
 - 四维积木块[physique/cubes.html](https://wxyhly.github.io/4dViewer/physique/cubes.html)
-- 四维汽车 (以后会出教程)[physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html)
+- 四维汽车[physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html)
 - 圆锥锥陀螺[physique/gyro.html](https://wxyhly.github.io/4dViewer/physique/gyro.html)
 - 四维锁链
     +  球环-球环链（一动就会脱）[physique/unlink.html](https://wxyhly.github.io/4dViewer/physique/unlink.html)
@@ -72,6 +74,28 @@
 - ***透明度***  当3D视野中物体复杂时往往太模糊，不便于观察，有时我们希望某些像素变得透明以便观察。按住`Alt+1` `Alt+2` `Alt+3` `Alt+4` 并点击鼠标右键可以存储4种希望透明处理的颜色，只按住Alt键点击将清除所有透明色设置。
 如果渲染帧率过低，可调小节画面分辨率：`Ctrl+,`（或`Alt+,`）为降低，`Ctrl+.`（或`Alt+.`）为升高。
 
+以下为一些渲染设置的快捷键汇总：（`Alt`可替换为`Ctrl`）
+|快捷键|命令|
+|-----|-----|
+|`=`   |增加3D视野层叠数|
+|`-`   |减少3D视野层叠数|
+|`]`   |增加3D视野像素不透明度|
+|`[`   |减少3D视野像素不透明度|
+|`;`   |减小截面视图尺寸|
+|`'`   |增加截面视图尺寸|
+|`,`   |背景变暗|
+|`.`   |背景变亮|
+|`9`   |减小摄像机视角(FOV)|
+|`0`   |提高摄像机视角(FOV)|
+|`C`   |线框模式|
+|`Alt+[`   |线框模式|
+|`Alt+,`   |降低画面分辨率|
+|`Alt+.`   |提高画面分辨率|
+|`Alt+1`   |默认画面配置|
+|`Alt+2`   |3D视野优化配置（隐藏截面、增加层数降、低分辨率）|
+|`Alt+3`   |截面优化配置（取消3D视野叠加、放大截面）|
+|方向键   |调整3D视野显示视角|
+
 ### 太阳控制
 
 关于四维行星、太阳系统请参考[这篇文章](https://wxyhly.github.io/2018/08/12/orbit4d/)。下面仅介绍展开面板中Sun下的参数设置：
@@ -91,4 +115,4 @@
 ## 后续计划
 
 - 四维光线追踪离线渲染器（又要无限搁置了）
-- 四维流体离线模拟
+- 四维流体离线模拟（又双叒叕要无限搁置了）
