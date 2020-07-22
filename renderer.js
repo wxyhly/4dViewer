@@ -176,7 +176,6 @@ Renderer4.prototype.render = function(){
 	var _this = this;
 	if(this.beforeRender)this.beforeRender();
 	var gl = this.gl;
-	this.clearColor(this.bgColor3);
 	//prepare 3d viewport
 	this.viewport4 = Mesh3.cube(2/this.camera4.projectMat.ctg).embed(true).move(new Vec4(0,0,0,1));
 	
@@ -426,6 +425,7 @@ MeshRenderer4.prototype._initGL = function(gl){
 }
 MeshRenderer4.prototype.beforeRender = function(){
 	this._Meshbuffer = [];
+	this.clearColor(this.bgColor3);
 }
 MeshRenderer4.prototype._renderLayers = function(){
 	var displayMode = this.wireFrameMode;

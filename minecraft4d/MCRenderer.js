@@ -102,6 +102,7 @@ MCRenderer4.prototype.writeChunk = function(){
 MCRenderer4.prototype.beforeRender = function(){
 	document.bgColor = "#"+this.bgColor3.toString(16);
 	this.gl.fboProgram.use();
+	this.clearColor(this.bgColor3);
 }
 MCRenderer4.prototype._renderLayers = function(){
 	var mt = 0.99/this.camera4.projectMat.ctg;

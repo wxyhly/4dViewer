@@ -402,6 +402,7 @@ Phy4d.Obj.prototype.wake = function(){
 	this.energy = this.sleepEpsilon*2;
 }
 Phy4d.Obj.prototype.applyForce = function(F,p,t){
+	if(!this.invMass)return 0;
 	this.a.add(F.mul(this.invMass,false));
 	var torque = (p)?F.cross(p.sub(this.getPosition(true),false)):new Bivec();
 	if(t) torque.add(t);
@@ -1061,7 +1062,7 @@ Phy4d.prototype.next = function (){
 				r[1].set(obj._r1[1].mul(dr[1]).norm());
 				obj.w.set(obj._w1.add(obj._b4.add(obj._b1).add(obj._b2.add(obj._b3).mul(2)).mul(dt/6)));
 			}
-			obj.v = new Vec4();
+			//obj.v = new Vec4();
 			if(obj.v.len(1)==0 && obj.w.len(1)==0) obj.changed = false;
 		}
 	}

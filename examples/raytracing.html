@@ -1,0 +1,35 @@
+<html><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script src="../math.js"></script>
+<script src="../shape.js"></script>
+<script src="../webgl.js"></script>
+<script src="../renderer.js"></script>
+<script src="../raytracing.js"></script>
+<script src="../controler.js"></script>
+<script src="../lib/dat.gui.min.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl",{preserveDrawingBuffer: true});
+}
+var loop;
+function start(){
+	var camera = new Camera4(110,0.01,30);
+	camera.position = new Vec4(0,0,0,-1.9);
+	var renderer = new RTRenderer4(gl$("glCanvas"),null,camera,null);
+	var controler = new Controler4.KeepUp(renderer);
+	var gui = new dat.GUI();
+    controler.addGUI(gui);
+    renderer.enableThumbnail = false;
+	loop = function(){
+        controler.needUpdate = true;
+        controler.update(renderer.render.bind(renderer));
+        
+    }
+	loop();
+}
+
+</script>
+<body onload="start()">
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>
