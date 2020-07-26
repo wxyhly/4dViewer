@@ -28,6 +28,7 @@ MCWorld.prototype.loadChunk = function(distance,cx,cz,ct){
 	}
 }
 MCWorld.renderDistance = 4;
+MCWorld.MaxIntersectBlock = 30;
 MCWorld.prototype.generateGeom = function(cx,cz,ct,mesh){
 	var GeomList = [];
 	var distance = Math.floor(MCWorld.renderDistance);
@@ -81,18 +82,25 @@ MCWorld.prototype._findChunk = function(x,y,z,t){
 	var chunk = this.chunks[cx+","+cz+","+ct];
 	return chunk;
 }
-MCWorld.prototype.getBlockId = function(x,y,z,t){
+MCWorld.prototype.getBlockId = function(x,y,z,t,forceLoad){
 	var chunk = this._findChunk(x,y,z,t);
-	if(chunk){
-		var dx = ((x % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
-		var dy = y;
-		if(y<0 || y>=MCChunk.SIZE_Y)return -Infinity;
-		var dz = ((z % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
-		var dt = ((t % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
-		return chunk.bufferData[dx+4*dy+4*32*dz+4*32*4*dt];//chunk.data[dx][dy][dz][dt];
-	}else{
-		return -Infinity; //not loaded yet
+	if(!chunk){
+		if(forceLoad && forceLoad(x,z,t)){
+			var cx = Math.floor(x/MCChunk.SIZE);
+			var cz = Math.floor(z/MCChunk.SIZE);
+			var ct = Math.floor(t/MCChunk.SIZE);
+			this.generateChunk(cx,cz,ct);
+			chunk = this.chunks[cx+","+cz+","+ct];
+		}else{
+			return -Infinity; //not loaded yet
+		}
 	}
+	var dx = ((x % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
+	var dy = y;
+	if(y<0 || y>=MCChunk.SIZE_Y)return -Infinity;
+	var dz = ((z % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
+	var dt = ((t % MCChunk.SIZE) + MCChunk.SIZE) % MCChunk.SIZE;
+	return chunk.bufferData[dx+4*dy+4*32*dz+4*32*4*dt];//chunk.data[dx][dy][dz][dt];
 }
 MCWorld.prototype.setBlockId = function(id,x,y,z,t){
 	if(y<0||y>31)return false;
@@ -300,7 +308,7 @@ MCWorld.prototype.rayCast = function(s, e){
 	// 检测起点方块
 	var id = this.getBlockId(intX1, intY1, intZ1, intT1);
 	if(id > 0) return null; //摄像机埋在了方块内，也忽略，但不继续算后面方块
-	var count = 30; // 最多检测30个方块
+	var count = MCWorld.MaxIntersectBlock; // 最多检测30个方块
 
 	while (count-- >= 0) {
 		
@@ -441,10 +449,13 @@ MCWorld.prototype.rayCast = function(s, e){
 		{
 			--intT1;
 		}
-
+		if (intY1>=32 && direction == 0) // Y+方向
+		{
+			return null;
+		}
 		// 检测新起点方块
 		id = this.getBlockId(intX1, intY1, intZ1, intT1);
-		if(id >0) return {position: new Vec4(intX1, intY1, intZ1, intT1),direction:direction,id:id};
+		if(id >0) return {position: new Vec4(intX1, intY1, intZ1, intT1),direction:direction,id:id,point:start};
 		//所有非空气方块
 	}
 }

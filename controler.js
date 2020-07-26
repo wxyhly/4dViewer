@@ -17,6 +17,8 @@ var Controler4 = function(renderer){
 	//camera3 rotation euler angle:
 	this.rx3 = Math.PI/6;
 	this.ry3 = Math.PI/8;
+	this.retinaRotRangeX = Math.PI/6;
+	this.retinaRotRangeY = Math.PI/3;
 	this.keyConfig = {
 		wireFrame: "C".charCodeAt(0),
 		darker: 188,  //,
@@ -151,22 +153,22 @@ Controler4.prototype._dealRendererSettings = function(){
 	}
 	//retina camera3 control:
 	if(this.keyPressed[this.keyConfig.retinaleft]){
-		if(this.rx3>-Math.PI/6) this.rx3 -= this.retinaStep;
+		if(this.rx3>-this.retinaRotRangeX) this.rx3 -= this.retinaStep;
 		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
 		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.retinaright]){
-		if(this.rx3<Math.PI/6) this.rx3 += this.retinaStep;
+		if(this.rx3<this.retinaRotRangeX) this.rx3 += this.retinaStep;
 		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
 		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.retinaup]){
-		if(this.ry3>-Math.PI/3) this.ry3 -= this.retinaStep;
+		if(this.ry3>-this.retinaRotRangeY) this.ry3 -= this.retinaStep;
 		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
 		this.needUpdate = true;
 	}
 	if(this.keyPressed[this.keyConfig.retinadown]){
-		if(this.ry3<Math.PI/3) this.ry3 += this.retinaStep;
+		if(this.ry3<this.retinaRotRangeY) this.ry3 += this.retinaStep;
 		this.camera3.rotation = new Vec3(1,0,0).expQ(this.ry3).mul(new Vec3(0,1,0).expQ(this.rx3));
 		this.needUpdate = true;
 	}

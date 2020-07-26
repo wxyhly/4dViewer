@@ -1,0 +1,43 @@
+<html><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script src="../../math.js"></script>
+<script src="../../shape.js"></script>
+<script src="../../webgl.js"></script>
+<script src="../../renderer.js"></script>
+<script src="voxelRenderer.js"></script>
+<script src="../../controler.js"></script>
+<script src="4DphotoControler.js"></script>
+<script src="../../lib/dat.gui.min.js"></script>
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl",{preserveDrawingBuffer: true});
+}
+var ctxt$ = function (obj){
+	return document.getElementById(obj).getContext("2d");
+}
+var loop;
+function start(){
+    var controler;
+    var renderer = new VoxelRenderer4(gl$("glCanvas"),ctxt$("2dCanvas"),"renderoutputs/",800,next);
+    renderer.bgColor3 = 0x000000;
+    function next(){
+        controler = new Controler4.PhotoView(renderer);
+        controler.moveStep = 0.02;
+        var gui = new dat.GUI();
+        controler.addGUI(gui);
+        
+        loop();
+    }
+    function loop(){
+        controler.needUpdate = true;
+        controler.update(renderer.render.bind(renderer));
+        window.requestAnimationFrame(loop);
+    }
+}
+
+</script>
+<body onload="start()">
+<canvas id="2dCanvas" width="800" height="800"></canvas>
+<canvas id="glCanvas" width="1600" height="800"></canvas>
+</body>
+</html>

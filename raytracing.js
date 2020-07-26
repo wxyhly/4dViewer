@@ -307,25 +307,14 @@ RTRenderer4.ShaderProgram = {
 			"vec4 V":{}
 		},
 		uniform:{
-			"int chunk":{},
-			"int bloc":{},
-			//sampler2d above
 			"mat4 mCamera3":{},
 			"vec3 Camera4Proj":{},//vec3(ctg,mtt,mtw)
-			"vec3 chunkCenter":{},
 			"float flow":{},//opacity per layer
-			"int renderDistance":{},//opacity per layer
 			"vec4 vCam4":{},"mat4 mCam4":{},//PMat5 Cam4
-			"vec4 light_Dir":{},
 			"vec4 dx4":{},
-			"float light_Density":{},
 			"float TIME":{},
-			"float lineWidth":{},
-			"float ambientLight":{},
 			"vec3 bgColor4":{},
 			"vec4 focusPos":{},
-			"vec3 sunColor":{},
-			"int displayMode":{}//wireFrameMode: 1
 		}
 	}
 }

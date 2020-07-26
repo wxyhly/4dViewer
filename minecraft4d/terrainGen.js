@@ -101,9 +101,9 @@ TerrainGen.prototype.generateTerrain = function(data,cx,cz,ct){
 				var Z = z+dz;
 				var T = t+dt;
 				var h = this.getTerrain_Y(X,Z,T);
-				
 				var level = Math.min(h,MCChunk.SIZE_Y);
 				var river = Info.river;
+				Info.riverLevel = false;
 				if(level<=TerrainGen.TerrainConfig.riverLevel){
 					if(Info.riverDistance<0.4){
 						level = TerrainGen.TerrainConfig.riverLevel;
@@ -117,7 +117,7 @@ TerrainGen.prototype.generateTerrain = function(data,cx,cz,ct){
 				}
 				for(var y = 0; y<level; y++){
 					data[x+4*y+32*4*z+32*4*4*t] = (river<0.5||Info.riverLevel)?(
-						(level<=TerrainGen.TerrainConfig.riverLevel)?8:7
+						(level<=TerrainGen.TerrainConfig.riverLevel)?((y<Math.min(TerrainGen.TerrainConfig.riverLevel-1,Info.SolidTerrain_Y)||y==1)?7:8):7
 					):(Info.sand>0)?(
 						(level-y==1)?7:(level-y==2)?7:1
 					):(
@@ -215,24 +215,25 @@ TerrainGen.prototype.getTerrain_Y = function(X,Z,T,dont){
 	var hill = Math.max(0,this.perlinHill.value(X*scaleHill,Z*scaleHill,T*scaleHill));
 	
 	var river = this.getRiver(X,Z,T,Info);
-	if(river<0.35){
+	var plateux = Math.sin(this.perlinTerrain2.value(X*scale2,Z*scale2,T*scale2)*1.5);
+	if(Math.abs(plateux)>0.6){
+		var decay = (1-Math.abs(plateux))/0.4;
+		heightHill*= decay*decay;
+	}
+	hill *= hill*heightHill;
+	
+	Info.SolidTerrain_Y = Math.round(this.perlinTerrain0.value(X*scale0,Z*scale0,T*scale0)*height0 + (1-river)*river + river* (
+	this.perlinTerrain1.value(X*scale1,Z*scale1,T*scale1)*height1 + plateux * height2 +3 + height2 + hill));
+	
+	Info.hill = hill;
+	Info.river = river;
+	Info.plateux = plateux;
+	if(river<0.4){
 		Info.riverLevel = true;
 		Info.Terrain_Y = TerrainGen.TerrainConfig.riverLevel;
 	}else{
 		Info.riverLevel = false;
-		var plateux = Math.sin(this.perlinTerrain2.value(X*scale2,Z*scale2,T*scale2)*1.5);
-		if(Math.abs(plateux)>0.6){
-			var decay = (1-Math.abs(plateux))/0.4;
-			heightHill*= decay*decay;
-		}
-		hill *= hill*heightHill;
-		
-		Info.Terrain_Y = Math.round(this.perlinTerrain0.value(X*scale0,Z*scale0,T*scale0)*height0 + (1-river)*river + river* (
-		this.perlinTerrain1.value(X*scale1,Z*scale1,T*scale1)*height1 + plateux * height2 +3 + height2 + hill));
-		
-		Info.hill = hill;
-		Info.river = river;
-		Info.plateux = plateux;
+		Info.Terrain_Y = Info.SolidTerrain_Y;
 	}
 	if(dont===false) return Info;
 	return Info.Terrain_Y;

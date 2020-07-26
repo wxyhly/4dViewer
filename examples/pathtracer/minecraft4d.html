@@ -1,0 +1,145 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<script src="../../math.js"></script>
+<script src="../../shape.js"></script>
+<script src="../../sun.js"></script>
+<script src="../../minecraft4.js"></script>
+<script src="../../controler.js"></script>
+<script src="../../renderer.js"></script>
+<script src="MCRTRenderer.js"></script>
+
+<script src="../../minecraft4d/mcloader.js"></script>
+<script src="../../minecraft4d/controler.js"></script>
+<script src="../../minecraft4d/hud.js"></script>
+<script src="../../minecraft4d/command.js"></script>
+
+<script src="../../minecraft4d/terrainGen.js"></script>
+<script src="../../minecraft4d/terrainFlat.js"></script>
+<script src="../../minecraft4d/minecraftStruct.js"></script>
+
+
+<script>
+'use strict';
+var gl$ = function (obj){
+	return document.getElementById(obj).getContext("experimental-webgl");
+}
+var ctxt$ = function (obj){
+	return document.getElementById(obj).getContext("2d");
+}
+var $ = function (obj){
+	return document.getElementById(obj);
+}
+function start(){
+    
+	//HUD.drawLoadingInfo("Loading..");
+	var search = window.location.search.length?window.location.search.replace(/\?en/g,"?").substr(1):"";
+	var terrainGen;
+	if(search=="flat"){
+		terrainGen = new TerrainFlat(Math.random()*1000000);
+	}else{
+		var seed = Number(search);
+		terrainGen = new TerrainGen((search.length && seed>=0)?seed:Math.floor(Math.random()*1000000));
+	}
+	var mcworld = new MCWorld(terrainGen);
+	var terrain = mcworld.terrain;
+	var camera = new Camera4(90,0.01,550);
+	//MCWorld.renderDistance = 12;
+	camera.position = new Vec4(50,30,46,0);
+	var renderer = new MCRTRenderer4(ctxt$("glCanvas"),mcworld,camera);
+	Command.init();
+	var laTerre = new Planet4();
+	initSun(laTerre,terrain.seed);
+	mcworld.time = 0;
+	var count = 0;
+	function loop(){
+        laTerre.setTime(mcworld.time);
+        MCWorld.renderDistance = 2000;
+        MCWorld.MaxIntersectBlock = MCWorld.renderDistance*5;
+		//mcworld.generateGeom(camera.position.x,camera.position.z,camera.position.t,false);
+		renderer.render();
+	}
+	var blocTxtImg = new Image();
+	/*HUD.blocTxtImg = blocTxtImg;
+	HUD.loop = loop;
+	HUD.Saver = new MCSaver(mcworld);*/
+	blocTxtImg.onload = function(){
+        ctxt$("hudCanvas").drawImage(blocTxtImg,0,0);
+		renderer.blocTxtImg = ctxt$("hudCanvas").getImageData(0,0,512,512).data;
+        renderer.blocTxt = [];
+        for(var i=0; i<512; i+=8){
+            renderer.blocTxt[i>>3] = [];
+            for(var j=0; j<512; j+=8){
+                renderer.blocTxt[i>>3][j>>3]= [];
+                for(var k=0; k<8; k++){
+                    renderer.blocTxt[i>>3][j>>3][k]= [];
+                    for(var l=0; l<8; l++){
+                        renderer.blocTxt[i>>3][j>>3][k][l] = (renderer.blocTxtImg[(i + k)*512*4 + (j + l)*4]<<16) + (renderer.blocTxtImg[(i + k)*512*4 + (j + l)*4+1]<<8) + (renderer.blocTxtImg[(i + k)*512*4 + (j + l)*4+2]);
+                    }
+                }
+            }
+        }    
+		loop();
+	}
+	blocTxtImg.src = "../../minecraft4d/texture3d.bmp";
+	//HUD.drawLoadingInfo("Loading Texture..");
+}
+
+function initSun(laTerre,seed){
+	seed *= seed;
+	laTerre.location = {
+		WE: 60, //latitude parallel to south
+		MG: 120, //latitude parallel to north
+		NS: seed%60+15 //longitude
+	}
+	seed *= Math.PI;
+	laTerre.sun = {
+		southernTropic: (seed%30),
+		northernTropic: ((seed*25364.77)%60)+(seed%30),
+		WEPeriod: 365.4, //southern days in one year
+		MGPeriod: 80+((seed<<2)%133) //northern days in one year
+	}
+	seed *= Math.PI;
+	laTerre.initialTime = {
+		northernTime: 11,  //12h00
+		southernTime:10, //9h30
+		season: seed%90 //sun orbit angle
+	}
+	laTerre.timeStep = 1e-6;
+}
+
+</script>
+
+<title>Minecraft4D</title>
+</head>
+<body onload="start()">
+<canvas id="glCanvas" width="1100" height="200"></canvas>
+
+
+<canvas id="hudCanvas" width="512" height="512" style="display: none;"></canvas>
+<br>
+<input id="CMD" width="1100" style="color:#FFF;display:none;background-color:rgba(0,0,0,0.5); border:0;"/><br>
+<input id="loader" type="file" onchange="MCLoader.load(this)" onclick="HUD.togglePause(true);" style="display:none"/>
+<input id="schemaLoader" type="file" onchange="MCWorld.Schema.load(this)" onclick="HUD.togglePause(true);" style="display:none"/>
+<input id="macroLoader" type="file" onchange="MCWorld.Macro.load(this)" onclick="HUD.togglePause(true);" style="display:none"/>
+<style>
+#hudCanvas {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
+#CMD {
+	position: absolute;
+	top: 500px;
+	left: 0px;
+	width:1024px;
+	font-size: 25px;
+	z-index:10;
+}
+body{
+	overflow-x: hidden;
+	overflow-y: hidden;
+}
+</style>
+</body>
+</html>
