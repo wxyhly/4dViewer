@@ -1407,66 +1407,6 @@ Spline.prototype.loft = function(h,cross,loop,keepUp){
 	return cross.loft(f,curve.length - 1,loop==true?false:null);
 }
 
-var Perlin3 = function(seed){
-	this.seed = seed;
-	this._seed = seed;
-	this._p = [];
-	var p = this._p;
-	for(var i=0; i<256; i++){
-		p[i] = i;
-	}
-	var i = 255;
-	while(i--){
-		var x = Math.sin(this._seed++)*6047003;
-		var j = Math.floor((x-Math.floor(x))*i);
-		x = p[i];
-		p[i] = p[j];
-		p[j] = x;
-	}
-	for(var i=0; i<256; i++){
-		p[i+256] = p[i];
-	}
-};
-
-Perlin3.prototype.value = function(x,y,z){
-	var p = this._p;
-	var X = Math.floor(x) & 255;
-	var Y = Math.floor(y) & 255;
-	var Z = Math.floor(z) & 255;
-	x -= Math.floor(x);
-	y -= Math.floor(y);
-	z -= Math.floor(z);
-	function _fade(t){
-		return t * t * t * (t * (t * 6 - 15) + 10);
-	}
-	var u = _fade(x);
-	var v = _fade(y);
-	var w = _fade(z);
-	
-	function _lerp(t,a,b){
-		return a + t * (b - a);
-	}
-	
-	function _grad(hash, x, y, z) {
-		var h = hash & 15;
-		var u = h < 8 ? x : y;
-		var v = h < 4 ? y : (h == 12 || h == 14) ? x : z;
-		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
-	}
-	
-	var A = p[X] + Y, AA = p[A] + Z, AB = p[A + 1] + Z;
-	var B = p[X + 1] + Y, BA = p[B] + Z, BB = p[B + 1] + Z;
-
-	return _lerp(w, _lerp(v, _lerp(u, _grad(p[AA], x, y, z),
-		_grad(p[BA], x - 1, y, z)),
-		_lerp(u, _grad(p[AB], x, y - 1, z),
-		_grad(p[BB], x - 1, y - 1, z))),
-		_lerp(v, _lerp(u, _grad(p[AA + 1], x, y, z - 1),
-		_grad(p[BA + 1], x - 1, y, z - 1)),
-		_lerp(u, _grad(p[AB + 1], x, y - 1, z - 1),
-		_grad(p[BB + 1], x - 1, y - 1, z - 1))));
-}
-
 //useful tools for Mesh4
 
 Mesh4.prototype.update = function(){

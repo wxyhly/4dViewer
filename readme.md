@@ -36,7 +36,7 @@
 
 ### 四维Minecraft [minecraft4d/](https://wxyhly.github.io/4dViewer/minecraft4d/)
 
-### [Minecraft4D 详细教程](https://wxyhly.github.io/programs/mc4tutorial.html)
+### [Minecraft4D 详细教程](https://wxyhly.github.io/archives/mc4tutorial/)
 
 基于随机种子的无限世界，使用鼠标左键破坏、右键放置！目前生物群系有被森林覆盖的平原、小丘陵、湿地和沙漠。
 
@@ -114,5 +114,5 @@
 
 ## 后续计划
 
-- 四维光线追踪离线渲染器（又要无限搁置了）
+- 四维光线追踪离线渲染器（~~又要无限搁置了~~动工一部分了）
 - 四维流体离线模拟（又双叒叕要无限搁置了）

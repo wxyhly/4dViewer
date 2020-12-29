@@ -1,10 +1,10 @@
 Controler4.PhotoView = function(renderer){
 	Controler4.call(this,renderer);
 	
-	this.rotateMouseStep = 100;
+	this.rotateMouseStep = 0.03;
+	this.panMouseStep = 0.01;
 	this.moveStep = 0.01;
 	this.rotateKeyStep = 0.05;
-	this.wheelDeltaStep = 5;
 	this.retinaRotRangeX = Infinity;
     this.retinaRotRangeY = Math.PI/2;
 
@@ -39,6 +39,21 @@ Controler4.PhotoView = function(renderer){
 		if(!!document.pointerLockElement){
 			var x = ev.movementX;
 			var y = ev.movementY;
+			var t = _this.camera4.position.t;
+			if(_this.button == 2){
+				var step = _this.panMouseStep*Math.exp(-t);
+				_this.camera4.position.add(_this.x.mul(-x*step,false));
+				_this.camera4.position.add(_this.y.mul(y*step,false));
+				_this.camera4.position.t = t;
+			}else if(_this.button == 1){
+				_this.camera4.position.add(_this.z.mul(y*_this.panMouseStep*Math.exp(-t),false));
+				_this.camera4.position.t = t + x*_this.panMouseStep;
+			}else if(_this.button == 0){
+				_this.ry3 += y*_this.rotateMouseStep;
+				_this.rx3 += x*_this.rotateMouseStep;
+				_this.ry3 = _this.ry3 > _this.retinaRotRangeY ? _this.retinaRotRangeY : _this.ry3 < - _this.retinaRotRangeY? -_this.retinaRotRangeY : _this.ry3;
+				_this.camera3.rotation = new Vec3(1,0,0).expQ(_this.ry3).mul(new Vec3(0,1,0).expQ(_this.rx3));
+			}
 			//_this._rotateHorizontal(x/_this.rotateMouseStep,y/_this.rotateMouseStep);
 			_this.needUpdate = true;
 		}
@@ -55,7 +70,14 @@ Controler4.PhotoView = function(renderer){
 	document.addEventListener('mousedown', function( ev ) {
 		//canvas onmousedown 在soor鼠标后就失效了，所以还要写document
 		if(!!document.pointerLockElement){
+			_this.button = ev.button;
 			if(_this.onmousedown)_this.onmousedown(ev);
+		}
+	});
+	document.addEventListener('mouseup', function( ev ) {
+		//canvas onmousedown 在soor鼠标后就失效了，所以还要写document
+		if(!!document.pointerLockElement){
+			_this.button = -1;
 		}
 	});
 	this.canvas.addEventListener('click', function( ev ) {
@@ -108,4 +130,20 @@ Controler4.PhotoView.prototype.beforeUpdate = function(){
 	if(this.keyPressed[this.keyConfig.back]){
 		camera.position.t -= Math.min(this.moveStep*dtime,1);
 	}
+}
+Controler4.PhotoView.prototype.addGUI = function(gui){
+	Controler4.prototype.addGUI.call(this,gui);
+	var tr = function(i){
+		if(window.location.search.indexOf("?en")!=-1)return i;
+		return {
+			"Control":"控制",
+			"moveStep":"移动速度",
+		}[i]||i;
+	};
+	var con = gui.addFolder(tr("Control"));
+	con.add(this,"moveStep").name("moveStep");
+	con.add(this,"panMouseStep").name("panMouseStep");
+	con.add(this,"rotateMouseStep").name("rotateMouseStep");
+	con.add(this,"rotateKeyStep").name("rotateKeyStep");
+	gui.add(this.renderer,"nonRiverTransparency",0,0.9);
 }

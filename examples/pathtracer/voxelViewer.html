@@ -9,6 +9,9 @@
 <script src="../../lib/dat.gui.min.js"></script>
 <script>
 'use strict';
+var $ = function (obj){
+	return document.getElementById(obj);
+}
 var gl$ = function (obj){
 	return document.getElementById(obj).getContext("experimental-webgl",{preserveDrawingBuffer: true});
 }
@@ -18,7 +21,8 @@ var ctxt$ = function (obj){
 var loop;
 function start(){
     var controler;
-    var renderer = new VoxelRenderer4(gl$("glCanvas"),ctxt$("2dCanvas"),"renderoutputs/",800,next);
+    var imgseria = $("muupon");
+    var renderer = new VoxelRenderer4(gl$("glCanvas"),ctxt$("2dCanvas"),imgseria,$("2dCanvas").width,next);
     renderer.bgColor3 = 0x000000;
     function next(){
         controler = new Controler4.PhotoView(renderer);
@@ -37,6 +41,7 @@ function start(){
 
 </script>
 <body onload="start()">
+<!--video id="muupon" width="800" height="800" src="/4dViewer/examples/pathtracer/0_1.webm"></video-->
 <canvas id="2dCanvas" width="800" height="800"></canvas>
 <canvas id="glCanvas" width="1600" height="800"></canvas>
 </body>

@@ -8,8 +8,9 @@ uniform mat4 mCamera3;
 uniform vec3 Camera4Proj, bgColor4;
 uniform sampler2D imgTxt;
 uniform int imgdir;
-float opacity(){
-	return float(abs(realCoord.x)<1.0 && abs(realCoord.y)<1.0 && abs(realCoord.z)<1.0)*1.0;//1.0-dot(coord,coord);
+uniform float nonRiverTransparency;
+float opacity(vec3 c){
+	return float(abs(realCoord.x)<1.0 && abs(realCoord.y)<1.0 && abs(realCoord.z)<1.0)*mix(c.b*c.b,1.0,nonRiverTransparency);
 }
 
 void main(void) {
@@ -19,11 +20,11 @@ void main(void) {
     else if(imgdir == 3 || imgdir == 4)
         color1 = texture2D(imgTxt,vec2(realCoord.x,-realCoord.z)/2.0+vec2(0.5,0.5)).rgb;
     else
-        color1 = texture2D(imgTxt,vec2(-realCoord.z,-realCoord.y)/2.0+vec2(0.5,0.5)).rgb;
+        color1 = texture2D(imgTxt,vec2(-realCoord.y,-realCoord.z)/2.0+vec2(0.5,0.5)).rgb;
     gl_FragColor=vec4(
         color1.rgb,
         clamp(
-            flow*(opacity())
+            flow*(opacity(color1))
             ,0.0
             ,1.0
         )
@@ -31,10 +32,17 @@ void main(void) {
 	
 }
 `;
-var VoxelRenderer4 = function(ctxt,ctxt2d,imgdir,imgLayers,onload){
+var VoxelRenderer4 = function(ctxt,ctxt2d,imgdir_o_videoDom,imgLayers,onload){
     Renderer4.call(this,ctxt,null,new Camera4(90,0.1,100));
     this.imgLayers = imgLayers;
-    this.imgdir = imgdir;
+    if(typeof imgdir_o_videoDom == "string"){
+        this.imgdir = imgdir_o_videoDom;
+        this.video = null;
+    }else{
+        this.video = imgdir_o_videoDom;
+        this.imgdir = null;
+    }
+    this.nonRiverTransparency = 0;
     this.ctxt2d = ctxt2d;
     this.onload = onload;
     this.enableThumbnail = false;
@@ -71,6 +79,7 @@ VoxelRenderer4.ShaderProgram = {
 			"int renderDistance":{},//opacity per layer
 			"vec4 vCam4":{},"mat4 mCam4":{},//PMat5 Cam4
 			"float TIME":{},
+			"float nonRiverTransparency":{},
 			"vec3 bgColor4":{},
 			"int imgdir":{}
 		}
@@ -93,20 +102,40 @@ VoxelRenderer4.prototype.initGL = function(gl){
     this._loadImg = this.imgLayers;
     var _this = this;
     var WIDTH = _this.imgLayers;
-    for(var i = 0; i < this.imgLayers; i++)
-        loadImg(this.images,i,check);
-    function loadImg(img,i,callback){
-        img[i] = new Image();
-        img[i].src = _this.imgdir+i+".png";
-        img[i].onload = check.bind(null,i);
+    if(this.video){
+        this.video.playbackRate = 0.8;
+        this.loading = true;
+        this.video.onplay = shot;
+    }else{
+        for(var i = 0; i < this.imgLayers; i++)
+            loadImg(this.images,i,check);
+    }
+    function shot(){
+        var i = Math.floor(_this.video.currentTime*10);
+        if(!_this.imageBuffer[i]) check(i);
+        if(_this.loading && i<WIDTH) setTimeout(shot,80);
+    }
+    function loadImg(img,i){
+        if(_this.video){
+            /*_this.video.currentTime += 0.1;//10 fps +0.1 for 1 frame
+            _this.video.ontimeupdate = check.bind(null,i);*/
+        }else if(_this.imgdir){
+            img[i] = new Image();
+            img[i].src = _this.imgdir+i+".png";
+            img[i].onload = check.bind(null,i);
+        }
     }
     function check(i){
-        _this.ctxt2d.drawImage(_this.images[i],0,0);
+        if(_this.video){
+            _this.ctxt2d.drawImage(_this.video,0,0);
+        }else if(_this.imgdir){
+            _this.ctxt2d.drawImage(_this.images[i],0,0);
+        }
         var imgdata = _this.ctxt2d.getImageData(0,0,WIDTH,WIDTH);
 		_this.imageBuffer[i] = imgdata.data;
         _this._loadImg--;
         if(_this._loadImg>0){
-            console.log("Loaded Image "+i+", rest: "+_this._loadImg);
+            console.log("Error: "+(1-(WIDTH - i - _this._loadImg))+"| Loaded Image "+i+", rest: "+_this._loadImg);
         }else{
             console.log("All Loaded !");
             _this._loadImg = 0;
@@ -114,22 +143,12 @@ VoxelRenderer4.prototype.initGL = function(gl){
             _this._prerenderDir = 0;
             _this._slice = 0;
             smallloop();
+            _this.loading = false;
         }
     }
     function smallloop(){
         var data = _this.ctxt2d.createImageData(WIDTH,WIDTH);
-        var rawData = new Float32Array(WIDTH*WIDTH*3);
-        _this.renders[_this._prerenderDir](rawData,_this._slice);
-        var indice = -1;
-        for(var x = 0; x < WIDTH*WIDTH*3; x++){
-            indice++;
-            if(x&&!(x % 3)){
-                data.data[indice] = 255;
-                indice++;
-            }
-            data.data[indice] = Math.round(rawData[x]);
-        }
-        _this.ctxt2d.putImageData(data,0,0);
+        _this.renders[_this._prerenderDir](data.data,_this._slice);
         _this.imageBufferDir[_this._prerenderDir].push(data.data);
         _this._slice++;
         if(_this._slice>=800){
@@ -137,8 +156,14 @@ VoxelRenderer4.prototype.initGL = function(gl){
             _this._prerenderDir++;
         }
         if(_this._prerenderDir<=1){
-            window.requestAnimationFrame(smallloop);
+            if(_this._slice%4==0){
+                _this.ctxt2d.putImageData(data,0,0);
+                window.requestAnimationFrame(smallloop);
+            }else{
+                smallloop();
+            }
         }else{
+            if(_this.video)_this.video.style.display = "none";
             _this.ctxt2d.canvas.style.display = "none";
             _this.onload();
         }
@@ -146,16 +171,23 @@ VoxelRenderer4.prototype.initGL = function(gl){
     function renderY(rawData, slice){
         var indice = -1;
         var X = 0, Y = 0;
-        for(var x = 0; x < WIDTH*WIDTH*3; x++){
+        var WIDTH_4 = WIDTH*4;
+        var slice_WIDTH_4 = slice*WIDTH_4;
+        var W2_3 = WIDTH*WIDTH*3;
+        var imgY = _this.imageBuffer[Y];
+        for(var x = 0; x < W2_3; x++){
             indice++;
-            if(x&&!(x % 3)){
+            var xm3 = x % 3;
+            if(x&&!xm3){
+                rawData[indice] = 255;
                 indice++;
             }
-            rawData[x] = _this.imageBuffer[Y][slice*WIDTH*4+(X*4)+(x%3)];
-            if(x%3==2){
-                X++;
-                if(X>=WIDTH){
+            rawData[indice] = imgY[slice_WIDTH_4+X+xm3];
+            if(xm3==2){
+                X+=4;
+                if(X>=WIDTH_4){
                     Y++;
+                    imgY = _this.imageBuffer[Y];
                     X = 0;
                 }
             }
@@ -165,20 +197,27 @@ VoxelRenderer4.prototype.initGL = function(gl){
     function renderX(rawData,slice){
         var indice = -1;
         var X = 0, Y = 0;
-        for(var x = 0; x < WIDTH*WIDTH*3; x++){
+        var slice_4 = slice*4;
+        var W2_3 = WIDTH*WIDTH*3;
+        var W_4 = WIDTH*4;
+        var W2_4 = W_4*WIDTH;
+        var imgY = _this.imageBuffer[Y];
+        for(var x = 0; x < W2_3; x++){
             indice++;
-            if(x&&!(x % 3)){
+            var xm3 = x % 3;
+            if(x&&!xm3){
+                rawData[indice] = 255;
                 indice++;
             }
-            rawData[x] = _this.imageBuffer[X][Y*WIDTH*4+slice*4+(x%3)];
-            if(x%3==2){
-                X++;
-                if(X>=WIDTH){
+            rawData[indice] = imgY[X+slice_4+xm3];
+            if(xm3==2){
+                X += W_4;
+                if(X>=W2_4){
                     Y++;
+                    imgY = _this.imageBuffer[Y];
                     X = 0;
                 }
             }
-            
         }
     }
 }
@@ -248,7 +287,8 @@ VoxelRenderer4.prototype._setFboProgramUniform = function(){
 	gl.fboProgram.uniform["vec4 vCam4"].set([this.camera4.position.x,this.camera4.position.y,this.camera4.position.z,this.camera4.position.t]);
 	gl.fboProgram.uniform["vec3 Camera4Proj"].set([matProject.ctg,matProject.mtt,matProject.mtw]);
 	gl.fboProgram.uniform["float flow"].set(this.thickness * this.flow);
-	gl.fboProgram.uniform["int imgdir"].set(this._imgdir);
+    gl.fboProgram.uniform["int imgdir"].set(this._imgdir);
+    gl.fboProgram.uniform["float nonRiverTransparency"].set(this.nonRiverTransparency); 
 	var c = this.bgColor4;
     gl.fboProgram.uniform["vec3 bgColor4"].set([(c >> 16)/256,(c>> 8 & 0xFF)/256,(c & 0xFF)/256]);
 }
