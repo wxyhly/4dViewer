@@ -80,7 +80,11 @@ Planet4.prototype.setSunAndRenderer = function (renderer, sun, sundistance){
 	if(!sun){
 		renderer.light4.mul(-renderer.ambientLight*1.2);
 		//renderer.light4 = new Vec4(1,-1,0,0).norm().div(2);
-		renderer.sunColor = 0xFFFF00 + brightness*0x000001;
+		brightness = y*200+100;
+		if(brightness<=0)brightness = 0;
+		var green = 20 + brightness, blue = (brightness - 2.0) * (brightness - 2.0) / 256.0 + 10.0;
+		renderer.sunColor = 0xFFFF00 + Math.round(green>255?255:green)*0x100 + Math.round(blue>255?255:blue);
+		renderer.light4Density = new Vec3(1,green/255,blue/255).mul(renderer.ambientLight*1.2);
 		return 0;
 	};
 	sun.position = renderer.light4.mul(sundistance,false);

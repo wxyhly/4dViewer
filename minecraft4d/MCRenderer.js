@@ -12,6 +12,7 @@ var MCRenderer4 = function(ctxt,scene4,camera4,light4){
 	Renderer4.call(this,ctxt,scene4,camera4,light4);
 	this.chunkCenter = new Vec4();
 	this.focusPos = new Vec4();
+	this.light4Density = new Vec3();
 	this.lineWidth = 0.1;
 }
 MCRenderer4.prototype = Object.create(Renderer4.prototype);
@@ -50,7 +51,7 @@ MCRenderer4.ShaderProgram = {
 			"vec4 vCam4":{},"mat4 mCam4":{},//PMat5 Cam4
 			"vec4 light_Dir":{},
 			"vec4 dx4":{},
-			"float light_Density":{},
+			"vec3 light_Density":{},
 			"float lineWidth":{},
 			"float ambientLight":{},
 			"vec3 bgColor4":{},
@@ -128,7 +129,7 @@ MCRenderer4.prototype._setFboProgramUniform = function(){
 	gl.fboProgram.uniform["int renderDistance"].set(Math.floor(MCWorld.renderDistance));
 	gl.fboProgram.uniform["vec4 dx4"].set([0,0,0,0]);
 	gl.fboProgram.uniform["float ambientLight"].set(this.ambientLight);
-	gl.fboProgram.uniform["float light_Density"].set(this.light4.len());
+	gl.fboProgram.uniform["vec3 light_Density"].set(this.light4Density.flat());
 	gl.fboProgram.uniform["float lineWidth"].set(this.lineWidth);
 	gl.fboProgram.uniform["vec4 light_Dir"].set(this.light4.norm(false).flat());
 	gl.fboProgram.uniform["vec3 chunkCenter"].set([this.chunkCenter.x,this.chunkCenter.z,this.chunkCenter.t]);
