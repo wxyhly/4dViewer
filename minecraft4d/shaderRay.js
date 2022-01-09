@@ -2,7 +2,7 @@ var MCRenderer_FragmentShader = `
 precision highp float;
 varying vec4 coord;
 varying vec4 coord4;
-uniform float flow,ambientLight;
+uniform float flow,ambientLight,time;
 uniform mat4 mCamera3;
 uniform vec3 Camera4Proj, chunkCenter, bgColor4,sunColor,light_Density;
 uniform vec4 vCam4,dx4,light_Dir, focusPos, N_glass;
@@ -63,8 +63,9 @@ float isWater(float id){
 float isTransparent(float id){
 	return step(step(0.001,id)-isGlass(id),0.5);
 }
-float raycastMC(in vec4 ro, in vec4 rd, out int oID, out vec4 oN, out vec4 oBlc, out vec4 oPos, out int oShadow, out int oGlass){
+float raycastMC(in vec4 ro, in vec4 rd, out int oID, out vec4 oN, out vec4 oBlc, out vec4 oPos, out int oShadow, out int oGlass, out vec4 oRd){
 	// 终点方块坐标
+	oRd = rd;
 	float t;
 	lowp float found = 0.0;
 	lowp float ID;
@@ -84,8 +85,9 @@ float raycastMC(in vec4 ro, in vec4 rd, out int oID, out vec4 oN, out vec4 oBlc,
 	//suppose we are not in the shadow
 	oShadow = 0;
 	oGlass = 0;
+	int glass = 0;
 	float oT;
-	for( int i=0; i<128; i++ ) 
+	for( int i=0; i<96; i++ ) 
 	{
 		//direction selector: a bool vec4, which selects the minimum distance
 		mm = step(dis, dis.yzwx) * step(dis, dis.zwxy) * step(dis, dis.wxyz) * rs;
@@ -104,17 +106,18 @@ float raycastMC(in vec4 ro, in vec4 rd, out int oID, out vec4 oN, out vec4 oBlc,
 			}
 		}
 		if(isWater(ID) > 0.01){
-			oGlass += 3;
+			if(found < 1.5) glass += 3;
 			vec4 mini = (pos-ro + 0.5 - 0.5*rs)*ri;
 			t = max ( mini.x, max ( mini.y, max(mini.z, mini.w) ) );
 				ro = ro + (t - 0.01) * rd;
 				pos -= mm;
-				rd = reflect(rd, mm);
+				rd = reflect(rd, normalize(mm + 0.02*vec4(sin(ro*4.0 + time))));
+				oRd = rd;
 				ri = 1.0/rd;
 				rs = sign(rd);
 				dis = (pos-ro + 0.5 + rs*0.5) * ri;
-		}else if(isGlass(ID) > 0.01){
-			oGlass += 1;
+		}else if(isGlass(ID) > 0.01 && found < 1.5){
+			glass += 1;
 		}else if(ID > 0.001) {
 			found += 1.0;
 			//first hit, then we cal shadow
@@ -126,6 +129,7 @@ float raycastMC(in vec4 ro, in vec4 rd, out int oID, out vec4 oN, out vec4 oBlc,
 				oN = -mm;
 				oID = int(found * ID*256.0 +0.5);
 				oPos = ro + t * rd;
+				oGlass = glass;
 				// break;
 				ri = li;
 				rs = ls;
@@ -147,9 +151,9 @@ float raycastMC(in vec4 ro, in vec4 rd, out int oID, out vec4 oN, out vec4 oBlc,
 vec3 raytracing(vec4 coord4, out int MC_ID){
 	vec4 direct = normalize(coord4);
 	vec4 ro = vCam4+dx4;
-	vec4 MC_NORM, MC_UV, MC_Blc;
+	vec4 MC_NORM, MC_UV, MC_Blc, oRd;
 	int MC_Shadow, MC_GLASS;
-	DISTANCE = raycastMC(ro + vec4(0.4998) ,direct + vec4(0.001,0.002,0.003,0.004), MC_ID, MC_NORM, MC_Blc, MC_UV, MC_Shadow, MC_GLASS);
+	DISTANCE = raycastMC(ro + vec4(0.4998) ,direct + vec4(0.001,0.002,0.003,0.004), MC_ID, MC_NORM, MC_Blc, MC_UV, MC_Shadow, MC_GLASS, oRd);
 	MC_NORM = - MC_NORM;
 	int MC_DIR = 
 	MC_NORM.y>0.5?0:MC_NORM.y<-0.5?1:
@@ -159,7 +163,6 @@ vec3 raytracing(vec4 coord4, out int MC_ID){
 	MC_UV = fract(MC_UV);
 	vec4 int1 = MC_Blc;
 	vec4 N = MC_NORM;
-		
 	float angleCos = dot(N,light_Dir);
 	vec4 uU = N.x != 0.0 ?
 			vec4(0.,0.,1.,0.):
@@ -314,8 +317,8 @@ vec3 raytracing(vec4 coord4, out int MC_ID){
 	vec3 flag = 1.0 - step(3.0,abs(uvw-vec3(4.0,4.0,4.0)));//abs(uvw+vec3(1.0,1.0,1.0)));
 	vec3 sky = bgColor4;
 		vec3 c = mix( MC_ID==0?
-			mix(sunColor*2.0, sky, clamp(pow(dot(direct,light_Dir) + 1.0,0.2),0.0,1.0))
-			:(texture2D(bloc,pixel).rgb*(SO * light_Density + (AO - 4.0)*0.05 + ambientLight)),//贴图颜色*光照
+			mix(sunColor*2.0, sky, pow(clamp(dot(oRd,light_Dir) + 1.0,0.0,1.0),0.2))
+			:(texture2D(bloc,pixel).rgb*(SO * light_Density * 2.0 + (AO - 4.0)*0.05 + ambientLight)),//贴图颜色*光照
 		//阳光 + 环境光遮蔽 + 环境光
 		vec3(1.0,0.0,0.0),
 		(MC_ID==0)?0.0:((1.0-flag.x*flag.y*flag.z)*step(delta.x+delta.y+delta.z+delta.w,0.4)+wireFrame) //与外面红框混合
@@ -334,7 +337,7 @@ void main(void) {
 		gl_FragColor=vec4(vec3(1.0,1.0,1.0)-color1.rgb,1.0);
 	}else{
 		gl_FragColor=vec4(
-			pow(color1.rgb,vec3(0.6)),//,flow*0.8
+			pow(clamp(color1 * (1.6 + 0.5*(light_Dir.y - 1.0)),0.0,1.0),vec3(0.7,0.68,0.66)),//,flow*0.8
 			clamp(
 				flow*0.8+5.0*(1.-smoothstep(4.0,12.0,DISTANCE))*clamp(wireFrame*float(MC_ID),0.0,1.0)
 				,0.0

@@ -88,11 +88,11 @@ MCWorld.prototype.WESpherinder = function(id,radius,length,dir,xc,yc,zc,tc){
 								z0 = -y;
 								y0 = z;
 								break;
-							case "t+":
+							case "w+":
 								t0 = y;
 								y0 = t;
 								break;
-							case "t-":
+							case "w-":
 								t0 = -y;
 								y0 = t;
 								break;
@@ -144,11 +144,11 @@ MCWorld.prototype.WEHspherinder = function(id,radius,length,dir,xc,yc,zc,tc){
 								z0 = -y;
 								y0 = z;
 								break;
-							case "t+":
+							case "w+":
 								t0 = y;
 								y0 = t;
 								break;
-							case "t-":
+							case "w-":
 								t0 = -y;
 								y0 = t;
 								break;
@@ -186,7 +186,7 @@ MCWorld.prototype.WEDuocylinder = function(id,r1,r2,dir,xc,yc,zc,tc){
 								z0 = y;
 								y0 = z;
 								break;
-							case "xt":
+							case "xw":
 								t0 = y;
 								y0 = t;
 						}
@@ -227,7 +227,7 @@ MCWorld.prototype.WETiger = function(id,r1,r2,r3,dir,xc,yc,zc,tc){
 								z0 = y;
 								y0 = z;
 								break;
-							case "xt":
+							case "xw":
 								t0 = y;
 								y0 = t;
 						}
@@ -369,10 +369,10 @@ MCWorld.prototype.WEStack = function(x1,y1,z1,t1,x2,y2,z2,t2,num,dir){//id can b
 		case "z-":
 			dz = -Z;
 			break;
-		case "t+":
+		case "w+":
 			dt = T;
 			break;
-		case "t-":
+		case "w-":
 			dt = -T;
 			break;			
 	}
@@ -467,7 +467,7 @@ MCWorld.prototype.WEMove = function(x1,y1,z1,t1,x2,y2,z2,t2,num,dir,replId){//id
 				}
 			}
 			break;
-		case "t+":
+		case "w+":
 			for(var t = tp; t>=tm; t--){
 				for(var x = xm; x<=xp; x++){
 					for(var y = ym; y<=yp; y++){
@@ -479,7 +479,7 @@ MCWorld.prototype.WEMove = function(x1,y1,z1,t1,x2,y2,z2,t2,num,dir,replId){//id
 				}
 			}
 			break;
-		case "t-":
+		case "w-":
 			for(var t = tm; t<=tp; t++){
 				for(var x = xm; x<=xp; x++){
 					for(var y = ym; y<=yp; y++){
@@ -800,7 +800,7 @@ MCWorld.Schema.prototype.flip = function(dir){
 			for(var z = 0; z<this.sizeZ; z++){
 				Z = dir=='z'? this.sizeZ - z - 1 : z;
 				for(var t = 0; t<this.sizeT; t++){
-					T = dir=='t'? this.sizeT - t - 1 : t;
+					T = dir=='w'? this.sizeT - t - 1 : t;
 					data[offset++] = this.data[T+this.sizeT*(Z+this.sizeZ*(Y+this.sizeY*X))];
 				}
 			}
@@ -810,7 +810,7 @@ MCWorld.Schema.prototype.flip = function(dir){
 	this.ox = dir=='x'? this.sizeX - this.ox - 1 : this.ox;
 	this.oy = dir=='y'? this.sizeY - this.oy - 1 : this.oy;
 	this.oz = dir=='z'? this.sizeZ - this.oz - 1 : this.oz;
-	this.ot = dir=='t'? this.sizeT - this.ot - 1 : this.ot;
+	this.ot = dir=='w'? this.sizeT - this.ot - 1 : this.ot;
 }
 MCWorld.Schema.prototype.rotate = function(dir){
 	var data = new Uint8Array(this.sizeX*this.sizeY*this.sizeZ*this.sizeT);
@@ -829,7 +829,7 @@ MCWorld.Schema.prototype.rotate = function(dir){
 	this.ox = dir=='x'? this.sizeX - this.ox - 1 : this.ox;
 	this.oy = dir=='y'? this.sizeY - this.oy - 1 : this.oy;
 	this.oz = dir=='z'? this.sizeZ - this.oz - 1 : this.oz;
-	this.ot = dir=='t'? this.sizeT - this.ot - 1 : this.ot;
+	this.ot = dir=='w'? this.sizeT - this.ot - 1 : this.ot;
 }
 
 

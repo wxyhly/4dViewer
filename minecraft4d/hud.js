@@ -61,7 +61,7 @@ var HUD = {
 			face += toward.x>thr1 ? "x+ " : toward.x<-thr1?"x- ":"";
 			
 			face += toward.z>thr1 ? "z+ " : toward.z<-thr1?"z- ":"";
-			face += toward.t>thr1 ? "t+ " : toward.t<-thr1?"t- ":"";
+			face += toward.t>thr1 ? "w+ " : toward.t<-thr1?"w- ":"";
 			return ((Math.abs(toward.x)>thr2||Math.abs(toward.z)>thr2||Math.abs(toward.t)>thr2)?"":"~") + face;
 		}
 		fillText("Player At:",w1,20);
@@ -72,7 +72,7 @@ var HUD = {
 		fillText("x:"+trunc(HUD.position.x),w1,30);
 		fillText("y:"+trunc(HUD.position.y),w1,40);
 		fillText("z:"+trunc(HUD.position.z),w1,50);
-		fillText("t:"+trunc(HUD.position.t),w1,60);
+		fillText("w:"+trunc(HUD.position.t),w1,60);
 		
 		var angleSun = -Math.asin(HUD.sunToward.y)/Math.PI*180;
 		fillText("Sun At:",w1,80);
@@ -95,7 +95,7 @@ var HUD = {
 		fillText("Front: "+dealToward(HUD.faceToward.clone()),w2,30);
 		fillText("Left: "+dealToward(HUD.leftToward.clone()),w2,40);
 		fillText("Sidefront: "+dealToward(HUD.sideFrontToward),w2,50);
-		if(HUD.controler.dTime) fillText("FPS: "+Math.round((1000/HUD.controler.dTime)),w2,70);
+		// fillText("FPS: "+Math.round((1000 * HUD.FPS)),w2,70);
 		if(HUD.infoQueue.length){
 			var NOW = new Date().getTime();
 			if(NOW - HUD.infoQueue[0][1]>10000){
@@ -118,8 +118,8 @@ var HUD = {
 				case 3: d="x+";break;
 				case 4: d="z-";break;
 				case 5: d="z+";break;
-				case 6: d="t-";break;
-				case 7: d="t+";
+				case 6: d="w-";break;
+				case 7: d="w+";
 			}
 			
 			fillText("Aimed at "+d+" face of Block: \"minecraft:"+MCWorld.nameList[HUD.focusPos.id]+'"',w3,20);
@@ -127,7 +127,7 @@ var HUD = {
 			fillText("x:"+HUD.focusPos.position.x,w3,30);
 			fillText("y:"+HUD.focusPos.position.y,w3,40);
 			fillText("z:"+HUD.focusPos.position.z,w3,50);
-			fillText("t:"+HUD.focusPos.position.t,w3,60);
+			fillText("w:"+HUD.focusPos.position.t,w3,60);
 		
 		}
 		if(HUD.skipNight){
@@ -226,11 +226,11 @@ var HUD = {
 				zp += b;
 				zm -= a;
 				break;
-			case "t+":
+			case "w+":
 				tp += a;
 				tm -= b;
 				break;
-			case "t-":
+			case "w-":
 				tp += b;
 				tm -= a;
 				break;
@@ -273,11 +273,11 @@ var HUD = {
 				p1.z -= a;
 				p2.z -= a;
 				break;
-			case "t+":
+			case "w+":
 				p1.t += a;
 				p2.t += a;
 				break;
-			case "t-":
+			case "w-":
 				p1.t -= a;
 				p2.t -= a;
 				break;			

@@ -125,11 +125,11 @@ function start(){
 		}
 	});
 	var count = 0;
+	var framestart = new Date().getTime();
 	function loop(){
 		laTerre.setTime(mcworld.time);
 		
 		laTerre.setSunAndRenderer(renderer,null,500);
-		//initialTime = new Date().getTime();
 		if(count%8==0){
 			mcworld.generateGeom(camera.position.x,camera.position.z,camera.position.t,false);
 			renderer.writeChunk();
@@ -155,8 +155,12 @@ function start(){
 		}
 		renderer.focusPos = focus.position;
 		HUD.position = camera.position;
-		HUD.draw();
 		renderer.render();
+		var frameend = new Date().getTime();
+		HUD.FPS = (frameend - framestart);
+		renderer.time += (frameend - framestart)/100;
+		HUD.draw();
+		framestart = frameend;
 		if(HUD.pause!==true)
 			window.requestAnimationFrame(loop);
 	}

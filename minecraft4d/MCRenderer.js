@@ -14,6 +14,7 @@ var MCRenderer4 = function(ctxt,scene4,camera4,light4){
 	this.focusPos = new Vec4();
 	this.light4Density = new Vec3();
 	this.lineWidth = 0.1;
+	this.time = 0.0;//for water wave animation
 }
 MCRenderer4.prototype = Object.create(Renderer4.prototype);
 MCRenderer4.ShaderProgram = {
@@ -47,6 +48,7 @@ MCRenderer4.ShaderProgram = {
 			"vec3 Camera4Proj":{},//vec3(ctg,mtt,mtw)
 			"vec3 chunkCenter":{},
 			"float flow":{},//opacity per layer
+			"float time":{},//for water wave
 			"int renderDistance":{},//opacity per layer
 			"vec4 vCam4":{},"mat4 mCam4":{},//PMat5 Cam4
 			"vec4 light_Dir":{},
@@ -126,6 +128,7 @@ MCRenderer4.prototype._setFboProgramUniform = function(){
 	gl.fboProgram.uniform["vec4 vCam4"].set([this.camera4.position.x,this.camera4.position.y,this.camera4.position.z,this.camera4.position.t]);
 	gl.fboProgram.uniform["vec3 Camera4Proj"].set([matProject.ctg,matProject.mtt,matProject.mtw]);
 	gl.fboProgram.uniform["float flow"].set(this.thickness * this.flow);
+	gl.fboProgram.uniform["float time"].set(this.time);
 	gl.fboProgram.uniform["int renderDistance"].set(Math.floor(MCWorld.renderDistance));
 	gl.fboProgram.uniform["vec4 dx4"].set([0,0,0,0]);
 	gl.fboProgram.uniform["float ambientLight"].set(this.ambientLight);

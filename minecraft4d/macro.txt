@@ -120,3 +120,5 @@ def floor floor-1
 /pos1 ct-1 floor ct-1 ct-rad
 /pos2 ct+1 floor ct+1 ct+rad
 /set stone_brick
+
+/tp ~ ~3 ~ ~
