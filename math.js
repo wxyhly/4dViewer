@@ -792,7 +792,7 @@ Vec3.prototype.expQ = function(angle){
 	if (typeof angle == "undefined"){
 		var g = this.len()/2;
 		var s = Math.sin(g)/g/2;
-		if(Math.abs(g<0.001)) s = 1-g*g/6;
+		if(Math.abs(g<0.001)) s = 1/2-g*g/12;
 		return new Vec4(Math.cos(g),s*this.x,s*this.y,s*this.z);
 	}else{
 		var n = this.norm(false);

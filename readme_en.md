@@ -35,10 +35,10 @@ This is a simple scene with some slopes, a platform and a tunel.
 ### Game Tetraspace remake [examples/tetraspace.html](https://wxyhly.github.io/4dViewer/examples/tetraspace.html?en)
 ([Tetraspace](https://rantonels.itch.io/brane) is a free 4D game. Here I remade first 12 levels from tetraspace in the example.
 
-+ Primary goal: Find the small white hypercube floating in the air without jumping, and touch it to get to the next level. Note: The blue hypercube block can be pushed by walking toward it, and the green hypercube is a laser emitter. You cannot touch the emitter and the laser beam.
-+ Advanced goal: Pass through all levels with 3D retina only (without three cross section thumbnails' help)  (you can press the keyboard `C` to turn on the wireframe mode)
++ Primary goal: Find the small white hypercube floating in the air without jumping. Touch it to get to the next level. Note: The blue hypercube block can be pushed by walking toward it, and the green hypercube is a laser emitter. You cannot touch the emitter and the laser beam.
++ Advanced goal: Pass through all levels with 3D voxel retina only (without three cross section thumbnails' help)  (you can press the keyboard `C` to turn on the wireframe mode)
 
-## Make progress in 4D
+## Take Adventure in 4D
 
 ### 4D version of Minecraft [minecraft4d/](https://wxyhly.github.io/4dViewer/minecraft4d/?en)
 
@@ -119,3 +119,4 @@ the minimum and the maximum latitude value on which sunlight can cast perpendicu
 
 - 4D ray tracing offline renderer
 - 4D fluid?
+- A new 4D render engine "Tesserxel" with WebGPU

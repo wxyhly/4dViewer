@@ -7,8 +7,8 @@ var MCRTRenderer4 = function(ctxt, world, camera){
     this.pixelBuffer = this.createPixelBuffer();
     this.resolutionStep = 1/(this.width>>1);
     this.initUniforms();
-    this.pixel_z = 0;//切片位置(-1 - +1)
-    TerrainGen.TerrainConfig.riverLevel = 5;
+    this.pixel_z = 0.3;//切片位置(-1 - +1)
+    // TerrainGen.TerrainConfig.riverLevel = 5;
 }
 MCRTRenderer4.prototype.createPixelBuffer = function(){
     var pb = [];
@@ -35,17 +35,18 @@ MCRTRenderer4.prototype.putPixelBuffer = function(pb){
     this.ctxt.putImageData(this.imageData,0,0);
 }
 MCRTRenderer4.prototype.initUniforms = function(){
-    var M = new Bivec(-0.13,0,-0.8,0,0.3,0).expQ();
-    this.camera.rotation[0] = M[0];
-    this.camera.rotation[1] = M[1];
+    var M = new Bivec(-0.2,0,0.1,0,0,1.57).expQ();
+    var N = new Bivec(0,0,0,0,1.5,0).expQ();
+    this.camera.rotation[0] = M[0].mul(N[0]);
+    this.camera.rotation[1] = N[1].mul(M[1]);
     var cameraMat = this.camera.coordMat().t();
     this.camera.fov = 67;
     var focuslength = 1/Math.tan(this.camera.fov/180*Math.PI/2);
-    this.camera.r = cameraMat.mul(new Vec4(1,0,1,0)).norm();
-    this.camera.u = cameraMat.mul(new Vec4(-0.5,1,0.5,0)).norm();
+    this.camera.r = cameraMat.mul(new Vec4(1,0,0,0)).norm();
+    this.camera.u = cameraMat.mul(new Vec4(0,1,0,0)).norm();
     this.camera.biais = cameraMat.mul(new Vec4(0,0,this.pixel_z,focuslength));
     this.sunPos = new Vec4(-1.9,0.3,0.0,1.4).norm();
-    this.samples = 1;
+    this.samples = 3;
     this.explosure = 0.3;
     this.sunSize = Math.PI/180*3;
 
@@ -101,7 +102,7 @@ MCRTRenderer4.prototype.renderLine = function(pixel_y,pixel_y_index){
 
 
 MCRTRenderer4.prototype.radiance = function(glFragColor,ray_o, ray_r, depth, state){
-    if(depth>50) return;
+    if(depth>7) return;
     var sunPos = this.sunPos;
     var pos = this.rayCast(ray_o, ray_r.mul(10000,false).add(ray_o),state);
     if(!pos){

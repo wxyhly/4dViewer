@@ -45,7 +45,7 @@ function start(){
 	var terrain = mcworld.terrain;
 	var camera = new Camera4(90,0.01,550);
 	//MCWorld.renderDistance = 12;
-	camera.position = new Vec4(50,30,46,0);
+	camera.position = new Vec4(58,22,-15,-44);
 	var renderer = new MCRTRenderer4(ctxt$("glCanvas"),mcworld,camera);
 	Command.init();
 	var laTerre = new Planet4();
@@ -113,7 +113,7 @@ function initSun(laTerre,seed){
 <title>Minecraft4D</title>
 </head>
 <body onload="start()">
-<canvas id="glCanvas" width="1100" height="200"></canvas>
+<canvas id="glCanvas" width="512" height="512"></canvas>
 
 
 <canvas id="hudCanvas" width="512" height="512" style="display: none;"></canvas>
