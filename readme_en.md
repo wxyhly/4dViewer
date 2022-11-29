@@ -119,4 +119,4 @@ the minimum and the maximum latitude value on which sunlight can cast perpendicu
 
 - 4D ray tracing offline renderer
 - 4D fluid?
-- A new 4D render engine "Tesserxel" with WebGPU
+- A new 4D render engine "[Tesserxel](https://github.com/wxyhly/tesserxel)" with WebGPU
