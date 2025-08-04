@@ -1,7 +1,7 @@
 Imagine that you are a person living in 4D, your eyes can see 3D images instead of 2D because the additional 4th direction makes your retina 3 dimensional.
 The poor 3D creatures (we) only have 2D visions, 3D images can only be seen by making voxels transparent, and this is what 4DViewer does. And we face another problem: Too many overlapping colors could make all things very blur, like a fog cluster. In order to solve this, we can select some cross sections(e.g. cross sections in the direction of x, y and z through retina's center) to cut the 3D retina, and show those cross sections separetly.
 
-## Guide：[Tutorial of 4D Viewer](https://wxyhly.github.io/programs/4dviewertutorial_en.html)
+## Guide：[Tutorial of 4D Viewer](https://wxyhly-en.github.io/archives/eye3d/)
 
 ## First meet
 
@@ -42,14 +42,17 @@ This is a simple scene with some slopes, a platform and a tunel.
 
 ### 4D version of Minecraft [minecraft4d/](https://wxyhly.github.io/4dViewer/minecraft4d/?en)
 
-### [Minecraft4D detailed tutorial](https://wxyhly.github.io/programs/mc4tutorial.html)
+### [Minecraft4D detailed tutorial](https://wxyhly-en.github.io/archives/mc4tutorial/)
 
 infinity 4D Minecraft world based on random seeds, in which you can explore different biomes, build and destroy blocks.
 
 ## 4D rigid body physics engine
 
-### Some scenes
+### Please See the [tutorial](https://wxyhly-en.github.io/archives/newton4/)
 
+### Some scenes
+- 24-cell dice[physique/dice.html](https://wxyhly.github.io/4dViewer/physique/dice.html?en)
+- 4D toy blocks[physique/cubes.html](https://wxyhly.github.io/4dViewer/physique/cubes.html?en)
 - 4D car [physique/car.html](https://wxyhly.github.io/4dViewer/physique/car.html?en)
 - Wheels and Gyros [physique/gyro.html](https://wxyhly.github.io/4dViewer/physique/gyro.html?en)
 - 4D chains
@@ -58,6 +61,8 @@ infinity 4D Minecraft world based on random seeds, in which you can explore diff
  + Spheritorus-Tiger link [physique/st_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/st_tiger_link.html?en)
  + Torisphere-Tiger link [physique/tiger_ts_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_ts_link.html?en)
  + Tiger-Tiger link (one biger and one smaller) [physique/tiger_tiger_link.html](https://wxyhly.github.io/4dViewer/physique/tiger_tiger_link.html?en)
+- 4D cogwheel 1: Mutually driven absolutely perpendicular gears[physique/cogwheel.html](https://wxyhly.github.io/4dViewer/physique/cogwheel.html?en)
+- 4D cogwheel 2: Double-rotation synthesizer[physique/cogwheel2.html](https://wxyhly.github.io/4dViewer/physique/cogwheel2.html?en)
 
 ## Parameters in control panel
 ### Camera settings
